@@ -15,7 +15,7 @@ CREATE TABLE escort.paymentProfile(
     profileDiscount FLOAT(3,1) NOT NULL);   
 
 CREATE TABLE escort.models(
-	id INT PRIMARY KEY,
+	id INT PRIMARY KEY auto_increment,
     name VARCHAR(50) NOT NULL,
     nif INT,
     active CHAR(1) NOT NULL,
@@ -23,33 +23,50 @@ CREATE TABLE escort.models(
 );
 
 CREATE TABLE escort.phones(
-	id INT PRIMARY KEY,
+	id INT PRIMARY KEY auto_increment,
     phone BIGINT NOT NULL,
     modelId INT NOT NULL,
     FOREIGN KEY(modelId) REFERENCES phones(id));
 
 CREATE TABLE escort.mails(
-	id INT PRIMARY KEY,
+	id INT PRIMARY KEY auto_increment,
     mail VARCHAR(255) NOT NULL,
     modelId INT NOT NULL,
     FOREIGN KEY(modelId) REFERENCES models(id));  
-    
+ 
+ -- PROFILE -- HARDCORE -- NUDE
 CREATE TABLE escort.photoCategory(
+	id INT PRIMARY KEY auto_increment,
+    category VARCHAR(30) NOT NULL,
+    price FLOAT(3,1) NOT NULL,
+    active CHAR(1) NOT NULL
+);
+
+CREATE TABLE escort.photoCategoryPriceHistory(
 	id INT PRIMARY KEY,
-    category VARCHAR(30) NOT NULL
+    price FLOAT(3,1),
+    FOREIGN KEY(id) REFERENCES escort.photoCategory(id)
 );    
     
 CREATE TABLE escort.photos(
-	id INT PRIMARY KEY,
+	id INT PRIMARY KEY auto_increment,
     photo BLOB NOT NULL,
     modelId INT NOT NULL,
     active CHAR(1),
     categoryId INT NOT NULL,
+    token VARCHAR(10),
     FOREIGN KEY(modelId) REFERENCES models(id),
     FOREIGN KEY(categoryId) REFERENCES photoCategory(id)); 
     
+CREATE TABLE escort.buyedPhotos(
+	id BIGINT PRIMARY KEY auto_increment,
+    photoId INT NOT NULL,
+    date DATETIME NOT NULL,
+	value FLOAT(3,1)
+);    
+    
 CREATE TABLE mails(
-	id INT PRIMARY KEY,
+	id INT PRIMARY KEY auto_increment,
     mail VARCHAR(255) NOT NULL,
     modelId INT NOT NULL,
     FOREIGN KEY(modelId) REFERENCES models(id));     
@@ -136,6 +153,7 @@ CREATE TABLE escort.userMails(
     userId INT NOT NULL,
     FOREIGN KEY(userId) REFERENCES escort.users(id));     
     
+-- ADMIN MODEL CURRENT_USER    
 CREATE TABLE escort.userProfile(
 	id TINYINT PRIMARY KEY,
     profileName VARCHAR(10)
@@ -145,6 +163,14 @@ CREATE TABLE escort.userPhoto(
 	id INT PRIMARY KEY auto_increment,
     photo BLOB NOT NULL
 );   
+
+-- CHAT VIDEO STREAM COMMENTS
+CREATE TABLE escort.services(
+	id INT PRIMARY KEY,
+    name VARCHAR(30)
+);
+
+CREATE TABLE escort.services
     
 CREATE TABLE escort.users(
 	id INT PRIMARY KEY,
