@@ -1,0 +1,35 @@
+GIT
+	Store data as snapshots of the project over time
+	SVN
+		Store data as changes to a base version of each file
+		
+	GIT as Integrity
+		Everything in GIT is check-summed before it is stored and is then referred to by the checksum.
+		This means it is impossible to change the contents of any file or directory without Git knowing about it.
+		
+	Three States that our files can reside in !!!
+		1 Committed (Safely stored in the database)
+		2 Modified  (Changed but not commited)
+		3 Staged    (Modified file marked to go into our next commit snapshot)
+			This take us to the three main sections of a Git project
+				Git Directory (Where Git stores the metadata and object database for our project, it is what is copied when we clone a repository from another computer)
+				Working Directory (Is a single checkout of one version of our project.)
+				Staging area (Is a file,generally contained in our Git repository that stores information about what will go into out next commit)
+		
+	 Start to track an existing project 		
+		git init			
+			Creates a subdirectory named .git
+		To start version controlling existing files
+			git add *.c
+			git add LICENSE
+			git commit -m "initial project version"
+	  
+     Cloning and Existing Repository
+		git clone
+			Is clone and not checkout because is not just the working copy but is a full copy of nearly all data  that the server as.
+			
+			
+				
+		
+		
+	
