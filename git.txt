@@ -15,6 +15,7 @@ GIT
 				Git Directory (Where Git stores the metadata and object database for our project, it is what is copied when we clone a repository from another computer)
 				Working Directory (Is a single checkout of one version of our project.)
 				Staging area (Is a file,generally contained in our Git repository that stores information about what will go into out next commit)
+		4 Could be Untracked either		
 		
 	 Start to track an existing project 		
 		git init			
@@ -29,7 +30,22 @@ GIT
 			Is clone and not checkout because is not just the working copy but is a full copy of nearly all data  that the server as.
 			
 			
-				
+		git add could start tracking a file or put a modified file on the stage area	
+			Git is very fine grained , we could use the flag "-a" with the git add command , and the stage area is skipped!!!
+			We could use others flags that allow us to commit or stage just the lines we want at file level.
+			
+JBOSS Modular Classloading
+		Modular classloaders over Hierarchical classloaders!!!
 		
-		
-	
+		Hierarchical ClassLoading
+			     CL A                 A classloader has no visibility on into classes loaded by its descendants!!!
+				   |                  If class Foo is loaded by CL B and Foo depends on Baz,then class Baz must be loaded
+				 CL B                 by either classloader A or B.If class Baz is only visible to classloader C or D, then
+                  /\                  a ClassCastException will occur.
+                 /	\                 If class Bar is visible to both CL C and CL D but not to their parent class loaders and if 
+			  CL C  CL D              a request for Bar is sent to both sibling class loaders, THEN EACH CLASSLOADER WILL LOAD ITS
+			                          OWN VERSION OF THE CLASS.Instances of Bar based on classloader C will not be type compatible 
+									  with instances based on class loader D.
+			   
+			   
+				   
