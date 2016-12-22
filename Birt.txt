@@ -1,0 +1,151 @@
+propostaSumarioBean.finalidadesPropostaList
+propostaSumarioBean.sumarioExecutivoIdentificacao
+propostaSumarioBean.sumarioExecutivoOperacoesCHCP
+propostaSumarioBean.sumarioExecutivoOperacoesLDN
+propostaSumarioBean.sumarioExecutivoOperacoesCartaoCredito
+propostaSumarioBean.sumarioExecutivoOperacoesCreditoEspecial
+
+
+
+1:Build the Bean
+	Take an example on FCE
+		fcDocumentosEmpresa.xhtml
+			commandLink value : documentosEmpresaBean.generatePdf
+			DocumentosEmpresaBean.generatePdf
+				BirtBean.generatePdfDocument(this method is generic) Verify if Agile contains one
+		TRY TO REUTILIZE BEAN 
+		ADD elementsToHide to the BirtBean on AGILE!!!
+2:Call link on xhtml
+3:Build "Finalidade" section on rpt design
+
+
+TABLE INNER TABLE 
+	Add Aggregation ?
+	GROUP ?
+	
+	
+How is configured our Birt
+
+		In the REPORT we have the following configured script(I suppose Rhino is used)
+		beforeOpen
+			Define paramName variable
+		openData function
+			use paramName variable to access and get value from params variable
+			Define global variable "list" that contains the value of DataSet!!!
+			Global "count" variable
+			Defines also the "blankLines" and "columns" = this.getColumnMetaData(); ????
+			"objClass" list.get(0).getClass();
+			
+		fetchData is called on fetch event of the DataSet
+			verify if count is less than list.size
+			1 ITERATE OVER COLUMNS VARIABLE 
+			
+			
+
+
+        importPackage(Packages.pt.cgd.agile.proposta.presentation);
+        importPackage(Packages.java.util);
+        // paramName - name of the parameter that contains the list of values
+        // blankLinesArray - Array with the line indexes of a table that are supposed to be blank. Ex. [1, 4]
+        function openData() {
+          if (paramName != null && params[paramName].value != null) {
+            count = 0;
+            list = params[paramName].value;
+            columns = this.getColumnMetaData();
+            blankLines = blankLinesArray;
+
+            // Gets the class of the objects in the list
+            if(list.size() > 0) {
+              objClass = list.get(0).getClass();
+            }
+          }
+        }
+
+        function fetchData(dataSetRow) {
+          if (paramName != null && params[paramName].value != null) {
+            if (count < list.size()) {
+
+            if(skipLastRow == 'true' && count == list.size() - 1) {
+              return false;
+            }
+
+              if(blankLines == null || blankLines.length == 0 || blankLines[0] != count) {
+                for(var i = 1; i < columns.getColumnCount() + 1; i++) {
+                  var columnName = columns.getColumnName(i);
+                  var method = objClass.getMethod("get" + columnName.substring(0, 1).toUpperCase() + columnName.substring(1), null);
+                  dataSetRow[columns.getColumnName(i)]= method.invoke(list.get(count), null);
+                }
+                count++;
+              }
+              else {
+                for(var i = 1; i < columns.getColumnCount() + 1; i++) {
+                  dataSetRow[columns.getColumnName(i)]= "";
+                }
+                blankLines.splice(0,1);
+              }
+            return true;
+            }
+            else { // count = list.size()
+              return false;
+            }
+          }
+          else { // params[paramName].value == null
+            return false;
+          }
+        }
+
+        function clearVariables() {
+          if (paramName != null && params[paramName].value != null) {
+            list = null;
+            objClass = null;
+            columns = null;
+            blankLines = null;
+            paramName = null;
+            blankLinesArray = null;
+            skipLastRow = null;
+          }
+        }
+
+        function wrap(longStr,width){
+          length = longStr.length;
+          if(length <= width) {
+            return longStr;
+          }
+          return (longStr.substring(0, width) + "\n" + wrap(longStr.substring(width, length), width));
+        }
+
+        function wrapNumeroOperacao(longStr){
+          length = longStr.length;
+          if(length <= 14) {
+            return longStr;
+          }
+          longStr = longStr.substring(0, 7) + " " + longStr.substring(7, 11) + "\n" + longStr.substring(11, length);
+          return longStr;
+        }
+        
+         function fillLine(data, addLine) {
+            var splitText = "";
+            var size = (30 + addLine) - (data.length) ;
+        	for(var i = 0; i < size ; i++) {
+				 splitText=splitText + "_";
+			}
+			
+			return splitText +" " +data; 
+        } 
+       
+        function fillLineRight(data, addLine) {
+            var splitText = "";
+            var size = (50 + addLine) - (data.length) ;
+        	for(var i = 0; i < size ; i++) {
+				 splitText=splitText + "_";
+			}
+			
+			return splitText +" " +data; 
+        } 
+        
+			
+			
+			
+			
+
+
