@@ -25,7 +25,7 @@ TABLE INNER TABLE
 	
 	
 How is configured our Birt
-
+sdas
 		In the REPORT we have the following configured script(I suppose Rhino is used)
 		beforeOpen
 			Define paramName variable
