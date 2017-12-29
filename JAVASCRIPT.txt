@@ -288,6 +288,12 @@
 				typeof operator -> determine the object type -> string/boolean/number/undefined/object
 				instanceof operator -> Type of Object
 				
+				typeof is a construct that "returns" the primitive type of whatever you pass it.
+				instanceof tests to see if the right operand appears anywhere in the prototype chain of the left.
+
+				It is important to note that there is a huge difference between the string literal "abc", and the string object new String("abc"). 
+				In the latter case, typeof will return "object" instead of "string".
+				
 			EXECUTION CONTEXT
 				When code is executed in a context,a scope chain of variable objects is create.The front of the scope chain is always the variable object of the context whose code is executing.
 				if the context is a function,then the activation object is used as the variable object!!!An activation object starts with as single defined variable called ARGUMENTS!!!
@@ -324,11 +330,10 @@
 						5 : true
 					};
 
-					We can access object properties through dot notation or through brackets
-						alert(person.name);
-						alert(person["name"]); -> The main adaventage is the ability to use variables for property access or when the property name contains characters that would be either 
-						a syntax error or a reserved keyword
-						person["first name"] = "Nicholas";
+				 We can access object properties through dot notation or through brackets
+					alert(person.name);
+					alert(person["name"]); -> The main adaventage is the ability to use variables for property access or when the property name contains characters that would be either a syntax error or a reserved keyword
+					person["first name"] = "Nicholas";
 						
 			ARRAY TYPE
 				The length property is not READ ONLY, change it will augment or reduce the array.
@@ -545,13 +550,13 @@
 					THE CONSTRUCTOR PROPERTY EXISTS ONLY ON THE PROTOTYPE AND SO IS ACCESSIBLE FROM OBJECT INSTANCES
 					
 					Once a property is added to the object instance,it shadows any properties of the same name on the prototype.Even setting the property to NULL only sets the property on the instance 
-					and does not restore the link to the prototype.The DELETE operator completely removes the instance property and allows prototype property to be acccessed again!!!!
+					and does not restore the link to the prototype.The DELETE operator completely removes the instance property and allows prototype property to be accessed again!!!!
 					
 					The hasOwnProperty method determines if a property exists on the instance or on prototype
 					THE OBJECT.GETOWNPROPERTYDESCRIPTOR() METHOD WORKS ONLY ON INSTANCE PROPERTIES, TO RETRIEVE THE DESCRIPTOR OF A PROTOTYPE PROPERTY WE MUST CALL THE METHOD ON THE PROTOTYPE OBEJCT DIRECTLY.
 					
 					Object.keys() method retrieves a list of all enumerable instance properties on an object.
-					Object.getOwnPropertyNames retrievesa list of all instance properties EITHER ENUMERABLE OR NOT !!!!
+					Object.getOwnPropertyNames retrieves a list of all instance properties EITHER ENUMERABLE OR NOT !!!!
 					
 					Combination Contructor/Prototype Pattern
 					
@@ -579,7 +584,8 @@
 								Person.prototype.sayName = function (){alert(this.name);};
 							}
 						}
-					Parasitic Contructor Pattern
+						
+					Parasitic Constructor Pattern
 						function Person(name,age,job){
 							var o = new Object();
 							o.name = name;
@@ -592,12 +598,14 @@
 						WHEN A CONSTRUCTOR DOES NOT RETURN A VALUE,IT RETURNS THE NEW OBJECT INSTANCE BY DEFAULT , ADDING A RETURN STATEMENT AT THE END OF A CONSTRUCTOR ALLOWS US TO OVERRIDE 
 						THE VALUE THAT IS RETURNED WHEN THE CONSTRUCTOR IS CALLED.
 						
-						This pattern allows to create constructors for objects that may not be possible otherwise.
+						This pattern allows to create constructors for objects that may not be possible otherwise. <---- REASON WE USE IT!!!!
 						
 						function specialArray(){
 							var values = new Array();
 							....
 						}
+						
+						This is exactly the same as the factory pattern except that the function is called as a constructor, using the new operator!!!!!!!
 					
 					Durable Constructor Pattern
 						Refer to objects that have no public properties and whose methods do not reference the this object.
@@ -612,6 +620,8 @@
 							
 							return o;
 						}
+						
+						The name property is ONLY accessed through the method !!!!
 						
 						INHERITANCE
 							Two types of inheritance:
@@ -643,7 +653,7 @@
 						Prototype Chaining has the problem of the prototypes contain references values, they are shared between all instances.
 
 						Combination Inheritance
-							Combines prototype chaining and constructor stealing.The basic ideia is to use Prototype Chaining to inherit properties and methods on the prototype and to use constructor stealing to
+							Combines prototype chaining and constructor stealing.The basic idea is to use Prototype Chaining to inherit properties and methods on the prototype and to use constructor stealing to
 							inherit  instance properties.
 							
 							function SuperType(name){
@@ -654,7 +664,7 @@
 							SuperType.prototype.sayName = function (){alert(this.name);};
 							
 							function SubType(name,age){
-								SuperType.call(name);
+								SuperType.call(this,name);
 								this.age = age;
 							}
 							
@@ -790,7 +800,7 @@
 										
 					BOM
 						Each frame has its own WINDOW object.
-						The top object always point to the very top(outermost) framw,which is the browser window itself.
+						The top object always point to the very top(outermost) frame,which is the browser window itself.
 						Any code written within a frame that references the WINDOW object is pointing to that frame's unique instance rather than the topmost one.
 						Whenever frames are used,multiple Global objects exist in the browser.Since each window object contains the native type constructor,each frame has its own version of the constructor,
 						which are not equal.For example,top.Object is not equal to top.frames[0].Object, which affects the use of instanceof when objects are passed across frames.
@@ -1206,6 +1216,10 @@
 												Access-Control-Allow-Origin: http://www.nczonline.net
 											If this header is missing, or the origins don’t match, then the browser disallows the request. If all is well, then the browser processes the request. 
 											Note that neither the requests nor the responses include cookie information.
+											
+											https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+											Content Type MIMES TYPES
+												https://stackoverflow.com/questions/4007969/application-x-www-form-urlencoded-or-multipart-form-data
 											
 										Preflighted Requests
 												CORS allows the use of custom headers, methods other than GET or POST, and different body content types through a transparent mechanism of 
@@ -4330,7 +4344,795 @@
 											is an element that is seen along side plugins.However this only configures plugins that are actually referenced within the plugins element in the children.
 											The children have the every right to override pluginManagement definitions.
 											
+										https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
+
+										Default lifecycle:
+											validate
+											initialize(set properties , create directories)
+											generate-sources generate any source for inclusion in compilation
+											process-sources filter any values on source code
+											generate-resources
+											process-resources
+											compile
+											process-classes post-process the generated files from compilation(byte code enhancement on Java classes)
+											generate-test-sources
+											process-test-sources
+											generate-test-resources
+											process-test-resources
+											test-compile
+											process-test-classes
+											test
+											prepare-package
+											package
+											pre-integration-test
+											integration-test
+											post-integration-test
+											verify
+											install
+											deploy
 											
+											
+											DEFAULT LIFECYCLE BINDINGS ejb ejb3 war jar rar
+											process-resources -> resources:resources
+											compile - > compiler:compile
+											test    - > surefire:test
+											...
+											
+											POM
+												Super POM
+													defines remote Maven repository
+													can be overriden by custom settings.xml
+													It disables SNAPSHOT artifacts on the central Maven repository.If we need to use a SNAPSHOT repository we need to customize repository settings in our
+													POM of settings.xml
+													The central Maven repository is the default plugin repository.
+													Build element sets the defaults values for directories in the Maven standard directory layout
+													Default versions are provided in the super POM.
+											
+											Snapshot versions
+												Maven versions can contain a string literal to signify that a project is currently under active development. 
+												If a version contains the string "SNAPSHOT" then Maven will expand this token to a date and time value converted to UTC when you install or release this component.
+												If our project has a version of “1.0-SNAPSHOT” and you deploy this project's artifacts to a Maven repository, Maven would expand this version to
+												"1.0-20080207-230803-1" if you were to deploy a release at 11:08 PM on February 7th, 2008 UTC.
+												Why would you use this? SNAPSHOT versions are used for projects under active development. If your project depends on a software component that is under active
+												development, you can depend on a SNAPSHOT release, and Maven will periodically attempt to download the latest snapshot from a repository when you
+												run a build. Similarly, if the next release of your system is going to have a version "1.4", your project would have a version "1.4-SNAPSHOT" version until it was
+												formally released.
+												As a default setting, Maven will not check for SNAPSHOT releases on remote repositories, to depend on SNAPSHOT releases, users must explicitly enable the
+												ability to download snapshots using a repository or pluginRepository element in the POM.
+												
+											Properties references
+												${project.groupId}
+												Maven provides three implicit variables which can be used to access environment variables, POM information, and Maven Settings:
+													env
+													project
+													settings
+													Arbitrary
+														<properties>
+															<foo>bar</foo>
+														</properties>
+														${bar}
+														
+												Scopes
+													compile(default)
+													provided
+													test
+													runtime
+													system
+												Dependency Version Ranges
+													<version>[3.8,4.0)</version>
+													
+											Conflict Resolution
+											
+												There will be times when you need to exclude a transitive dependency, such as when you are depending on a project that depends on another project, but you
+												would like to either exclude the dependency altogether or replace the transitive dependency with another dependency that provides the same functionality.
+												
+												<dependency>
+													<groupId>org.sonatype.mavenbook</groupId>
+													<artifactId>project-a</artifactId>
+													<version>1.0</version>
+													<exclusions>
+														<exclusion>
+														<groupId>org.sonatype.mavenbook</groupId>
+														<artifactId>project-b</artifactId>
+														</exclusion>
+													</exclusions>
+												</dependency>
+												
+											DependencyManagement
+												You'll usually see the dependencyManagement element in a top-level parent POM for an organization or project. Using the dependencyManagement element in a pom.xml 
+												allows you to reference a dependency in a child project without having to explicitly list the version. Maven will walk up the parent-child hierarchy until it finds a 
+												project with a dependencyManagement element, it will then use the version specified in this dependencyManagement element.
+												Dependency management in a top-level POM is different from just defining a dependency on a widely shared parent POM. For starters, all dependencies are
+												inherited. If mysql-connector-java were listed as a dependency of the top-level parent project, every single project in the hierarchy would have a reference to this
+												dependency. Instead of adding in unnecessary dependencies, using dependencyManagement allows you to consolidate and centralize the management
+												of dependency versions without adding dependencies which are inherited by all children. In other words, the dependencyManagement element is equivalent to an
+												environment variable which allows you to declare a dependency anywhere below a project without specifying a version number.
+												
+												Multi-module projects are projects which contain a list of modules to build. A multi-module project always has a packaging of pom, and rarely produces an
+												artifact. A multi-module project exists only to group projects together in a build.
+
+												THERE ARE THREE STANDARD LIFECYCLES IN MAVEN :
+													CLEAN
+													DEFAULT(BUILD)
+													SITE
+													
+													Running mvn clean invokes the clean lifecycle that consists of three lifecycles phases
+														pre-clean
+														clean
+														post-clean
+														
+															The Clean plugin's clean goal clean:clean is bound to the clean phase in the clean lifecycle.
+															When we execute the clean:clean goal we do not do so by executing the goal directly with mvn clean:clean , we do so by executing the clean phase
+															of the clean lifecycle.
+															
+															Process Resources
+																The process-resources phase PROCESSES resources and copies them to the output directory.
+																In addition to copying the resources to the output directory,Maven can also apply a filter to the resources that allows us to replace TOKENS
+																WITHIN resources file!!!
+																Just like variables are referenced in a POM using ${...} notation, you can reference variables in your project's resources using the same syntax.
+																
+																
+								TOKENS (JWT) vs COOKIES
+									https://auth0.com/blog/cookies-vs-tokens-definitive-guide/
+									https://stormpath.com/blog/beginners-guide-jwts-in-java
+									
+								Software Enginner
+									https://www.toptal.com/software/single-responsibility-principle
+									
+								REACT
+								
+									Javascript tools
+										JSBin
+										CodePen
+										JSFiddle
+									https://stormpath.com/blog/crud-application-react-spring-boot-user-authentication
+									
+									EVENT LOOP JAVASCRIPT
+										https://developer.mozilla.org/en-US/docs/Web/JavaScript/EventLoop
+									
+									New ES6 features
+										const
+										let(lexical variable scoping)
+											Create block scopes
+										Template Strings
+											IMPORTANT ---> Template literals are enclosed by the back-tick (` `)  (grave accent) character instead of double or single quotes!!!!
+										Default Parameters
+										Arrow Functions
+									Transpiling 
+										Is the process of convert ES6 code to ES5 code!!!
+										We can transpile Javascript directly in the browser using the inline Babel transpiler.
+										Include the browser.js and any scripts with type="babel/script" will be converted.
+										This approach means that the browser does the transpiling at runtime.This is not a good idea for production because it will slow our application down a lot.
+										
+										Destructuring 
+											http://untangled.io/in-depth-es6-destructuring-with-assembled-avengers/
+										Object Literal Enhancement -> Opposite of Destructuring 
+											http://www.benmvp.com/learning-es6-enhanced-object-literals/
+										Spread Operator
+										Promises(Asynch behaviour)
+											https://developers.google.com/web/fundamentals/primers/promises
+										Classes and inheritance -> JUST SUGAR SYNTAX!!!
+										Modules
+											https://medium.com/sungthecoder/javascript-module-module-loader-module-bundler-es6-module-confused-yet-6343510e7bde
+											https://spring.io/understanding/javascript-modules
+												Inline Scripts
+													Lack of code reusability
+													Lack of dependency resolution
+													Pollution of global namespace
+												Script tags
+													Lack of dependency resolution
+														Order of the files
+													Pollution of global namespace
+													
+												Module Object and IIFE(Module Pattern)
+													We expose only one object to the global scope.The single object contains all the methods and values we need in our application.
+													Like the JQuery object "$" do.
+													Lack of Dependency Resolution: 
+														The order of the files are still important. myApp.js file must come before any other files. And main.js file must come after all other library files.
+													Pollution of global namespace: 
+														Number of global variable is now 1, but is not zero yet.
+												CommonJS
+													Is not a Javascript library.It is a standardization organization!!!
+													It is like ECMA or W3C.ECMA defines the language specification for Javascript.
+													W3C defines Javascript wen API,such as DOM and DOM events.
+													The goal of CommonJS is to define common APIs for web server,desktop and command line applications.
+													
+													CommonJS also defines APIs for module.Since there is no HTML page and no <script> tag on server application,it makes sense to have some clear APIs for modules.
+													
+													The problem with CommonJs style module definition is that it is synchronous. 
+													When you call 'var add=require('add');', the system will be on halt until the module is ready. 
+													This mean this line of code will freeze the browser while all the modules are being loaded. 
+													So this may not be the best way to define modules for browser side application.
+													To transfer module syntax from server usage to browser usage, CommonJS proposed several module formats, "Module/Transfer". 
+													One of the proposals, "Module/Transfer/C" later become Asynchronous Module Definition (AMD).
+													
+													define(['add', 'reduce'], function(add, reduce){
+													  return function(){...};
+													});
+													
+													This "define" function is defined on the require.js file !!!!
+													The "define" function takes a list of dependencies and a callback function as arguments.The arguments for the callback function WILL BE THE SAME ORDER OF 
+													DEPENDENCIES IN THE ARRAY!!!This is equivalent to importing modules and the CALLBACK FUNTION RETURNS A VALUE,WHICH IS THE VALUE WE EXPORT.
+													
+													REQUIREJS
+														RequireJS is a JavaScript library and file loader which manages the dependencies between JavaScript files and in modular programming. 
+														It also helps to improve the speed and quality of the code.
+														WITH REQUIREJS WE CAN WRITE AMD STYLE MODULE!!!!
+														
+														In the html page we only use one <script> tag 
+														<script data-main="main" src="require.js"/>
+														-------------------------------------------------------------------------
+														define(['sum'],function(sum){
+															var values = [1,2,3,4];
+															var answer = sum(values);
+															document.getElementById("answer").innerHTML = answer;
+														})
+														------------------------------------------------------------------------- main.js
+														-------------------------------------------------------------------------
+														define(['add','reduce'],function(add,reduce){
+															var sum = function(arr){
+																return reduce(arr,add);
+															}
+															return sum;
+														})
+														-------------------------------------------------------------------------sum.js
+														define([],function(){
+															var add = function(a,b){
+																return a + b;
+															};
+															return add;
+														})
+														-------------------------------------------------------------------------add.js
+														
+													The "data-main" attribute tells RequireJS to where is the starting point of our application.By default,it assumes that all files have .js extension.
+													So it is ok to omit '.js' file extension.
+													
+													RequireJs and AMD solves all the problems we had before, however it creates other slightly less serious problems:
+													
+													AMD syntax is too verbose. Since everything is wrapped in "define" function, there are extra indentation for our code. 
+													With a small files, it is not much problem, but for a large code base, it can be mentally taxing.
+													List of dependencies in the array must match the list of arguments in the function. 
+													If there are many dependencies, it can be hard to maintain the order of the dependencies. 
+													If you have dozens of dependencies in your module, and later if you had to remove one in the middle, it can be difficult to find matching module and argument.
+													With current browsers(HTTP 1.1), loading many small files can degrade the performance.
+													
+													Because of these reasons, some people want to use CommonJS syntax, instead. But CommonJS syntax is for server and synchronous, right? 
+													Browserify is here to rescue you! With Browserify, you can use CommonJS module in browser application. Browserify is a module bundler. 
+													Browserify traverse the dependency tree of your codes and bundle them up in a single file.
+													Unlike RequireJS, Browserify is a command line tool. You will need NodeJS and NPM to install it.
+													
+												ES6 Module Syntax
+													Browsers are not ready for this new syntax.
+													There are tools available that allows us to use ES6 module syntax.
+													1:WEBPACK
+														Requires a little bit of bootstrapping and configuration, is a Javascript command line tool, need NodeJs and NPM.
+													2:ROLLUP
+													3:SYSTEMJS
+													4:JSPM
+													
+									FUNCTIONAL PROGRAMMING WITH JAVASCRIPT
+										Javascript supports functional programming because Javascript functions are first-class citizens.This means that functions can do the same things that variable can do.
+										
+										Core concepts
+											Immutability
+												Instead of changing the original data structures,we build changed copies of those data structures and use them instead.
+											Pure Functions
+												Returns a value that is computed based on its arguments.
+												Pure functions take at least one argument and always return a value or another function.
+												THEY DO NOT CAUSE SIDE EFFECTS,SET GLOBAL VARIABLES OR CHANGE ANYTHING ABOUT APPLICATION STATE.
+												THEY TREAT ARGUMENTS AS IMMUTABLE DATA.
+												
+												const frederick = {
+													name : "",
+													canRead : true,
+													canWrite : false
+												}
+												
+												const selfEducated = person => (
+													{
+														...person,
+														canRead : false,
+														canWrite : false
+													}
+												)
+												
+												We can transform arrays with Array.map and Array.filter , we can combine Object.keys with Array.map to transform arrays into objects.
+												To transform arrays into primitives and into another objects we will use reduce and reduceRight functions.
+												MAP AND REDUCE ARE THE MAIN WEAPONS OF ANY FUNCTIONAL PROGRAMMER
+												
+											Recursion	
+											Composition	
+												Chaining is one of the composition techniques
+												
+												const both = date => appendAMPM(civilianHours(date));
+												THIS SYNTAX IS HARD TO COMPREHEND AND THEREFORE TOUGH TO MAINTAIN OR SCALE.
+												
+												const both = compose(
+													civilianHours,
+													appendAMPM
+												)
+												
+												both(new Date());
+												
+												const compose = (...fns) =>
+													(arg) =>
+														fns.reduce((composed,f)=>f(composed),arg)
+														
+										REACT
+											React is a library that is designed to update the browser DOM for us.With react we do not interact with the DOM Api directly.Instead,we interact with a 
+											virtual DOM.The virtual DOM is made up of React elements,which conceptually seem similar to HTML elements,but are actually Javascript objects.
+											IT IS MUCH FASTER TO WORK DIRECTLY WITH JAVASCRIPT OBJECTS THAN IT IS TO WORK WITH THE DOM API!!!!
+											
+											React elements
+												React.createElement("h1",null,"Baked Salmon")
+													rendering -> <h1>Baked Salmon</h1>
+													
+												With properties
+													React.createElement("h1",{id : "recipe-0",'data-type' : "title"},"Baked Salmon");
+													<h1 data-reactroot id="recipe-0" data-type="title">Baked Salmon</h1>
+													
+													data-reactroot will always appear as an attribute of the root element of our React component.Prior to version 15,React IDs were added to each node
+													that was part of our component.This helped with rendering and keeping track of which elements needed to be updated.
+													So a React element is just a Javascript literal that tells React how to construct the DOM element.
+													
+													{
+													  $$typeof : Symbol(React.element),
+													  "type" : "h1",
+													  "key"  : null,
+													  "ref"  : null,
+													  "props" : {"children" : "Baked Salmon"},
+													  "_owner" : null,
+													  "_store" : {}
+													}
+													
+													ReactDOM contains the tools necessary to render React elements in the browser.
+														var dish = React.createElement("h1",null,"Baked Salmon");
+														ReactDOM.render(dish,document.getElemntById('react-container'))
+														
+														<body>
+															<div id="react-container">
+																<h1>Baked Salmon</h1>
+															</div>
+														</body>
+														
+													<ul>
+														<li>1 lb Salmon</li>
+														<li>1 cup Pine Nuts</li>
+														<li>2 cups Butter Lettuce</li>
+													</ul>
+													
+													React.createElement(
+														"ul",
+														null,
+														React.createElement("li",null,"1 lb Salmon"),
+														React.createElement("li",null,"1 cup Pine Nuts"),
+														React.createElement("li",null,"2 cups Butter Lettuce")
+													);
+													
+													{
+														type:"ul",
+														"props":{
+															"children":[
+																{type:"li",props:{"children":"1 lb Salmon"}},
+																{type:"li",props:{"children":"1 cup Pine Nuts"}},
+																{type:"li",props:{"children":"2 cups Butter Lettuce"}}
+															]
+														}
+													}
+													
+													className
+														ANY ELEMENT THAT HAS AN HTML CLASS ATTRIBUTE IS USING CLASSNAME FOR THAT PROPERTY INSTEAD OF CLASS!!!
+														SINCE CLASS IS A RESERVED WORD IN JAVASCRIPT,WE HAVE TO USE CLASSNAME TO DEFINE THE CLASS ATTRIBUTE OF AN HTML ELEMENT.
+														
+												React Components
+													Components allows us to reuse the same DOM structure for different sets of data.
+													
+													Create components
+													
+														When react was introduced in 2013,there was only one way to create a component:the createClass function.
+														In the future this function could be deprecated.
+														
+														The following example is very important :
+														
+															 const ingredientsList = React.createClass({displayname : "IngredientsList",
+																									   render(){
+																										return React.createElement("ul",{className : "ingredients"},
+																										this.props.items.map((ingredient,i)=> React.createElement("li",{key:i},ingredient))
+																										)
+																									   }
+																									})
+														   
+														   The render function will be called on an object context , so we gonna use the THIS keyword.
+														   
+														   const items = ["First","Second","Third","Fourth"];
+														   
+														   ReactDOM.render(
+															React.createElement(ingredientsList,{items},null),
+															document.getElementById("react-container")
+															);
+															
+															The object returned from "React.createElement(ingredientsList,{items},null)" has a prototype of the type ReactClassComponent
+																{
+																	$$typeof : Symbol(react.element),
+																	type : function(props,context,updater)...
+																			prototype -> ReactClassComponent
+																	props:{Children:null,
+																	       items : ["First","Second","Third","Fourth"]
+																		   }		
+																}
+																
+																We can only access the item property inside the render function because the 
+																ingredientsList render function is called with the element in context.
+																
+																Example :
+																	var first = {display : "displayTest",render(){console.log(this.props)}};
+																	var second = function(obj1,props){
+																		return {obj1: obj1 ,"props" : props};
+																	}
+																	 var third = second(first,"teste");
+																	 third.obj1.render.apply(third); -> THIS WAY WE GET ACCESS TO THE "teste" value
+																		IF WE JUST CALL ,  third.obj1.render() -> It will not have access to the "third" object!!!
+																		
+																		TREE
+																			THIRD OBJECT
+																				----------------------------------
+																				|  OBJ1|render()   |      		  |
+																				|      |           |              |
+																				|      |___________|              |
+																				|  PROPS                          |
+																				|                                 |
+																				|                                 |
+																				|---------------------------------
+																
+																		In the image bellow we can see that the OBJ1 does not have access to the outer object!!!
+																		Module pattern
+																			var singleton = function(){
+																				var privateVariable = 10;
+																				
+																				function privateFunction(){
+																					return false;
+																				}
+																				
+																				return {
+																					publicProperty : true,
+																					publicMethod : function(){
+																						privateVariable++;
+																						return privateFunction();
+																					}
+																				}
+																			}();
+																			
+														THE COMPONENTS ARE OBJECTS , THEY CAN BE USED TO ENCAPSULATE CODE JUST LIKE CLASSES.
+														When creating elements with components , we use the component class directly.(React.createElement(IngredientsList,{items},null))
+														This is why IngredientsList is not surrounded in quotation marks,we are passing the class to createElement because it is a component.
+														
+													One of the key features in the ES6 spec is React.Component, an abstract class that we can use to build new React components.
+													We can create custom components through inheritance by extending this class with ES6 syntax.
+													
+													class IngredientsList extends React.Component {
+														renderListItem(ingredient,i){
+															return React.createElement("li",{key : i},ingredient)
+														}
+														
+														render(){
+															return React.createElement("ul",{className : "ingredients"},
+																	 this.props.items.map(this.renderListItem)
+																)
+														}
+													}
+													
+													Stateless functional Components
+														Stateless functional components are functions,not objects:therefore they do not have a "this" scope.
+														Because they are simple,pure functions,we will use them as much as possible in our applications!!!!
+														They take in properties and return DOM element.Stateless functional components are a good way to practice the 
+														rules of functional programming.We should strive to make each Stateless Functional Component a pure function.
+														They should take in props and return a DOM element without causing side effects
+														
+														const IngredientsList = (props) => 
+															React.createElement("ul",{className : "ingredients"},
+																props.items.map((ingredient,i)=> React.createElement("li",{key : i},ingredient)))
+																
+														Using destructuring
+															const Ingredients = ({items}) = > ....
+															
+												FACTORIES
+													Another way to create elements is to use FACTORIES.A factory is a special object that can be used to abstract aways the details of 
+													instantiating objects.
+														React.DOM.h1(null,"Baked Salmon");
+														React.DOM.ul({"className":"ingredients"},
+															React.DOM.li(null,"First"),
+															React.DOM.li(null,"Second"),
+															React.DOM.li(null,"Third"),
+															React.DOM.li(null,"Fourth"));
+															
+															SEPARATE THE INGREDIENT DATA:
+																var items = ["first","second","third","fourth"];
+																var list = React.DOM.ul({className : "ingredients"},items.map((ingredient,key)=>React.DOM.li({key},ingredient))
+																
+													Using factories with components :
+													
+															const {render} = ReactDOM;
+														const IngredientsList = ({list}) => React.createElement("ul",null,
+															list.map((ingredient,i)=>React.createElement("li",{key:i},ingredient)))
+															
+															const Ingredients = React.createFactory(IngredientsList);
+															
+															const list = ["First","Second","Third","Fourth"];
+															render(Ingredients({list}),document.getElementById('react-container'));
+															
+												REACT WITH JSX
+													<ul>
+														<li>First</li>
+														<li>Second</li>
+														<li>Third</li>
+														<li>Fourth</li>
+													</ul>
+													
+													JSX works with components as well!!!
+														Define the component using the class name:
+															React.createElement(IngredientsList,{list:[...]});
+															<IngredientsList list={[...]}/>
+																When we pass the array of ingredients to this components,we need to surround it with curly braces.This is called a Javascript expression.
+																NESTED COMPONENTS
+																<IngredientsList>
+																	<Ingredient/>
+																	<Ingredient/>
+																	<Ingredient/>
+																</IngredientsList>
+																
+														Javascript expressions
+															<h1>{this.props.title}</h1>
+															
+													Mapping Arrays to JAVASCRIPT
+														<h1>
+															{this.props.ingredients.map((ingredient,i)=> <li key={i}>{ingredient}</li>)}
+														</h1>
+														
+											Babel
+												Transpiling
+													<!DOCTYPE html>
+													<html>
+														<head>
+															<meta charset="utf-8">
+															<title></title>
+														</head>
+														<body>
+															<div class="react-container"></div>
+															
+															<script src="https://unpkg.com/react@15.4.2/dist/react.js"></script>
+															<script src="https://unpkg.com/react-dom@15.4.2/dist/react-dom.js"></script>
+															<script src="https://cdnjs.cloudfare.com/ajax/libs/babel-core/5.8.29/browser.js"></script>
+															<script type="babel/text">
+																//JSX code here or link to separate Javascript file that contains JSX
+															</script>
+															
+														</body>
+													</html>
+													
+													
+											const data = [{
+												"name" : "First",
+												"ingredients" : [{"name" : , "amount":,"measurement"}],
+												"steps" : ["",""]
+											}]
+
+											const Recipe = ({name,ingredients,steps}) =>
+												<section id={name.toLowerCase().replace(/ /g,"-")}>
+													<h1>{name}</h1>
+													<ul className="ingredients">
+														ingredients.map((ingredient,i)=>
+															<li key={i}>{ingredient.name}</li>)
+													</ul>
+													<section className="instructions">
+														<h2>Cooking Instructions</h2>
+														{steps.map((step,i)=>
+															<p key={i}>{step}</p>)}
+													</section>
+												</section>
+												
+											const Menu = ({title,recipes})=>	
+											
+											ReactDOM.render(
+												<Menu recipes={data} title="Delicious Recipes" />
+											)
+											
+												WEBPACK(module bundler,bundling CommonJS modules)
+													A module bundler takes all of our different files(Javascript,LESS,CSS,JSX,ES6 and so on) and turns them into a single file.
+													
+													WebPack loaders
+														A loader is a function that handles the transformation that we want to put our code through during the build process.
+														If our application uses ES6,JSX,CoffeeScript and other languages that can not be read natively by the browser we will specify the necessary
+														loaders in the webpack.config.js file to do the work of converting the code into syntax that can be read natively by the browser.
+														
+												
+											Property Validation
+												React.PropTypes.array
+												...
+												
+												const Summary = createClass({
+													displayName : "Summary",
+													propTypes : {
+														ingredients : PropTypes.array.isRequired,
+														steps : PropTypes.array,
+														title : PropTypes.string,
+													},
+													getDefaultProps(){
+														return {
+															ingredients : 0,
+															steps : 0,
+															title : "[recipe]"
+														}
+													},
+													render() {
+														const {ingredients,steps,title} = this.props
+														return(
+															<div className="summary">
+																<h1>{title}</h1>
+																<p>
+																	<span>{ingredients.length} Ingredients </span>
+																	<span>{steps.length} Steps</span>
+																</p>
+															</div>	
+															)
+													}
+												})
+											
+											Custom Property Validation
+												propTypes : {
+													ingredients : PropTypes.number,
+													steps : PropTypes.number,
+													title : (props,propName) => (typeof props[propName] !== 'string' ? new Error("...") : (props[propName].lenght > 20) ?new Error("...") : null)
+												}
+												
+											REFS
+												class AddColorForm extends Component{
+													constructor(props){
+														super(props)
+														this.submit = this.submit.bind(this)
+													}
+													submit(e){
+														const{_title,_color} = this.refs
+														e.preventDefault();
+														alert("New Color : ${_title.value} ${_color.value}")
+														_title.value = '';
+														_color.value = '#000000';
+														_title.focus()
+													}
+													render(){
+														return(
+															<form onSubmit={this.submit}>
+																<input ref="_title" type="text" placeHolder="color title..." required />
+																<input ref="_color" type="color" required />
+																<button>ADD</button>
+															</form>
+														)
+													}
+												}
+												
+												With ES6 component classes , we must bind the scope of the component to any methods that need to access that scope with THIS.
+												WHEN USING  REACT.CREATECLASS TO CREATE OUR COMPONENTS,THERE IS NO NEED TO BIND THE THIS SCOPE TO OUR COMPONENT METHODS.
+												REACT.CREATECLASS AUTOMATICALLY BINDS THE THIS SCOPE FOR US!!!
+												
+												INVERSE DATA FLOW
+												
+													A common solution to collect data from a React Component is INVERSE DATA FLOW.It is similar to and sometimes described as ,TWO-WAY DATA BINDING.
+													It involves sending a callback function to the component as a property that the component can use to pass data back as arguments.
+													It is called inverse data flow because we send the component a function as a property,and the component sends data back as function arguments.
+													
+													const logColor = (title,color) = > console.log("New Color ${title} ${color}")
+													
+													<AddColorForm onNewColor={logColor} />
+													
+													submit(){
+														const {title,color} = this.refs
+														this.props.onNewColor(_title.value,_color.value)
+														_title.value = ''
+														...
+													}
+													
+													Refs can also be used in stateless functional components.THESE COMPONENTS DO NOT HAVE THIS,SO IT IS NOT POSSIBLE TO USE THIS.REFS
+													
+													const AddColorForm = ({onNewColor=f=f}) =>{
+														let _title,_color
+														const submit = e => {
+															e.preventDefault()
+															onNewColor(_title.value,_color.value)
+															_title.value = ''
+															_color.value = '#0000'
+															_title.focus()
+															
+														}
+														return (
+															<form submit={submit}>
+																<input ref={input => _title = input} type="text" required />
+																<input ref={input => _color = input} type="color" required />
+																<button>ADD</button>
+														)
+													}
+													
+													In this stateless functional component,refs are set with a callback function instead of s string.The callback function passes the element's instance as an
+													argument.
+													
+													React State Management
+													
+													WE CANNOT USE STATE IN A STATELESS FUNCTIONAL COMPONENT !!!!
+													STATELESS FUNCTIONAL COMPONENTS ARE MEANT TO BE THE CHILDREN OF MORE COMPLEX,STATEFUL COMPONENTS.
+													
+													Thus far we have only used properties to handle data in React components.Properties are immutable.Once rendered,a component's properties do not change.
+													(The example that i was thinking was related with the onClick  in the refs example, but in that case the UI is not being rendered again)
+													
+													
+													!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! A REFRESH ON THE MATTER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+													
+														The most and central important element in the react is the ELEMENT!!!!
+														
+														
+													{
+													  $$typeof : Symbol(React.element),
+													  "type" : "h1",
+													  "key"  : null,
+													  "ref"  : null,
+													  "props" : {"children" : "Baked Salmon"},
+													  "_owner" : null,
+													  "_store" : {}
+													}
+													
+													Like we see , the element contains two important properties that we already use them :
+														PROPS 
+															  In this property is stored all the children of this element and all the parameters that are passed to it
+															  in the form of an object !!!!
+														REF
+															Property that contains all the properties that are referenced by callback functions!!!!
+														
+														Than we have the COMPONENTS
+															Could be created through three methods
+																1 : createClass
+																2 : class keyword
+																3 : stateless
+																
+																Components allow us to use data to build a reusable UI.In the render function,we can use the THIS keyword to refer to the
+																COMPONENT instance.
+																DATA CAN BE PASSED TO REACT COMPONENTS AS PROPERTIES:
+																	React.createElement(IngredientsList,{item},null)
+																	
+														Validating Props with createClass
+															
+															const Summary = createClass({
+																displayName: "Summary",
+																render() {
+																	const {ingredients, steps, title} = this.props
+																	return (
+																		<div className="summary">
+																			<h1>{title}</h1>
+																			<p>
+																				<span>{ingredients.length} Ingredients</span> |
+																				<span>{steps.length} Steps</span>
+																			</p>
+																	   </div>
+																	)
+																}
+															})
+															
+													JSX ->  <Summary title="Peanut Butter and Jelly"
+															   ingredients="peanut butter, jelly, bread" 
+															   steps="spread peanut butter and jelly between bread" />
+															   
+													ES5 -> createElement(Summary,{title : "",ingredients : "",steps :},null)
+													
+													{
+														props : {children : [],
+														         title : "",
+																 ingredients : "",
+																 steps ""}
+													}
+																
+																
+														
+										Web Workers
+										Web Storage
+											
+									
+												
 											
 											
 										
