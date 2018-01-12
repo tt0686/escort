@@ -5060,6 +5060,7 @@
 													
 													Thus far we have only used properties to handle data in React components.Properties are immutable.Once rendered,a component's properties do not change.
 													(The example that i was thinking was related with the onClick  in the refs example, but in that case the UI is not being rendered again)
+													REACT STATE IS A BUILT IN OPTION FOR MANAGING DATA THAT WILL CHANGE WITHIN A COMPONENT.
 													
 													
 													!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! A REFRESH ON THE MATTER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -5087,7 +5088,11 @@
 														Than we have the COMPONENTS
 															Could be created through three methods
 																1 : createClass
+																	When using this createClass function to create our components,there is no need to bind the THIS scope to our component methods.
+																	React.createClass automatically binds the THIS scope for us.
 																2 : class keyword
+																	we will need to add a constructor to this ES6 component class when we use another functions besides the RENDER!!!
+																	We must bind the scope of the component to any methods that need to access that scope with THIS!!!
 																3 : stateless
 																
 																Components allow us to use data to build a reusable UI.In the render function,we can use the THIS keyword to refer to the
@@ -5126,7 +5131,383 @@
 																 steps ""}
 													}
 																
-																
+										State can be expressed in React components with a single Javascript object.When the state of a component chnages,the components renders a new UI that reflects those
+										changes
+											
+											const StarRating = createClass({
+												displayName: 'StarRating',
+												propTypes: {
+													totalStars: PropTypes.number
+												}, 
+												getDefaultProps() {
+													return {
+														totalStars: 5
+													}
+												},
+												getInitialState() {
+													return {
+														starsSelected: 0
+													}
+												}, 
+												change(starsSelected) {
+													this.setState({starsSelected})
+												},
+												render() {
+													const {totalStars} = this.props
+													const {starsSelected} = this.state
+													return (<div className="star-rating">
+														{[...Array(totalStars)].map((n, i) => 
+															<Star key={i}
+																  selected={i<starsSelected}
+																  onClick={() => this.change(i+1)}
+															/>
+														)}
+												   <p>{starsSelected} of {totalStars} stars</p>
+												</div>
+											)
+										  }
+										})
+										
+											If we wish to initialize the Component , we must use the Component life cycle methods !!!
+													Mounting
+													These methods are called when an instance of a component is being created and inserted into the DOM:
+														constructor()
+														componentWillMount()
+														render()
+														componentDidMount()
+													Updating
+													An update can be caused by changes to props or state. These methods are called when a component is being re-rendered:
+														componentWillReceiveProps()
+														shouldComponentUpdate()
+														componentWillUpdate()
+														render()
+														componentDidUpdate()
+													Unmounting
+													This method is called when a component is being removed from the DOM:
+														componentWillUnmount()
+													Error Handling
+													This method is called when there is an error during rendering, in a lifecycle method, or in the constructor of any child component.
+														componentDidCatch()
+													Other APIs
+													Each component also provides some other APIs:
+														setState()
+														forceUpdate()
+													Class Properties
+														defaultProps
+														displayName
+													Instance Properties
+														props
+														state	
+											IN THE EXAMPLE ABOVE WE WILL ADD THIS METHOD
+												componentWillMount() {
+													const { starsSelected } = this.props
+													if (starsSelected) {
+													  this.setState({starsSelected})
+													}
+												}
+												
+												State within the Component Tree
+													All our React components can have their own state, but should they ?
+													In many React applications,it is possible to group all state data in the root component.
+													State data can be passed down the component tree via properties and data can be passed back up the tree to the root via two-way function binding.
+													Two-way function binding:
+														Send a callback function to the component as a property that the component can use to pass data back as argument.
+														It is also called inverse data flow because we send the component a function as a property,and the component sends data back as function arguments.
+														
+													AGAIN -> THE RENDER METHOD IS INVOKED AFTER EVERY SETSTATE CALL!!!
+													
+													The new StarRating component will be stateless so we will use a Stateless functional Components
+													
+													const StarRating = ({starsSelected=0, totalStars=5, onRate=f=>f}) =>
+														<div className="star-rating">
+															{[...Array(totalStars)].map((n, i) =>
+																<Star key={i}
+																	  selected={i<starsSelected}
+																	  onClick={() => onRate(i+1)}/>
+															)}
+															<p>{starsSelected} of {totalStars} stars</p>
+														</div>
+														
+													const Color = ({title,color,rating=0,onRemove=f=>f,onRate=f=>f}) =>
+														<section className="color">
+															<h1>{title}</h1>
+															<button onClick={onRemove}>X</button>
+															<div className="color"
+																 style={{ backgroundColor: color }}>
+															</div>
+															<div>
+																<StarRating starsSelected={rating} onRate={onRate} />
+															</div>
+														</section>	
+														
+													const ColorList = ({ colors=[], onRate=f=>f, onRemove=f=>f }) =>
+																		<div className="color-list">
+																			{(colors.length === 0) ?
+																				<p>No Colors Listed. (Add a Color)</p> :
+																				colors.map(color =>
+																					<Color key={color.id}
+																						   {...color}
+																						   onRate={(rating) => onRate(color.id, rating)}
+																						   onRemove={() => onRemove(color.id)} />
+																				)
+																			}
+																		</div>	
+														
+													class App extends Component {
+
+														constructor(props) {
+															super(props)
+															this.state = {
+																colors: []
+															}
+															this.addColor = this.addColor.bind(this)
+															this.rateColor = this.rateColor.bind(this)
+															this.removeColor = this.removeColor.bind(this)
+														}
+
+														addColor(title, color) {
+															const colors = [
+																...this.state.colors,
+																{
+																	id: v4(),
+																	title,
+																	color,
+																	rating: 0
+																}
+															]
+															this.setState({colors})
+														}
+
+														rateColor(id, rating) {
+															const colors = this.state.colors.map(color =>
+																(color.id !== id) ?
+																 color :
+																	{
+																		...color,
+																		rating
+																	}
+															)
+															this.setState({colors})
+														}
+
+														removeColor(id) {
+															const colors = this.state.colors.filter(
+																color => color.id !== id
+															)
+															this.setState({colors})
+														}
+
+														render() {
+															const { addColor, rateColor, removeColor } = this
+															const { colors } = this.state
+															return (
+																<div className="app">
+																	<AddColorForm onNewColor={addColor} />
+																	<ColorList colors={colors}
+																			   onRate={rateColor}
+																			   onRemove={removeColor} />
+																</div>
+															)
+														}
+
+													}
+													
+												Once setState is called, the UI is rerendered with the new state data. All data that changes in this app is managed from a single component, App!!!
+												ONCE OUR APPLICATION REACHES A CERTAIN SIZE,TWO WAY DATA BINDING AND EXPLICIYLY PASSING PROPERTIES CAN BECOME QUITE NUISANCE!!!
+												THE FLUX DESIGN PATTERN AND FLUX LIBRARIES LIKE REDUX CAN BE USED TO MANAGE STATE AND REDUCE BOILERPLATE CODE.
+												
+											COMPONENTS LIFE CYCLE
+												The component lifecycle consists of methods that are invoked in series when a component is mounted or updated. 
+												These methods are invoked either before or after the component renders the UI. In fact, the render method itself is a part of the component lifecycle. 
+												There are two primary lifecycles: the mounting lifecycle and the updating lifecycle.
+												The mounting lifecycle consists of methods that are invoked when a component is mounted or unmounted. In other words, 
+												these methods allow you to initially set up state, make API calls, start and stop timers, manipulate the rendered DOM, 
+												initialize third-party libraries, and more. These methods allow you to incorporate JavaScript to assist in the initialization and destruction of a component.
+												The mounting lifecycle is slightly different depending upon whether you use ES6 class syntax or React.createClass to create components. When you use createClass, 
+												getDefaultProps is invoked first to obtain the component’s properties. Next, getInitialState is invoked to initialize the state.
+												ES6 classes do not have these methods. Instead, default props are obtained and sent to the constructor as an argument. The constructor is where the
+												state is initialized. Both ES6 class constructors and getInitialState have access to the properties and, if required, can use them to help define the initial state.
+												
+												ES6 class	          React.createClass()
+																		getDefaultProps()
+												constructor(props)		getInitialState()
+												componentWillMount()	componentWillMount()---> Invoked before the component is initially rendered and can be used to initialize third-party libraries,
+												render()				render()                 start animations,request data.IT IS POSSIBLE TO INVOKE SETSTATE TO CHANGE THE COMPONENT STATE JUST BEFORE
+												componentDidMount()		componentDidMount()      THE COMPONENT IS INITIALLY RENDERED.
+												componentWillUnmount()	componentWillUnmount()
+												
+												
+												const getFakeMembers = count => new Promise((resolves, rejects) => {
+																	const api = `https://api.randomuser.me/?nat=US&results=${count}`
+																	const request = new XMLHttpRequest()
+																	request.open('GET', api)
+																	request.onload = () => (request.status == 200) ? 
+																		resolves(JSON.parse(request.response).results) : 
+																		reject(Error(request.statusText))
+																	request.onerror = err => rejects(err)
+																	request.send()
+																})
+																We will use this promise in the componentWillMount method in a MemberList component. 
+																This component will use a Member component to display each user’s picture, name, email address, and location:
+
+														const Member = ({ email, picture, name, location }) =>
+															<div className="member">
+																<img src={picture.thumbnail} alt="" />
+																<h1>{name.first} {name.last}</h1>
+																<p><a href={"mailto:" + email}>{email}</a></p>
+																<p>{location.city}, {location.state}</p>
+															</div>
+
+														class MemberList extends Component {
+
+															constructor() {
+																super()
+																this.state = {
+																	members: [],
+																	loading: false,
+																	error: null
+																}
+															}
+															
+															 componentWillMount() {
+																this.setState({loading: true})
+																getFakeMembers(this.props.count).then(
+																	members => {
+																		this.setState({members, loading: false})
+																	},
+																	error => {
+																		this.setState({error, loading: false})
+																	}
+																)
+															}
+														  
+															componentWillUpdate() {
+																console.log('updating lifecycle')
+															}
+
+															render() {
+																const { members, loading, error } = this.state
+																return (
+																	<div className="member-list">
+																		{(loading) ? 
+																			<span>Loading Members</span> :
+																			(members.length) ? 
+																				members.map((user, i) =>
+																					<Member key={i} {...user} />
+																				) : 
+																				<span>0 members loaded...</span>
+																		}
+																		{(error) ? <p>Error Loading Members: error</p> : ""}
+															  </div>
+															)
+															}
+															}
+															
+												Calling setState before the component has rendered will not kick off the updating lifecycle. Calling setState after the component has been rendered will 
+												kick off the updating lifecycle. If you call setState inside an asynchronous callback defined within the componentWillMount method, it will be invoked after 
+												the component has rendered and will trigger the updating lifecycle.
+
+												Updating lifecycle
+													componentWillReceiveProps(nextProps)
+														Only invoked if new properties have been passed to the component. This is the only method where setState can be called.
+													shouldComponentUpdate(nextProps, nextState)
+														The update lifecycle’s gatekeeper — a predicate that can call off the update. This method can be used to improve performance by only allowing necessary updates.
+													componentWillUpdate(nextProps, nextState)
+														Invoked just before the component updates. Similar to componentWillMount, only it is invoked before each update occurs.
+													componentDidUpdate(prevProps, prevState)
+														Invoked just after the update takes place, after the call to render. Similar to componentDidMount, but it is invoked after each update.
+														
+											COMPONENTS THAT ARE RERENDERED ARE NOT RE-MOUNTED,IF THEY ARE ALREADY THERE,AN UPDATE OCCURS INSTEAD.
+
+													class HiddenMessage extends Component {
+
+														constructor(props) {
+															super(props)
+															this.state = { 
+																hidden: (props.hide) ? props.hide : true 
+															} }
+
+														render() {
+															const { children } = this.props
+															const { hidden } = this.state
+															return (
+																<p>
+																	{(hidden) ? 
+																		children.replace(/[a-zA-Z0-9]/g, "x") : 
+																		children
+																	}
+																</p>
+															)
+														}
+
+													}
+													The problem occurs when the parent component changes the hide property. That change does not automatically cause the state of HiddenMessage to change.
+													The componentWillReceiveProps lifecycle method was created for these scenarios. It will be invoked when the properties have been changed by the parent, 
+													and those changed properties can be used to modify the state internally:
+												
+												 constructor(props) {
+														super(props)
+														this.state = { 
+															hidden: (props.hide) ? props.hide : true 
+														}
+													}
+												  
+													componentWillReceiveProps(nextProps) {
+														this.setState({hidden: nextProps.hide})
+													}
+
+													render() {
+														const { children } = this.props
+														const { hidden } = this.state
+														return (
+															<p>
+																{(hidden) ? 
+																	children.replace(/[a-zA-Z0-9]/g, "x") : 
+																	children
+																}
+															</p>
+														)
+													}
+
+												}
+												
+												React.Children
+													React.Children provides a way of working with the children of a particular component. It allows you to count, map, loopover, or convert props.children to an array.
+													In the functional stateless component , in this example , we pass the argument children 
+													
+														const Display = ({ ifTruthy=true, children }) => 
+															(ifTruthy) ? Children.only(children) : null
+															
+														In this components the props are always passed , so through destruction we want access to the children property!!!
+														
+														WE CAN INTEGRATE JUST ABOUT ANY JAVASCRIPT LIBRARY WITH REACT.THE LIFECYCLE FUNCTIONS ARE THE PLACE WHERE OTHER JAVASCRIPT CAN PICK UP
+														WHERE REACT LEAVES OFF.HOWEVER,WE SHOULD AVOID ADDING LIBRARIES THAT MANAGE THE UI:THAT IS REACT'S JOB!!!
+
+												HIGH ORDER COMPONENTS
+													SIMPLY A FUNCTION THAT TAKES REACT COMPONENTS AS AN ARGUMENT AND RETURNS ANOTHER REACT COMPONENT!!!
+													
+												MANAGING STATE OUTSIDE OF REACT
+													One of the benefits of managing state outside of React is that it will reduce the need for many, if any, class components.
+													You should only need to create a class when you need lifecycle functions, and even then you can isolate class functionality to HOCs and keep 
+													components that only contain UI stateless. Stateless functional components are easier to understand and easier to test. They are pure functions, 
+													so they fit into strictly functional applications quite nicely.
+													Managing state outside of React simply means not using React state or setState in your applications.
+													
+												TWO WAY DATA BINDING AND MVS VS FLUX DESIGN PATTERN
+													http://www.thesoftwaresimpleton.com/blog/2013/03/23/client-side-mvc/
+													https://www.stackchief.com/blog/Flux%20vs%20MVC%3A%20Best%20Explanation
+													https://medium.com/hacking-and-gonzo/flux-vs-mvc-design-patterns-57b28c0f71b7
+													
+													Arrow functions , a must read tutorial
+														https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+													Overview ES6
+														https://www.sitepoint.com/es6-arrow-functions-new-fat-concise-syntax-javascript/
+													
+												Views
+												
+													Let's begin by looking at the view, a React stateless component. Flux will manage our application state, so unless you need a lifecycle function you will not 
+													need class components.
+													
 														
 										Web Workers
 										Web Storage
