@@ -1,4 +1,296 @@
-																		
+	ARCHITECTURE
+	
+		WEB.XML
+			contains 
+				Filter
+				Listeners
+				Modularization
+				Asynchronous Responses
+				
+		In SweetDev there is a file called Services.xml where is defined all the "services" which include the DB_SERVICE
+			In Cerise , this specific service use JNDI in Short it is defined in it the database information
+				
+		TOMCAT CONTAINS A FILE CALLED CONTEXT.XML
+			This is where the resources are defined , JNDI names 
+	
+	/*JAVASCRIPT SUPER SUMMARY*/
+	PRIMITIVE VALUES : null undefined boolean string number
+	REFERENCE TYPES  : object
+	
+	typeof      verify which type : primitive or reference
+	instanceof  type of the object, if the instance is on the PROTOTYPE CHAIN
+	
+	EXECUTION CONTEXT
+		Each Execution Context has an VARIABLE OBJECT associated with it.
+		The Global execution is the outermost one, in the web browser is the WINDOW object.
+		Each function call has its own execution context.
+		Whenever code execution flows into a function,the function context is pushed onto a CONTEXT STACK!!!
+		When code is executed in a context,a SCOPE CHAIN of variable objects is created!!!!
+		
+		Identifier LOOKUP !!!!
+			Search through the SCOPE CHAIN
+			OBJECTS IN THE SCOPE CHAIN ALSO HAVE A PROTOTYPE CHAIN, SO SEARCHING MAY INCLUDE EACH OBJECT PROTOTYPE CHAIN
+	
+	OBJECTS ARE CONSIDERED TO BE INSTANCES OF A PARTICULAR REFERENCE TYPE!!!NEW OBJECTS ARE CREATED BY USING THE NEW OPERATOR FOLLOWED BY A CONSTRUCTOR!!!
+	A CONSTRUCTOR IS SIMPLY A FUNCTION!!!
+			
+				var person = new Object();
+			This code creates a new instance of the Object reference type!!!
+			
+		Functions are OBJECTS !!!!Each Function is an instance of the Function type that has properties and methods.
+			
+			function sum(num1,num2){
+				return num1 + num2;
+			}
+			
+			var sum = function(num1,num2){
+				return num1 + num2;
+			}
+			
+			var sum = new Function("num1","num2","return num1+num2");
+			
+			Because function names are simply pointers to functions!!!
+			Function internals :
+				two properties :
+					arguments , an array like object that has a property named CALLEE.
+					this : REFERENCE TO THE CONTEXT OBJECT THAT THE FUNCTION IS OPERATING ON
+					prototype : IS AN OBJECT!!!
+					
+			Every object has an internal pointer to the constructor prototype.
+
+			Example :
+				function Person(){
+					this.obja = "ObjA";
+					this.objb = "ObjB";
+					this.getValuesInstance = function(){
+						console.log("Values "+this.obja+" "+this.objb);
+						}
+				}
+
+				Person.prototype.obja="ProtoA";
+				Person.prototype.objb="ProtoB";
+				Person.prototype.getValues = function(){
+				   console.log("Values "+this.obja+" "+this.objb);
+				}
+
+				var p = new Person();  -> As an intenal pointer to Person.prototype
+				p.getValues();		   -> Evidence of the above phrase
+				Person.prototype.getValues(); -> The this is set to point to the prototype object
+										THIS IS WHY THE LINE p.getValues() log ObjA ObjB AND THE LINE Person.prototype.getValues(); log ProtoA and ProtoB
+										THE THIS VALUE IS SET WITH DIFFERENT CONTEXTS
+				IF WE CALL Person.getValues one error  is thrown. The Person object does not look into the prototype property , it will use is internal pointer that points to the Object.prototype.
+				
+		Returning to the execution context and scope chain !!!
+			Every time a function is executed , one execution context is created , within each execution context is a object called SCOPE CHAIN which is used to resolve variables.
+			A scope chain is essentially a stack of currently accessible scopes.
+			
+			function(){
+				var a = new Person();
+				a.getValues();
+			}
+			
+			
+			function Person(){
+				this.a = "a";
+				var b = "b";
+				this.getValues = function(){
+					console.log(a);
+					console.log(b);
+					console.log(this.a);
+				}
+			}
+			
+			When getValues function is called a new execution context is created , within this execution context one scope chain is created , the first object in the scope chain is 
+			the activation object which contains the following variables :
+				this  -> Points to the a object , so it is through "this" that is possible to access properties from the object.
+						In the above example the "console.log(a)" will throws an error because it is not in the scope chain
+						It only works with the code "console.log(this.a)"
+				arguments
+				local variables
+				
+			Function object behind the length , arguments and this .
+			Has the apply , call and bind methods -> All of them set the THIS properties form the function object!!!!
+			
+			Patterns 
+				Factory Pattern
+					function Person(){
+						var o = new Object();
+						o.a = "test";
+						o.getValues = function(){}
+						return o;
+					}
+					
+				Constructor Pattern
+					function Person(name,job){
+						this.name = name;
+						this.getValues = function(){}
+					}
+					
+						Creates a new object
+						Assign THIS value of the constructor to the new object
+						Returns the new object.
+						
+				Prototype Patterns
+					function Person(){}
+					Person.prototype.name = "";
+					Person.prototype.getValues = function(){}
+					
+					-------------------------------------------------
+				   \/                                               |
+					Person                       Person Prototype   |
+						prototype -------------> constructor -------|
+						                             ^      ^
+							|------------------------|      |
+						    |                               ------------|
+					person1<|>	                                      person2
+				
+				Constructor / Prototype
+				Parasitic Constructor Pattern
+					Adding a return statement at the end of a constructor allows you to override the value that is returned when the constructor is called!!!
+					This is usually apply when creating constructors for objects that may not be possible otherwise.
+					For instance, create a special array.
+				Durable Constructor Pattern
+					Douglas Crockford coined the term durable objects in JavaScript to refer to objects that have no public properties and whose methods don't reference the this object.
+					
+						function Person(name, age, job){
+							//create the object to return
+							var o = new Object();
+							//optional: define private variables/functions here
+							//attach methods
+							o.sayName = function(){
+								alert(name);
+							};
+							//return the object
+							return o;
+						}
+						
+					Inheritance , execution context and scope chain
+					
+						function Father(){
+							this.property;
+						}
+						
+						Father.prototype.getValue = function(){
+								return this.property;
+						}
+						
+						function Son(){
+							this.subProperty;
+						}
+						
+						Son.prototype = new Father();
+						Son.prototype.getSubValue = function(){ return this.subProperty;}
+						
+						var instance = new Son();
+						instance.getValue();
+						
+						In this case :
+							First we gonna look for the getValue function, start to look in the instance object , next we goona look in the Son.prototype , next we goona look in the Father prototyoe and
+							found it
+							A new execution context is created and scope chain associated with it
+							The activation object contains the THIS property, this is set with the instance object!!!
+							Because the next activation object in the scope chain will be the Global Context , the "property" value is not find.
+							So it start looking in the "THIS" , next it will look in the THIS._proto_ , next THIS._proto_ and will find it !!!
+							THE DEFAULT PROTOTYPE FOR ANY FUNCTION IS AN INSTANCE OF OBJECT.
+							
+							There is a problem with reference values on prototypes :
+								function SuperType(){
+									this.colors = ["red", "blue", "green"];
+								}
+								
+								function SubType(){
+								}
+								//inherit from SuperType
+								SubType.prototype = new SuperType();
+								var instance1 = new SubType();
+								instance1.colors.push("black");
+								alert(instance1.colors); //"red,blue,green,black"
+								var instance2 = new SubType();
+								alert(instance2.colors); //"red,blue,green,black"
+								
+							Constructor Stealing
+								
+									function SuperType(name){
+										this.name = name;
+									}
+									function SubType(){
+										//inherit from SuperType passing in an argument
+										SuperType.call(this, "Nicholas");
+										//instance property
+										this.age = 29;
+									}
+									var instance = new SubType();
+									alert(instance.name); //"Nicholas"
+									alert(instance.age); //29
+									
+							Combination Inheritance
+								function SuperType(name){
+									this.name = name;
+									this.colors = ["red", "blue", "green"];
+								}
+								SuperType.prototype.sayName = function(){
+									alert(this.name);
+								};
+								function SubType(name, age){
+									//inherit properties
+									SuperType.call(this, name);
+									this.age = age;
+								}
+								//inherit methods
+								SubType.prototype = new SuperType();
+								SubType.prototype.sayAge = function(){
+									alert(this.age);
+								};
+								var instance1 = new SubType("Nicholas", 29);
+								instance1.colors.push("black");
+								alert(instance1.colors); //"red,blue,green,black"
+								instance1.sayName(); //"Nicholas";
+								instance1.sayAge(); //29
+								
+							Prototypal Inheritance
+								function object(o){
+									function F(){}
+									F.prototype = o;
+									return new F();
+								}
+								Essentially, object() performs a shadow copy of any object that is passed into it.
+								ECMAScript 5 formalized the concept of prototypal inheritance by adding the Object.create() method.
+								This method accepts two arguments, an object to use as the prototype for a new object and an optional object defi ning additional properties to apply to the new object.
+									The second argument for Object.create() is in the same format as the second argument for Object.defineProperties(): each additional property to define is specified 
+									along with its descriptor. Any properties specifi ed in this manner will shadow properties of the same name on the prototype object.
+									
+								Parasitic Combination Inheritance
+									
+					
+							CLOSURES
+							
+				Important functions
+					Object.hasOwnProperty
+					Object.isPrototypeOf
+					Object.getPrototypeOf
+					Object.keys -> Enumerable properties
+					Object.getOwnPropertyNames -> All properties (enumerable or not)
+					instanceof
+					typeOf
+					
+				in OPERATOR
+					Used on its own : Returns true when a property of a given name is accessible by the object(instance or prototype)
+					Used in for-in loop : All properties that are accessible by the object and can be enumerated.
+
+		Types of properties on objects :
+			Data properties
+				[[Configurable]] [[Enumerable]] [[Writable]] [[Value]]
+				
+				Object.defineProperty
+				
+			Accessor Properties(combination of a getter function and a setter function)
+				[[Configurable]] [[Enumerable]] [[Get]] [[Set]]
+				
+				Object.defineProperties()
+				Object.getOwnPropertyDescriptor()
+				
+		
+    /**************************/	
 													        JAVASCRIPT					
 												ECMASCRIPT(The Core)  DOM   BOM
 												
@@ -1166,6 +1458,8 @@
 																					DELIVER THE MESSAGE
 																					THIS RESTRICTION PROTECTS OUR INFORMATION SHOULD THE LOCATION OF THE WINDOW CHANGE WITHOUT OUR KNOWLEDGE!!!
 														a message event is fired on a window when an XDM message is received.
+													
+													http://blog.teamtreehouse.com/cross-domain-messaging-with-postmessage
 												
 													XDM is extremely useful when trying to sandbox content using an iframe to a different domain.
 													The containing page is able to keep itself secure against malicious content by only communicating into an embedded iframe 
@@ -1270,6 +1564,7 @@
 													The two main downsides to image pings are that you can only send GET requests and you cannot access the response text from the server. 
 													This is why image pings are best used for one-way communication between the browser and the server.
 												JSONP
+													https://www.w3schools.com/js/js_json_jsonp.asp
 													callback({"name": "Nicholas" });
 													The JSONP format is made up of two parts: the callback and the data. The callback is the function that should be called on the page when the response 
 													has been received. Typically the name of the callback is specified as part of the request.
@@ -1345,10 +1640,7 @@
 											CODE WILL BE EXECUTED IN 150 MILLISECONDS,IT MEANS THAT THE CODE WILL BE ADDED TO THE QUEUE IN 150 MILLISECONDS.
 											
 											REPEATING TIMER
-																
-																
-																
-													
+										
 											SSO
 												Non SSO scenario
 													1 User browses to domain1.com
@@ -4659,8 +4951,9 @@
 														fns.reduce((composed,f)=>f(composed),arg)
 														
 										REACT
-											React is a library that is designed to update the browser DOM for us.With react we do not interact with the DOM Api directly.Instead,we interact with a 
-											virtual DOM.The virtual DOM is made up of React elements,which conceptually seem similar to HTML elements,but are actually Javascript objects.
+											React is a library that is designed to update the browser DOM for us.
+											With react we do not interact with the DOM Api directly.Instead,we interact with a  virtual DOM.
+											The virtual DOM is made up of React elements,which conceptually seem similar to HTML elements,but are actually Javascript objects.
 											IT IS MUCH FASTER TO WORK DIRECTLY WITH JAVASCRIPT OBJECTS THAN IT IS TO WORK WITH THE DOM API!!!!
 											
 											React elements
@@ -5503,18 +5796,1242 @@
 													Overview ES6
 														https://www.sitepoint.com/es6-arrow-functions-new-fat-concise-syntax-javascript/
 													
-												Views
+												VIEWS
 												
 													Let's begin by looking at the view, a React stateless component. Flux will manage our application state, so unless you need a lifecycle function you will not 
 													need class components.
 													
+													Just receive parameters
+														const Countdown = ({count, tick, reset}) => {
+  
+																	  if (count) {
+																		setTimeout(() => tick(), 1000)
+																	  }
+																	  
+																	  return (count) ? 
+																		  <h1>{count}</h1> :
+																		  <div onClick={() => reset(10)}>
+																			  <span>CELEBRATE!!!</span> 
+																			  <span>(click to start over)</span>
+																		  </div>     
+																	  
+														}
+												ACTIONS		
 														
+														const countdownActions = dispatcher =>
+																	({
+																		tick(currentCount) {
+																			dispatcher.handleAction({ type: 'TICK' })
+																		},
+																		reset(count) {
+																			dispatcher.handleAction({
+																				type: 'RESET',
+																				count
+																			})  
+																		}
+																	})
+																	
+												DISPATCHER
+													import Dispatcher from 'flux'
+
+														class CountdownDispatcher extends Dispatcher {
+														  
+															handleAction(action) {
+																console.log('dispatching action:', action)
+																this.dispatch({
+																	source: 'VIEW_ACTION',
+																	action
+																})
+															}
+
+														}
+												STORES
+													import { EventEmitter } from 'events'
+
+														class CountdownStore extends EventEmitter {
+														  
+															constructor(count=5, dispatcher) {
+																super()
+																this._count = count
+																this.dispatcherIndex = dispatcher.register(
+																	this.dispatch.bind(this)
+																)
+															}
+														  
+															get count() {
+																return this._count
+															}
+															
+															dispatch(payload) {
+																const { type, count } = payload.action
+																switch(type) {
+																
+																	case "TICK":
+																		this._count = this._count - 1
+																		this.emit("TICK", this._count)
+																		return true
+
+																	case "RESET":
+																		this._count = count
+																		this.emit("RESET", this._count)
+																		return true
+																	}
+														}  
+													  
+													}
+											
+													const appDispatcher = new CountdownDispatcher()
+													const actions = countdownActions(appDispatcher)
+													const store = new CountdownStore(10, appDispatcher)
+
+													const render = count => ReactDOM.render(
+														<Countdown count={count} {...actions} />,
+														document.getElementById('react-container')
+													)  
+
+													store.on("TICK", () => render(store.count))
+													store.on("RESET", () => render(store.count))
+													render(store.count)
+													
+													Flow :
+														Render The stateless component
+														The stateless component has a reference to the action
+														The action has a reference to the dispatcher
+														The dispatcher has reference to the store
+														The store emits an new action to rerender the stateless component
+														
+												REDUX
+													We have mentioned that Redux is Flux-like, but it is not exactly Flux. It has actions, action creators, a store, and action objects that are used to change state. 
+													Redux simplifies the concepts of Flux a bit by removing the dispatcher, and representing application state with a single immutable object. 
+													Redux also introduces reducers, which are not a part of the Flux pattern. Reducers are pure functions that return a new state based on the current state 
+													and an action: (state, action) => newState.
+													
+												We’ll look at a social media app that has state spread out across different components :
+												
+													APP
+														state :
+															user { name : "anonymous" }
+															
+															Messages - state :
+																		  messages : [{
+																						state
+																						editing : false,
+																						expanded : true},{...}}]
+																						
+															Posts - state :
+																		  posts : [{
+																						state
+																						seen : false},{...}}]
+
+													With Redux :
+														REDUX STORE :
+															state
+																	{user : { name : "Marcus",
+																			  isLoggedIn : true},
+																	 messages : [{},{},{}],
+																	 editMessages : 23,
+																	 expandedMessages : [2,14,15,17],
+																	 posts : [{},{},{}],
+																	 postsSeen : [4]
+																 }
+																 
+														APP :
+															Messages
+															Posts
+															
+													With Redux, we pull state management away from React entirely. Redux will manage the state.
+													When building Redux apps, the first thing you need to think about is state. Try to define it in a single object. It is usually a good idea to draft a JSON sample 
+													of your state tree with some placeholder data.
+
+														{
+															colors: [
+																{
+																	"id": "8658c1d0-9eda-4a90-95e1-8001e8eb6036",
+																	"title": "Ocean Blue",
+																	"color": "#0070ff",
+																	"rating": 3,
+																	"timestamp": "Sat Mar 12 2016 16:12:09 GMT-0800 (PST)"
+																},
+																{
+																	"id": "f9005b4e-975e-433d-a646-79df172e1dbb",
+																	"title": "Tomato",
+																	"color": "#d10012",
+																	"rating": 2,
+																	"timestamp": "Fri Mar 11 2016 12:00:00 GMT-0800 (PST)"
+																}, sort: "SORTED_BY_DATE"
+														}
+														
+														ACTIONS
+															Redux rule: application state should be stored in a single immutable object. Immutable means this state object doesn’t change. 
+															We will eventually update this state object by replacing it entirely.
+															Actions are the only way to update the state of a Redux application.
+															Once you identify the actions, you can list them in a file called constants.js :
+																const constants = {
+																	SORT_COLORS: "SORT_COLORS",
+																	ADD_COLOR: "ADD_COLOR",
+																	RATE_COLOR: "RATE_COLOR",
+																	REMOVE_COLOR: "REMOVE_COLOR"
+																}
+																
+																Action are Javascript literals
+																	{  
+																	   type: "ADD_COLOR",
+																	   color: "#FFFFFF",
+																	   title: "Bright White",
+																	   rating: 0,
+																	   id: "b5685c39-3bdc-4727-9188-6c9a33df7f52",
+																	   timestamp: "Sat Mar 12 2016 16:12:09 GMT-0800 (PST)"
+																	}
+														REDUCERS
+															Reducers are functions that take the current state along with an action as arguments and use them to create and return a new state. 
+															Reducers are designed to update specific parts of the state tree, either leaves or branches. 
+															We can then compose reducers into one reducer that can handle updating the entire state of our app given any action.
+																export const color = (state = {}, action) => {
+																	switch (action.type) {
+																		case C.ADD_COLOR:
+																			return {
+																				id: action.id,
+																				title: action.title,
+																				color: action.color,
+																				timestamp: action.timestamp,
+																				rating: 0
+																			}
+																		case C.RATE_COLOR:
+																			return (state.id !== action.id) ?
+																				state :
+																				{
+																					...state,
+																					rating: action.rating
+																				}
+																		default :
+																			return state
+																	}
+																}
+																
+																export const colors = (state = [], action) => {
+																	switch (action.type) {
+																		case C.ADD_COLOR :
+																			return [
+																				...state,
+																				color({}, action)
+																			]
+																		case C.RATE_COLOR :
+																			return state.map(
+																				c => color(c, action)
+																			)
+																		case C.REMOVE_COLOR :
+																			return state.filter(
+																				c => c.id !== action.id
+																			)
+																		default:
+																			return state
+																	}
+																}
+																
+														NO SIDE EFFECTS IN REDUCERS
+															Reducers should be predictable. They are used to simply manage the state data. 
+															In the previous example, notice that the timestamp and IDs are generated prior to sending the action to the reducer. 
+															Generating random data, calling APIs, and other asynchronous processes should be handled outside of reducers. 
+															Avoiding state mutations and side effects is always recommended.
+															
+																export const sort = (state = "SORTED_BY_DATE", action) => {
+																	switch (action.type) {
+																		case C.SORT_COLORS:
+																			return action.sortBy
+																		default :
+																			return state
+																	}
+																}
+																
+														STORE
+															In Redux, the store is what holds the application’s state data and handles all state updates.5 
+															While the Flux design pattern allows for many stores that each focus on a specific set of data, Redux only has one store.
+															The store handles state updates by passing the current state and action through a single reducer. 
+															We will create this single reducer by combining and composing all of our reducers.
+															Redux has a function for doing just that, combineReducers, which combines all of the reducers into a single reducer. These reducers are used to build your state tree.
+															
+															const store = createStore(
+																combineReducers({ colors, sort }), 
+																initialState
+															)
+															
+															The only way to change the state of your application is by dispatching actions through the store. The store has a dispatch method 
+															that is ready to take actions as an argument. When you dispatch an action through the store, the action is sent through the reducers and 
+															the state is updated:
+															
+															store.dispatch({
+															  type: "ADD_COLOR",
+															  id: "2222e1p5-3abl-0p523-30e4-8001l8yf2222",
+															  title: "Party Pink",
+															  color: "#F142FF",
+															  timestamp: "Thu Mar 10 2016 01:11:12 GMT-0800 (PST)"
+															})
+															
+															Stores allow you to subscribe handler functions that are invoked every time the store completes dispatching an action. In the following example, 
+															we will log the count of colors in the state
+															Action creators are where we should put any logic for communicating with backend APIs. With an action creator, 
+															we can perform asynchronous logic like requesting data or making an API call.
+															
+															Compose
+																Redux also comes with a compose function that you can use to compose several functions into a single function.
+																const print = compose(
+																	list => console.log(list),
+																	titles => titles.join(", "),
+																	map => map(c=>c.title),
+																	colors => colors.map.bind(colors),
+																	state => state.colors
+																)
+															
+														Middleware
+															Redux also has middleware. It acts on the store’s dispatch pipeline. In Redux, middleware consists of a series of functions that are executed in a row in the process of dispatching 
+															an action.
+															These higher-order functions allow you to insert functionality before or after actions are dispatched and state is updated. Each middleware function is executed sequentially.
+														  Applying Middleware to the Store
+															
+															import { createStore, 
+																	 combineReducers, 
+																	 applyMiddleware } from 'redux'
+															import { colors, sort } from './reducers'
+															import stateData from './initialState'
+
+															const logger = store => next => action => {
+																let result
+																console.groupCollapsed("dispatching", action.type)
+																console.log('prev state', store.getState())
+																console.log('action', action)
+																result = next(action)
+																console.log('next state', store.getState())
+																console.groupEnd()
+															}
+															
+															const saver = store => next => action => {
+																let result = next(action)
+																localStorage['redux-store'] = JSON.stringify(store.getState())
+																return result
+															}
+
+															const storeFactory = (initialState=stateData) =>
+																applyMiddleware(logger, saver)(createStore)(
+																	combineReducers({colors, sort}),
+																	(localStorage['redux-store']) ?
+																		JSON.parse(localStorage['redux-store']) :
+																		stateData
+																)
+
+															export default storeFactory
+															
+														logger and saver are middleware functions, they are curried functions , functions that returns another function.
+														
+														NOW WE MUST GLUE THE REACT AND THE REDUX FRAMEWORKS!!!
+														
+														export default class App extends Component {
+
+															constructor(props) {
+																super(props)
+																this.state = {
+																	colors: [
+																		{
+																			"id": "8658c1d0-9eda-4a90-95e1-8001e8eb6036",
+																			"title": "Ocean Blue",
+																			"color": "#0070ff",
+																			"rating": 3
+																		}
+																		 ]
+																}
+																this.addColor = this.addColor.bind(this)
+																this.rateColor = this.rateColor.bind(this)
+																this.removeColor = this.removeColor.bind(this)
+															}
+															
+															 addColor(title, color) {
+																...
+															}
+
+															rateColor(id, rating) {
+																...
+															}
+
+															removeColor(id) {
+																...
+															}
+
+															render() {
+																const { addColor, rateColor, removeColor } = this
+																const { colors } = this.state
+															 return (
+																	<div className="app">
+																		<AddColorForm onNewColor={addColor} />
+																		<ColorList colors={colors}
+																				   onRate={rateColor}
+																				   onRemove={removeColor} />
+																	</div>
+																)
+															}
+
+														}
+									
+											The App component is the component that holds state. State is passed down to child components as properties. Specifically, the colors are passed from the App component’s 
+											state to the ColorList component as a property. When events occur, data is passed back up the component tree to the App component via callback function properties
+											
+											
+											App    setState() ------------------------>  {state}
+														 /\									\/
+									   ColorList   onRate(index,rating)                  {props}
+														 /\   								\/
+									   Color       onRate(rating)                        {props}
+														 /\									\/
+									   StarRating  onRate(rating)                        {props}
+													     /\
+									   Start       onClick()                             
+															
+											The process of passing data all the way down and back up the tree introduces complexity that libraries like Redux are designed to alleviate. Instead of passing data
+											up the tree through two-way function binding, we can dispatch actions directly from child components to update application state.
+											
+										Explicitly Passing the Store
+
+											import React from 'react'
+											import ReactDOM from 'react-dom'
+											import App from './components/App'
+											import storeFactory from './store'
+
+											const store = storeFactory()
+
+											const render = () =>
+												ReactDOM.render(
+													<App store={store}/>,
+													document.getElementById('react-container')
+												)
+
+											store.subscribe(render)
+											render()
+											
+											Every time the store changes, the render function will be invoked, which efficiently updates the UI with new state data.
+											
+											import AddColorForm from './AddColorForm'
+											import SortMenu from './SortMenu'
+											import ColorList from './ColorList'
+
+											const App = ({ store }) =>
+												<div className="app">
+													<SortMenu store={store} />
+													<AddColorForm store={store} />
+													<ColorList store={store} />
+												</div>
+
+											export default App
+											
+											import { PropTypes, Component } from 'react'
+											import { addColor } from '../actions'
+
+											const AddColorForm = ({store}) => {
+
+												let _title, _color
+												 const submit = e => {
+
+												e.preventDefault()
+												store.dispatch( addColor(_title.value, _color.value) )
+												_title.value = ''
+												_color.value = '#000000'
+												_title.focus()
+											}
+
+											return (
+												<form className="add-color" onSubmit={submit}>
+													<input ref={input => _title = input}
+														   type="text"
+														   placeholder="color title..." required/>
+													<input ref={input => _color = input}
+														   type="color" required/>
+													<button>ADD</button>
+												</form>
+											)
+
+										}
+
+										AddColorForm.propTypes = {
+											store: PropTypes.object
+										}
+
+										export default AddColorForm
+										
+										import { PropTypes } from 'react'
+										import Color from './Color'
+										import { rateColor, removeColor } from '../actions'
+										import { sortFunction } from '../lib/array-helpers'
+
+										const ColorList = ({ store }) => {
+											const { colors, sort } = store.getState()
+											const sortedColors = [...colors].sort(sortFunction(sort))
+											return (
+												<div className="color-list">
+													{(colors.length === 0) ?
+														<p>No Colors Listed. (Add a Color)</p> :
+														sortedColors.map(color =>
+															<Color key={color.id}
+																{...color}
+																onRate={(rating) =>
+																	store.dispatch(
+																		rateColor(color.id, rating)
+																	)
+																}
+																onRemove={() =>
+																	store.dispatch(
+																		removeColor(color.id)
+																	)
+																} />
+														)
+													}
+												</div>
+											)
+										}
+										
+										ColorList.propTypes = {
+										store: PropTypes.object
+									}
+
+									export default ColorList
+															
+								Passing the Store via Context															
+									Similarly, we can take advantage of a React feature called context that allows us to pass variables to components without having to explicitly pass them down through the tree
+									as properties. 
+									Any child component can access these context variables!!!!!So THEY MUST BE CHILDS !!!!
+									
+									If we were to pass the store using context in our color organizer app, the first step would be to refactor the App component to hold context. 
+									The App component will also need to listen to the store so that it can trigger a UI update every time the state changes:
+									
+										import { PropTypes, Component } from 'react'
+										import SortMenu from './SortMenu'
+										import ColorList from './ColorList'
+										import AddColorForm from './AddColorForm'
+										import { sortFunction } from '../lib/array-helpers'
+
+										class App extends Component {
+
+											getChildContext() {
+												return {
+													store: this.props.store
+												}
+											}
+
+											componentWillMount() {
+												this.unsubscribe = store.subscribe( () => this.forceUpdate()
+															)
+														}
+
+											componentWillUnmount() {
+												this.unsubscribe()
+											}
+
+											render() {
+													const { colors, sort } = store.getState()
+													const sortedColors = [...colors].sort(sortFunction(sort))
+													return (
+														<div className="app">
+															<SortMenu />
+															<AddColorForm />
+															<ColorList colors={sortedColors} />
+														</div>
+													)
+												}
+
+											}
+
+											App.propTypes = {
+												store: PropTypes.object.isRequired
+											}
+
+											App.childContextTypes = {
+												store: PropTypes.object.isRequired
+											}
+
+											export default App
+																
+											At this point, any children of the App component will have access to the store via the context!!!!!
+											
+											const AddColorForm = (props, { store }) => {
+
+												let _title, _color
+
+												const submit = e => {
+													e.preventDefault()
+													store.dispatch(addColor(_title.value, _color.value))
+													_title.value = ''
+													_color.value = '#000000'
+													_title.focus()
+												}
+
+												return (
+													<form className="add-color" onSubmit={submit}>
+														<input ref={input => _title = input}
+															   type="text"
+															   placeholder="color title..." required/>
+														<input ref={input => _color = input}
+														type="color" required/>
+														<button>ADD</button>
+													</form>
+												)
+
+											}
+
+											AddColorForm.contextTypes = {
+												store: PropTypes.object
+											}
+											
+											The context object is passed to stateless functional components as the second argument, after props!!!
+											
+											import { PropTypes, Component } from 'react'
+											import StarRating from './StarRating'
+											import TimeAgo from './TimeAgo'
+											import FaTrash from 'react-icons/lib/fa/trash-o'
+											import { rateColor, removeColor } from '../actions'
+
+											class Color extends Component {
+
+												render() {
+													const { id, title, color, rating, timestamp } = this.props
+													const { store } = this.context
+													return (
+														<section className="color" style={this.style}>
+															<h1 ref="title">{title}</h1>
+															<button onClick={() =>
+																store.dispatch( removeColor(id)
+																)
+															}>
+																<FaTrash />
+															</button>
+															<div className="color"
+																 style={{ backgroundColor: color }}>
+															</div>
+															<TimeAgo timestamp={timestamp} />
+															<div>
+																<StarRating starsSelected={rating}
+																			onRate={rating =>
+																				store.dispatch(
+																					rateColor(id, rating)
+																				)
+																			} />
+															</div>
+														</section>
+													)
+												}
+
+											}
+
+											Color.contextTypes = {
+												store: PropTypes.object
+											}
+
+											Color.propTypes = {
+												id: PropTypes.string.isRequired,
+												title: PropTypes.string.isRequired,
+												color: PropTypes.string.isRequired,rating: PropTypes.number
+											}
+
+											Color.defaultProps = {
+												rating: 0
+											}
+
+											export default Color
+											
+									Presentational Versus Container Components
+
+											In the last example, the Color component retrieved the store via context and used it to dispatch RATE_COLOR and REMOVE_COLOR actions directly. 
+											Before that, the ColorList component retrieved the store via context to read the current list of colors from state. In both examples, these 
+											components rendered UI elements by interacting directly with the Redux store. We can improve the architecture of our application by decoupling 
+											the store from components that render the UI.Presentational components are components that only render UI elements.4 They do not tightly couple with any data architecture. 
+											Instead, they receive data as props and send data to their parent component via callback function properties. They are purely concerned with the UI and can be reused 
+											across applications that contain different data. Every component that we created in Chapter 6, with the exception of the App component, is a presentational component.
+											Container components are components that connect presentational components to the data. In our case, container components will retrieve the store via context 
+											and manage any interactions with the store. They render presentational components by mapping properties to state and callback function properties to the store’s 
+											dispatch method. Container components are not concerned with UI elements; they are used to connect presentational components to data.
+														
+														
+													
+
+													
 										Web Workers
 										Web Storage
 											
-									
-												
 											
+											
+				EXTJS
+					Component Model
+						Dictates how UI widgets are instantiated , rendered and destroyed in what's known as the component life cycle.
+					Container Model
+						Controls how widgets can manage(or contain) other child widgets.
+						
+							EXTJS Core
+								Web Remoting
+								Utilities
+								Drag & Drop
+								Ui components
+								Data Services
+								Draw & Charts
+								
+								
+								CONTAINERS ARE WIDGETS THAT CAN MANAGE ONE OR MORE CHILD ITEMS.A CHILD ITEM IS GENERALLY ANY WIDGET OR COMPONENT THAT IS MANAGED BY A CONTAINER OR PARENT,THUS 
+								THE PARENT CHILD PARADIGM.
+								LAYOUTS ARE IMPLEMENTED BY A CONTAINER TO VISUALLY ORGANIZE THE CHILD ITEMS IN THE CONTAINER'S CONTENT BODY.
+								FOR INSTANCE : PANEL AND WINDOW ARE TWO SUBCLASSES OF CONTAINERS.
+								
+								DATA BOUNDS VIEWS !!!
+									Data services portion of the framework is responsible for the loading and parsing of the data.ExtJS has a lot of widgets that are bound to data stores.known as views.
+									Many of the views that you’ll deploy include the data view, grid panel, and tree panel.
+									Tree Panel is an exception in that it does not consume data from a data store.Instead,it consumes hierarchical data via the use of the TreeStore class!!!!
+									
+									New to ExtJs 4.0
+										Ext JS 4.0 comes with an entirely new class system that includes features such as dependency injection and on-the-fly class loading.
+										Along with dynamic class loading comes the concept of mixins, a modern objectoriented programming pattern that allows for multiple inheritance.
+										
+										Data package
+											Association \  	 /Validation
+														Model
+													     |
+											Reader---- Proxy--Writer
+														 |
+														Store
+														/ |  \
+												Sorter    |    Grouper
+                                                          |
+                                                       Filter	
+
+													   
+									Layouts are broken up into two main areas of functionality: component and container layouts.
+									
+									New CSS styling architecture
+										ExtJs uses SASS
+										
+							INIT EXTJS 
+								Ext.onReady
+									Accepts three parameters: the method to invoke, the scope from which to call the method, and any options to pass to the method.
+									All of your Ext JS–based JavaScript code can be anywhere below (after) the inclusion of the Ext JS script. This positioning is important because JavaScript files are requested
+									and loaded synchronously. Trying to call any Ext JS methods before Ext JS is defined in the namespace will cause an exception.
+									
+									Managing DOM elements with Ext.Element
+										The heart of Ext JS, known as the Ext.Element class, which is a robust, cross-browser, DOM element-management suite. You’ll learn to use Ext.Element to add
+										nodes to and remove them from the DOM.
+										The traditional method to reference a DOM node by ID is as follows:
+											var myDiv = document.getElementById('someDivId');
+											
+											The Ext.Element class is a full DOM element-management suite, which includes a treasure chest of utilities, enabling the framework to work its magic on the DOM and
+											provide the robust UI.
+											
+												Creating Child nodes
+													
+													myDiv1.createChild('Child from a string');
+													myDiv1.createChild('<div>Element from a string</div>');
+														Configuration Object
+															
+															myDiv1.createChild({
+																tag : 'div',
+																html : 'Child from a config object'
+															});
+															myDiv1.createChild({
+																tag : 'div',
+																id : 'nestedDiv',
+																style : 'border: 1px dashed; padding: 5px;',
+																children : {
+																	tag : 'div',
+																	html : '...a nested div',
+																	34 CHAPTER 2 DOM manipulation
+																	style : 'color: #EE0000; border: 1px solid'
+																}
+															});
+											CSS selectors
+												<div id='div1' class="myDiv">
+													<div id='child1'>Child 1</div>
+													<div class='child2'>Child 2</div>
+													<div class='child3'>Child 3</div>
+													<div id='child4'>Child 4 </div>
+													<div>Child 5</div>
+												</div>
+											
+												var myDiv1 = Ext.get('div1');
+												var firstChild = myDiv1.down('div:first-child');
+												firstChild.remove();
+												
+											Using Ajax with Ext.Element
+												Ext.getBody().load({
+													url : 'htmlFragment.html',
+													scripts : true
+												});
+												
+											Using templates and xtemplates
+												The Ext.Template class is a powerful core utility that allows we to create an entire DOM hierarchy with slots that can be filled in later with data.
+												
+													var myTpl = Ext.create('Ext.Template' , "<div>Hello {0}.</div>");
+													myTpl.append(document.body, ['Marjan']);
+													myTpl.append(document.body, ['Michael']);
+													myTpl.append(document.body, ['Sebastian']);
+													
+													var myTpl = Ext.create('Ext.Template', [
+													'<div style="background-color: {color}; margin: 10px;">',
+													'<b> Name :</b> {name}<br />',
+													'<b> Age :</b> {age}<br />',
+													'<b> DOB :</b> {dob}<br />',
+													'</div>'
+													]);
+													myTpl.compile();
+													myTpl.append(document.body,{
+													color : "#E9E9FF",
+													name : 'John Smith',
+													age : 20,
+													dob : '10/20/89'
+													});
+													myTpl.append(document.body,{
+													color : "#FFE9E9",
+													name : 'Naomi White',
+													age : 25,
+													dob : '03/17/84'
+													});
+													
+											Looping with XTemplates	
+												var myTpl = Ext.create('Ext.XTemplate', [
+														'<tpl for=".">',
+														'<div style="background-color: {color}; margin: 10px;">',
+														'<b> Name :</b> {name}<br />',
+														'<b> Age :</b> {age}<br />',
+														'<b> DOB :</b> {dob}<br />',
+														'<b> Cars : </b>',
+														'<tpl for="cars">',
+														'{.}',
+														'<tpl if="this.isCamry(values)">',
+														'<b> (same car)</b>',
+														'</tpl>',
+														'{[ (xindex < xcount) ? ", " : "" ]}',
+														'</tpl>',
+														'<br />',
+														'</div>',
+														'</tpl>',
+														{
+														isCamry : function(car) {
+															return car === 'Camry';	
+														}
+														}
+														]);
+														
+													myTpl.compile();
+													myTpl.append(document.body, tplData);
+													
+													
+									COMPONENT MODEL
+										The Ext JS Component model is a centralized model that provides many of the essential component-related tasks, including a set of rules, known as the component life
+										cycle, that dictate how the component instantiates, renders, and is destroyed.
+										All UI widgets are subclasses of Ext.Component, which means that all of the widgets conform to the rules dictated by the model.
+										http://docs.sencha.com/extjs/6.5.3/guides/core_concepts/components.html
+										
+										
+										An Ext JS application's UI is made up of one or many widgets called Components. All Components are subclasses of the Ext.Component class which allows them to 
+										participate in automated lifecycle management including instantiation, rendering, sizing and positioning, and destruction. Ext JS provides a wide range of useful 
+										Components out of the box, and any Component can easily be extended to create a customized Component.
+										A Container is a special type of Component that can contain other Components.
+										Child Components are added to a Container using the Container's items configuration property.
+										
+											var childPanel1 = Ext.create('Ext.panel.Panel', {
+												title: 'Child Panel 1',
+												html: 'A Panel'
+											});
+
+											var childPanel2 = Ext.create('Ext.panel.Panel', {
+												title: 'Child Panel 2',
+												html: 'Another Panel'
+											});
+
+											Ext.create('Ext.container.Viewport', {
+												items: [ childPanel1, childPanel2 ]
+											});
+											
+										Containers use Layout Managers to size and position their child Components!!!	
+										
+										XTypes and ComponentManager
+										
+											Every Component has a symbolic name called an xtype. For example Ext.panel.Panel has an xtype of 'panel'. The above example showed how to add already instantiated 
+											Components to a Container. In a large application, however, this is not ideal since not all of the Components need to be instantiated right away, 
+											and some Components might never be instantiated depending on how the application is used. For example an application that uses a Tab Panel will only 
+											need the contents of each tab to be rendered if and when each tab is clicked on by the user. This is where xtypes come in handy by allowing a Container's children to 
+											be configured up front, but not instantiated until the Container determines it is necessary.
+											
+											Creating Custom Components
+												When creating a new UI class, the decision must be made whether that class should own an instance of a Component, or to extend that Component.
+												It is recommended to extend the nearest base class to the functionality required. This is because of the automated lifecycle management Ext JS provides which includes automated rendering when needed, 
+												automatic sizing and positioning of Components when managed by an appropriate layout manager, and automated destruction on removal from a Container.
+												It is easier to write a new class which is a Component and can take its place in the Component hierarchy rather than a new class which has an Ext JS Component, and then has 
+												to render and manage it from outside.
+												
+												Subclassing
+
+													The Class System makes it easy to extend any part of the Ext JS framework.
+													Ext.Base is the building block of all Ext JS classes, and the prototype and static members of this class are inherited by all other classes.
+													While we can certainly begin adding functionality at the lowest possible level via Ext.Base, in many cases developers want to start a bit higher in the 
+													inheritance chain.
+
+														The following example creates a subclass of Ext.Component:
+
+															Ext.define('My.custom.Component', {
+																extend: 'Ext.Component',
+
+																newMethod : function() {
+																   //...
+																}
+															});
+															
+															Template Methods
+															
+															https://dzone.com/articles/design-patterns-template-method
+
+															Ext JS uses the Template method pattern to delegate to subclasses, behaviour which is specific only to that subclass.
+															This means each class in the inheritance chain may "contribute" an extra piece of logic to certain phases in the Component's lifecycle. 
+															Each class implements its own special behaviour while allowing the other classes in the inheritance chain to continue to contribute their own logic.
+															
+															
+															Component ----------->render---|
+																BoxComponent               |      onRender
+																	Container              |      onRender
+																		Panel              |      onRender
+																		 MyPanelClass      |----->onRender--1 calls superclass
+																		 
+																		 
+															Ext.define('My.custom.Component', {
+																extend: 'Ext.Component',
+																onRender: function() {
+																	this.callParent(arguments); // call the superclass onRender method
+
+																	// perform additional rendering tasks here.
+																}
+															});	
+
+															Because JavaScript is a classless, prototype-oriented language, one of its most powerful features is flexibility. There are multiple solutions to any problem 
+															using many different coding styles and techniques. However, this comes with the cost of being unpredictable. Without a unified structure, JavaScript code can 
+															be difficult to understand, maintain, and re-use.
+															Class-based programming, on the other hand, is still the most popular model of Object Oriented Programming. Class-based languages usually 
+															requires strong-typing, encapsulation, and standard coding conventions. By making developers adhere to a large set of principles, code is more likely 
+															to be predictable, extensible, and scalable over time. However, this model doesn't have JavaScript's dynamic capability.
+															Each approach has pros and cons, but can we keep the good parts of both while hiding the bad parts? The answer is yes, and you can 
+															find the solution with Ext JS.
+															
+															We may use a single method for class creation: Ext.define. Its basic syntax is as follows:
+
+															Ext.define(className, members, onClassCreated);
+																className: The class name
+																members is an object that represents a collection of class members in key-value pairs
+																onClassCreated is an optional function callback that is invoked when all dependencies of the defined class are ready and the class itself is 
+																fully created. Due to the asynchronous nature of class creation, this callback can be useful in many situations.
+																
+																Ext.define('My.sample.Person', {
+																	name: 'Unknown',
+
+																	constructor: function(name) {
+																		if (name) {
+																			this.name = name;
+																		}
+																	},
+
+																	eat: function(foodType) {
+																		alert(this.name + " is eating: " + foodType);
+																	}
+																});
+
+																var bob = Ext.create('My.sample.Person', 'Bob');
+
+																bob.eat("Salad"); // alert("Bob is eating: Salad");
+																
+															Configuration
+
+														There is also a dedicated config property that gets processed by the powerful Ext.Class pre-processors before the class is created. 
+														Features include:
+
+															Configurations are completely encapsulated from other class members
+															Getter and setter methods for every config property are automatically generated into the class prototype during class creation if methods are not 
+															already defined.
+															The auto-generated setter method calls the apply method (if defined on the class) internally before setting the value. We may override 
+															the apply method for a config property if we need to run custom logic before setting the value. If your apply method does not return a value, 
+															the setter will not set the value. The update method (if defined) will also be called when a different value is set. 
+															Both the apply and update methods are passed the new value and the old value as params.
+															For Ext classes that use the configs, we don't need to call initConfig() manually. 
+															However, for your own classes that extend Ext.Base, initConfig() still needs to be called.
+
+																Ext.define('My.own.Window', {
+																   extend: 'Ext.Component',
+																   /** @readonly */
+																   isWindow: true,
+
+																   config: {
+																	   title: 'Title Here',
+
+																	   bottomBar: {
+																		   height: 50,
+																		   resizable: false
+																	   }
+																   },
+
+																   applyTitle: function(title) {
+																	   if (!Ext.isString(title) || title.length === 0) {
+																		   alert('Error: Title must be a valid non-empty string');
+																	   }
+																	   else {
+																		   return title;
+																	   }
+																   },
+
+																   applyBottomBar: function(bottomBar) {
+																	   if (bottomBar) {
+																		   if (!this.bottomBar) {
+																			   return Ext.create('My.own.WindowBottomBar', bottomBar);
+																		   }
+																		   else {
+																			   this.bottomBar.setConfig(bottomBar);
+																		   }
+																	   }
+																   }
+																});
+
+																/** A child component to complete the example. */
+																Ext.define('My.own.WindowBottomBar', {
+																   config: {
+																	   height: undefined,
+																	   resizable: true
+																   }
+																});
+																
+																Statics
+
+																	Static members can be defined using the statics config
+
+																	Ext.define('Computer', {
+																		statics: {
+																			instanceCount: 0,
+																			factory: function(brand) {
+																				// 'this' in static methods refer to the class itself
+																				return new this({brand: brand});
+																			}
+																		},
+
+																		config: {
+																			brand: null
+																		}
+																	});
+																	
+																	
+															XType again
+
+																var myPanel = {
+																	xtype : 'panel',
+																	height : 100,
+																	width : 100,
+																	html : 'Hello!'
+																};
+																
+															Here myPanel is an XType configuration object that would be used to configure an
+															Ext.Panel widget. This works because just about every widget is registered to the
+															Ext.ComponentManager class with a unique string key and a reference to that class,
+															which is then referred to as an XType. In each UI class in the framework, you’ll find an
+															alias declaration that is prefixed with 'widget.'—the Ext JS class system automatically
+															registers the widget’s XType with ComponentManager because of the prefix.
+															Here’s what it would look like to register an XType for a custom class:
+
+																Ext.define('MyApp.CustomClass', {
+																extend: 'Ext.panel.Panel',
+																alias: 'widget.myCustomComponent'
+																});
+																
+															Once registration is complete, we can specify your custom component as an XType:
+															new Ext.Panel({
+															...
+															items : {
+															xtype : 'myCustomComponent',
+															...
+															}
+															});
+
+															Component Rendering
+																Direct and Lazy render models
+																	Direct
+																		var myPanel = Ext.create('Ext.panel.Panel',{
+																			renderTo : document.body,
+																			height : 50,
+																			width : 150,
+																			title : 'Panel rendered immediately',
+																			frame : true
+																		});
+																		
+															If we want to defer the rendering of the component, omit the renderTo and applyTo attributes and call the component’s 
+															render method when we deem it necessary:	
+
+																	var myPanel = Ext.create('Ext.panel.Panel',{
+																	height : 50,
+																	width : 150,
+																	title : 'Lazy rendered Panel',
+																	frame : true
+																	});
+																	// ... some business logic...
+																	myPanel.render(document.body);
+
+															We never specify applyTo or renderTo when the component is a child of another. Components that contain other components
+															have a parent-child relationship, which is known as the Container model. If a component is a child of another component, it’s specified in 
+															the items attribute of the configuration object, and its parent will manage the call to its render method when required. 
+															This is known as lazy or deferred rendering.
+															
+														The component life cycle
+															The class Ext.Component class provides a layer of abstraction from the underlying HTML.
+															The Ext.Component class generates HTML for us :
+																
+																var simpleComponent = Ext.create('Ext.Component',{html : 'Ext JS Essentials',
+																												  renderTo : Ext.getBody()});
+																												  
+																HTML Rendered :
+																	<div class="x-component x-component-default x-border-box" id="ext-comp-1010">
+																		Ext JS Essentials!
+																	</div>
+															
+																This generated HTML is created and managed by Ext.dom.Element class,which wraps a DOM element and its children.
+																	AFTER IT IS RENDERED,EACH EXT.COMPONENT INSTANCE HAS THE ELEMENT INSTANCE STORED IN ITS EL PROPERTY.
+																	WE CAN THEN USE THIS PROPERTY TO MANIPULATE THE UNDERLYING HTML THAT REPRESENTS THE COMPONENT.
+																	
+																Initialization Phase
+																	Configuration applied
+																	Base Event Registration
+																	Id assigned or auto generated
+																	Pre Init Component plugs ins constructed
+																	initComponent
+																		This where a lot of work occurs for subclasses of Component, like registration of subclass-specific events,
+																		references to data stores, and creation of child components. initComponent is used as a supplement to the constructor and 
+																		is typically used as the main pointto extending Component or any subclass thereof.
+																	Component Registered with Component Manager
+																		Each component that’s instantiated is registered with the ComponentManager class with a unique Ext JS–generated string ID.
+																	Base Mixin contructers are called 
+																	Component reseize event initialized as state event
+																	Plugs ins are initialize
+																	Component Loader Class bootstrapped
+																	Render Phase Begins
+																Render Phase
+																	beforerender event is fired
+																	Components element is cached
+																	Component is registered with floating
+																	The Container is set
+																		A component needs a place to live, and that place is known as its container.
+																	onRender
+																		This is a crucial step for subclasses of Component, where all of the DOM elements are inserted to get the component rendered and
+																		painted onscreen. Each subclass is expected to call its superclass’s onRender first when extending Ext.Component or any subclass thereafter, 
+																		which ensures that the Ext.Component base class can insert the core DOM elements needed to render a component.
+																	visibilityMode is configured
+																	overCls
+																	renderEventIsfired
+																	The component’s contents are initialized. 
+																		If a component is configured with contentEl, html, and/or a combination of tpl (Template) and data properties,
+																		it’ll render that content as children of its own element. AbstractComponent is modeled so that you can use one, two, or all three if you wish. 
+																		html will get rendered first, contentEl second, tpl third, and data last.
+																		afterRender is executed. afterRender is a crucial postrender method that’s
+																		automatically called by the render method. This method is responsible for
+																		configuring the size of the component, aligning and positioning the component,
+																		and adding some styling to the HTML content. It’s also responsible for
+																		initializing an instance of Resizable (if configured), setting the component’s
+																		element to scroll (if configured via autoScroll), and making the component
+																		draggable if it’s configured as such. Finally, if the component is configured
+																		for Accessible Rich Internet Applications (ARIA) compliancy, the widget is initialized
+																		as such. It’s important to note that all subclasses of Component that
+																		have their own afterRender method are expected to call their superclass’s
+																		afterRender method.
+																	The afterrender event is fired.
+																	The afterRenderEvents are hooked.
+																	The component’s element is initialized for focus.
+																	The component is hidden.
+																	The component is disabled.
+																Destruction Phase
+																	As in real life, the death of a component is a crucial phase in its life. Destruction of a component performs critical tasks, such as 
+																	removing itself and any children from the DOM tree, de-registration of the component from the ComponentManager class, and
+																	de-registration of event listeners.
+																	
+																	1beforedestroy is fired. This, like many before<action> events, is a cancelable event, preventing the component’s destruction if its event handler 
+																	returns false.
+																	2 beforeDestroy is called. This method is first to be called within the component’s
+																	destroy method and is the perfect opportunity to remove any noncomponent
+																	items, such as toolbars or buttons. Any subclass of Component is expected to call
+																	its superclass’s beforeDestroy method.
+																	3 The component is de-registered from floating. If a component is floating, it’s de-registered
+																	with FloatingManager.
+																	4 The component is removed from the parent container. If a component is a child of a
+																	parent container, it’s removed from its parent.
+																	5 onDestroy is called. The onDestroy method is charged with quite a few tasks.
+																	The first is the destruction of any configured drag-and-drop proxy, immediately
+																	followed by the destruction of a Resizer if it’s configured. Next, if a focus
+																	DelayedTask is registered, it’s removed from the component. If the component
+																	is configured to monitor the browser’s resize event, the resize event handler is
+																	removed. Finally, the ComponentLayout, the loadMask, and any floating child
+																	items are destroyed if the component is configured with the same.
+																	6 Registered plug-ins are destroyed. At this point in the destruction phase all registered
+																	plug-ins are looped through, each with its destroy method being called.
+																	7 Element and Element listeners are purged. If a component has been rendered, any
+																	handlers registered to its Element are removed and the Element is removed
+																	from the DOM.
+																	8 The destroy event is fired. Any registered event handlers are triggered by this
+																	event, which signals that the component is no longer in the DOM.
+																	9 The component is unregistered from ComponentManager. The reference for this component
+																	in the ComponentManager class is removed.
+																	10 The state mixin is destroyed. Here the state mixin is called upon to be destroyed,
+																	de-registering any state-specific component events.
+																	11 The component’s event handlers are purged. All event handlers are de-registered
+																	from the component.
+															Containers
+																	Container is a behind-the-curtains class that provides a foundation for components to manage their child items, and it’s often overlooked by developers.
+																	This class provides a suite of utilities, which includes add, insert, and remove methods, along with some child query, bubble, and 
+																	cascade utility methods. These methods are used by most of the subclasses, including Panel, Viewport, and Window. It’s also common to use these
+																	methods in your application.
+
+																Querying for components 
+																	Ext JS 4.0 comes with a new ComponentQuery class that has a selector engine similar to that of the browser’s selector engine.
+																	
+																The viewport container
+																	The Viewport class is the foundation on which all web applications that depend solely on Ext JS are built. It manages 100% of the browser’s—you guessed 
+																	it—viewport, or display area.
+																The panel 
+																	Panel, a subclass of Container, is considered a workhorse of the framework because it’s what many developers use to present UI widgets.
+																	Recall that Panel is also a subclass of Component, which means that it follows the component life cycle.
+																	
+															The Dock layout is exclusively used by the Panel class and is responsible for rendering one or more components on either side of the panel’s content body.
+																Use the weight property
+																	With the Dock layout, the components with the most weight will be rendered closer to the content body and be sized smaller, giving the lighter 
+																	docked items higher priority in sizing.
+																	each quadrant where items are docked has a default weight. Top is 1, left is 3, right is 5, and bottom is 7. We use 10 because it’s a nice 
+																	round number that’s larger than 7 (bottom dock).
+																	
+															The window UI widget builds on the panel, providing  with the ability to float UI components above all the other content on the page.
+															
+															Exploring Layouts
+																Layout management schemes are responsible for the visual organization of widgets on screen.
+																The layout managers are divided into two groups: component and container layouts.
+																	Auto Layout(default)
+																		It places items on the screen, one on top of another.
+																		Although the Auto layout doesn’t explicitly resize child items, a child’s width may conform to the container’s content body if it isn’t constrained.
+																	Anchor Layout
+																		The Anchor layout is similar to other container layouts in that it stacks child items one on top of another, but it adds dynamic sizing into 
+																		the mix using an anchor parameter specified on each child.
+																	Absolute Layout
+																	Fit Layout
+																		The Fit layout forces a container's single child to "fit" to its body element.
+																		The Fit layout is a great solution for a seamless look when a container has one child.
+																	The Accordion layout
+																		The Accordion layout, shown in the following listing, is a direct subclass of the VBox layout. It’s useful when we want to display multiple 
+																		panels vertically stacked, where only a single item can be expanded or contracted.
+																		It’s important to note that the Accordion layout can only function well with an Ext.panel.Panel and two of its subclasses, 
+																		Ext.grid.Panel and Ext.tree.Panel.
+																		If we need anything else inside an Accordion layout, such as a tab panel, wrap a panel around it and add 
+																		that panel as a child of the container that has the Accordion layout.
+																		Although the Accordion layout is a good solution for having more than one panel onscreen, it has limitations. For instance, what if we 
+																		needed to have 10 components in a particular container? The sum of the heights of the title bars for each item would
+																		take up a lot of valuable screen space. The Card layout is perfect for this requirement, because it allows we to show and hide 
+																		or flip through child components.
+																	The Card Layout
+																		The Card layout ensures that its children conform to the size of the container. Unlike the Fit layout, the Card layout 
+																		can have multiple children under its control.
+																	The Column layout	
+																		
+																	
+															
+															
+										
+											
+											
+										
 											
 										
 											
