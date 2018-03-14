@@ -13,7 +13,7 @@
 		TOMCAT CONTAINS A FILE CALLED CONTEXT.XML
 			This is where the resources are defined , JNDI names 
 	
-	/*JAVASCRIPT SUPER SUMMARY*/
+*************************************************************************************************/*JAVASCRIPT SUPER SUMMARY*/************************************************************************************
 	PRIMITIVE VALUES : null undefined boolean string number
 	REFERENCE TYPES  : object
 	
@@ -257,12 +257,164 @@
 								ECMAScript 5 formalized the concept of prototypal inheritance by adding the Object.create() method.
 								This method accepts two arguments, an object to use as the prototype for a new object and an optional object defi ning additional properties to apply to the new object.
 									The second argument for Object.create() is in the same format as the second argument for Object.defineProperties(): each additional property to define is specified 
-									along with its descriptor. Any properties specifi ed in this manner will shadow properties of the same name on the prototype object.
+									along with its descriptor. Any properties specified in this manner will shadow properties of the same name on the prototype object.
 									
-								Parasitic Combination Inheritance
+							Parasitic Combination Inheritance
 									
 					
 							CLOSURES
+								function expressions
+								function declarations -> function declaration HOISTING
+									named function expressions
+										var factorial = (function f(num){
+											if(num < 1){
+												return 1;
+											}else{
+												return num * f(num -1);
+											}
+										});
+										
+									Immediatelly-Invoked Function Expression(IIFE)
+										(function(){...}) ----> Turn the code within the parentheses into an expression.
+										(function(){...})() --> Calls the function that results from that evaluated expression.
+											This pattern is used when tryng to avoid polluting the global namespace.
+											
+										function(){...}() -> SyntaxError
+											When the parser encounters the function keyword in the global scope or inside a function, it treats it as a function declaration (statement), and not as a function expression, 
+											by default. If you don't explicitly tell the parser to expect an expression, it sees what it thinks to be a function declaration without a name and 
+											hrows a SyntaxError exception because function declarations require a name.
+											
+										MIMIC BLOCK SCOPE
+											function(){
+												//block code here
+											}(); //error!
+											This code causes a syntax error,because Javascript sees the function keyword as the beginning of a function declaration,and function declarations cannot be
+											followed by parentheses!!!!FUNCTION EXPRESSIONS,HOWEVER,CAN BE FOLLOWED BY PARENTHESES.TO TURN THE FUNCTION DECLARATION INTO A FUNCTION EXPRESSION,WE NEED 
+											ONLY TO SURROUND IT WITH PARENTHESES :
+												(function(){
+													//block code here
+												})();
+												
+												
+												function outputNumbers(count){
+													(function () {
+														for (var i=0; i < count; i++){
+														alert(i);
+														}
+													})();
+													alert(i); //causes an error
+												}
+												
+												This technique is often used in the global scope outside of functions to limit the number of variables
+												and functions added to the global scope. Typically you want to avoid adding variables and functions
+												to the global scope, especially in large applications with multiple developers, to avoid naming
+												collisions. Private scopes allow every developer to use his or her own variables without worrying about polluting the global scope.
+												
+											
+									THIS INSIDE CLOSURES
+										When used inside global functions,THIS is equal to WINDOW in nonstrict mode and undefined in strict mode.
+										THIS is equal to the object when called as an object method.
+										Anonymous function are not bound to an object in this context,meaning the THIS object points to WINDOW unless executing in strict mode
+										
+											var name = "The Window";
+											var object = {
+												name : "My Object",
+												getNameFunc : function(){
+													return function(){
+													return this.name;
+													};
+												}
+											};
+											alert(object.getNameFunc()()); //"The Window" (in non-strict mode)
+											
+											var name = "The Window";
+											var object = {
+												name : "My Object",
+												getNameFunc : function(){
+												var that = this;
+												return function(){
+													return that.name;
+													};
+												}
+											};
+											alert(object.getNameFunc()()); //"My Object"
+											
+											There are two ways to create privileged methods on objects:
+											
+											function MyObject(){
+												//private variables and functions
+												var privateVariable = 10;
+												function privateFunction(){
+													return false;
+												}
+												//privileged methods
+												this.publicMethod = function (){
+													privateVariable++;
+													return privateFunction();
+												};
+											}
+											
+											function Person(name){
+												this.getName = function(){
+													return name;
+												};
+												this.setName = function (value) {
+													name = value;
+												};
+											}
+											
+											VERY IMPORTANT CONCEPT : Since both methods are defined inside the constructor, they are closures and have access to name through the scope chain.
+											
+											Static Private Variables
+												(function(){
+													//private variables and functions
+													var privateVariable = 10;
+													function privateFunction(){
+														return false;
+													}
+													//constructor
+													MyObject = function(){
+													};
+													//public and privileged methods
+													MyObject.prototype.publicMethod = function(){
+														privateVariable++;
+														return privateFunction();
+													};
+												})();
+												
+												Public methods are defined on the prototype, as in the typical prototype pattern. Note that this
+												pattern defines the constructor not by using a function declaration but instead by using a function expression. 
+												Function declarations always create local functions, which is undesirable in this case.
+												For this same reason, the var keyword is not used with MyObject. Remember: initializing an undeclared variable always creates a global variable, 
+												so MyObject becomes global and available outside the private scope.
+												The main difference between this pattern and the previous one is that private variables and functions are shared among instances.
+												
+								The Module Pattern
+									var singleton = {
+										name : value,
+										method : function () {
+											//method code here
+										}
+									};
+									
+									The module pattern augments the basic singleton to allow for private variables and privileged methods, taking the following format:
+									var singleton = function(){
+										//private variables and functions
+										var privateVariable = 10;
+										function privateFunction(){
+											return false;
+										}
+										//privileged/public methods and properties
+										return {
+											publicProperty: true,
+											publicMethod : function(){
+												privateVariable++;
+												return privateFunction();
+											}
+										};
+									}();
+											
+								
 							
 				Important functions
 					Object.hasOwnProperty
@@ -288,9 +440,59 @@
 				
 				Object.defineProperties()
 				Object.getOwnPropertyDescriptor()
+			
+			Scope-safe Constructors
+			Lazy Loading Functions
+			Tamper-Proof Objects
+				Once an object has been made tamper-proof, the operation cannot be undone.
+				By default, all objects in JavaScript are extensible, meaning that we can add additional properties and methods to the object at any time.
+					NonExtensible
+						Object.preventExtensions(person);
+						After the call to Object.preventExtensions(), the person object can no longer have new properties or methods added.
+						We can still modify and delete already-existing members.
+						Object.isExtensible(person)
+					Sealed
+						The next level of protection for objects in ECMAScript 5 is a sealed object. Sealed objects aren’t extensible and existing object members have their [[Configurable]] attribute set to false. 
+						This means properties and methods can’t be deleted as data properties cannot be changed to accessor properties or vice versa using Object.defineProperty(). Property values can still be changed.
+					Frozen
+						The strictest type of tamper-proof object is a frozen object. Frozen objects aren’t extensible and are sealed, and also data properties have their [[Writable]] attribute set to false. 
+						Accessor properties may still be written to but only if a [[Set]] function has been defined.
 				
-		
-    /**************************/	
+			Cookies
+			Web Storage
+			IndexedDB
+			Function Binding
+			Function Currying
+			Page Visibility	
+				
+			Web Timing
+				Page performance is always an area of concern for web developers.
+				The center of Web Timing is the window.performance object.
+				All metrics related to the page, both those already defined and those in the future, exist on this object.
+			GeoLocation API	
+				
+			Web Workers
+				Browsers may choose to implement Web Workers in any number of ways, including threads, background processes, and processes run on other processor cores.
+					var worker = new Worker("stufftodo.js";
+					Page communicates with the Worker similar to the XDM API:
+						worker.postMessage("start!"	);
+					The worker communicates back to the page through two events: message and error.	
+						self.onmessage = function(event){
+							var data = event.data;
+							//remember, by default sort() does a string comparison
+							data.sort(function(a, b){
+							return a – b;
+							});
+							self.postMessage(data);
+						};
+						
+					worker.terminate(); //stop the worker immediately
+						The most important thing to understand about a Web Worker is that its JavaScript is executed in a completely different scope than code in the web page. 
+						There is a different global object and different objects and methods available inside of a Web Worker.
+						Inside of a Web Worker, there is no access to the DOM and, indeed, no way to affect the appearance of a page in any way.
+						The global object inside of a Web Worker is the worker object itself.
+						
+    /*******************************************************************************************************************************************************************/	
 													        JAVASCRIPT					
 												ECMASCRIPT(The Core)  DOM   BOM
 												
