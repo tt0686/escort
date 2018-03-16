@@ -4970,7 +4970,7 @@
 									https://auth0.com/blog/cookies-vs-tokens-definitive-guide/
 									https://stormpath.com/blog/beginners-guide-jwts-in-java
 									
-								Software Enginner
+								Software Engineer
 									https://www.toptal.com/software/single-responsibility-principle
 									
 								REACT
@@ -4992,10 +4992,72 @@
 											IMPORTANT ---> Template literals are enclosed by the back-tick (` `)  (grave accent) character instead of double or single quotes!!!!
 										Default Parameters
 										Arrow Functions
+											Very Important :
+												 Arrow Functions does not have its own this, arguments, super, or new.target. 
+												 Arrow Functions work with LEXICAL NAME BINDING !!!
+													Traditional functions work with DYNAMIC NAME BINDING
+														This refers to the object the method is called on , to the execution context
+														var o = {
+															m() {console.log(this}
+														}
+														
+														o.m() this is set to the "o"
+														
+														function f(m){m()}
+														f(o.m); -> this is set to the global window
+													Arrow function works with PARENT LEXICAL SCOPE
+														const toString = Object.prototype.toString;
+
+														const o = {
+														  foo: () => console.log("window", toString.call(this)),
+															  
+														  bar() {
+															const baz = () => console.log("o", toString.call(this));
+															baz();
+														  }
+														}
+
+														o.foo() // logs window [object Window]
+														o.bar() // logs o [object Object]
+														
+										Generator functions & Iterator Objects
+											function *foo(){...}
+											Can be paused and resumed at anytime
+												Is paused by executing a yield keyword 
+												
+												function *foo(){yield 'bar';}
+											When a function generator is called it returns an Generator	Iterator Object
+												var iterator = foo();
+											The Iterator includes a next method .
+											Generator Iterator’s next() method returns an object with "value" and "done" properties.
+											
+											Very important thing in terms of rationale :
+												
+												function* HelloGen2() {
+												  var a = yield 100;
+												  var b = yield a + 100;
+
+												  console.log(b);
+												}
+
+												var gen2 = HelloGen2();
+
+												console.log(gen2.next());     // {value: 100, done: false}
+													When we call this line , everything is executed until the first yield , that means it returns 100 and the assignment
+													of the variable "a" is not executed because is on the left side of the yield
+												console.log(gen2.next(500));  // {value: 600, done: false}
+													This line of code begins replacing the first yield by 500 becoming like var a = 500 and then execute the code a+ 100 and stop again in the yield not executing the 
+													code var b =
+												console.log(gen2.next(1000)); // {value: undefined, done: true}
+												    this line replace var b = yield by var b = 1000 executing the rest of the function.
+												https://www.sitepoint.com/javascript-generators-preventing-callback-hell/
+												https://medium.com/javascript-scene/the-hidden-power-of-es6-generators-observable-async-flow-control-cfa4c7f31435
+												https://medium.com/@dtothefp/why-can-t-anyone-write-a-simple-es6-generators-tutorial-ec2bbdf6ff45
+											
 									Transpiling 
-										Is the process of convert ES6 code to ES5 code!!!
+										Is the process of conv code to ES5 code!!!
 										We can transpile Javascript directly in the browser using the inline Babel transpiler.
-										Include the browser.js and any scripts with type="babel/script" will be converted.
+										Include the browser.js and any scripts with type="babel/script" will be convertedert ES6.
 										This approach means that the browser does the transpiling at runtime.This is not a good idea for production because it will slow our application down a lot.
 										
 										Destructuring 
