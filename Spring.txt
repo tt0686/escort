@@ -1,0 +1,574 @@
+Lightweight and minimally invasive development with POJOs -> Other frameworks (Struts,EJB 2.1) lock us by forcing us to extend one of their classes or implement one of their interfaces.
+Loose coupling through DI and interface orientation
+Declarative programming through aspects and common conventions
+Eliminating boilerplate code with aspects and templates
+
+Dependency Injection
+	Traditionally each object is responsible for obtaining its own references to the objects it collaborates with(its dependencies).
+	
+	package com.springinaction.knights;
+	public class DamselRescuingKnight implements Knight {
+		private RescueDamselQuest quest;
+		
+		public DamselRescuingKnight() {
+			this.quest = new RescueDamselQuest();
+		}
+		
+		public void embarkOnQuest() {
+			quest.embark();
+		}
+	}
+	
+	DamselRescuingKnight creates its own quest, a RescueDamselQuest, in the constructor. This makes a DamselRescuingKnight tightly coupled to a Rescue-DamselQuest and severely limits the knight’s quest-embarking repertoire.
+	With DI, objects are given their dependencies at creation time by some third party that coordinates each object in the system.
+	
+	public class BraveKnight implements Knight {
+		private Quest quest;
+			public BraveKnight(Quest quest) {
+				this.quest = quest;
+			}
+			public void embarkOnQuest() {
+				quest.embark();
+			}
+	}
+	
+	As you can see, BraveKnight, unlike DamselRescuingKnight, doesn’t create his own quest. Instead, he’s given a quest at construction time as a constructor argument. This is a type of DI known as constructor injection.
+	
+	How wiring components together ?
+		XML
+			<?xml version="1.0" encoding="UTF-8"?>
+				<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans
+							http://www.springframework.org/schema/beans/spring-beans.xsd">
+					<bean id="knight" class="com.springinaction.knights.BraveKnight">
+						<constructor-arg ref="quest" />
+					</bean>
+					<bean id="quest" class="com.springinaction.knights.SlayDragonQuest">
+						<constructor-arg value="#{T(System).out}" />
+					</bean>
+				</beans>
+		JAVA
+			@Configuration
+			public class KnightConfig {
+				@Bean
+				public Knight knight() {
+					return new BraveKnight(quest());
+				}
+				@Bean
+				public Quest quest() {
+					return new SlayDragonQuest(System.out);
+				}
+			}
+			
+			In Spring application,an APPLICATION CONTEXT loads bean definitions and wires them together!!!
+			Several implementations of its application context,eac primarily differing only in how it loads its configuration.
+				ClassPathXmlApplicationContext -> LOADS ONE OR MORE XML FILES LOCATED IN THE APPLICATION CLASSPATH!!!
+				
+				public class KnightMain {
+					public static void main(String[] args) throws Exception {
+					ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("META-INF/spring/knight.xml");
+					Knight knight = context.getBean(Knight.class);
+					knight.embarkOnQuest();
+					context.close();
+					}
+				}
+				
+				AOP
+				
+				public class Minstrel {
+					private PrintStream stream;
+					public Minstrel(PrintStream stream) {
+						this.stream = stream;
+					}
+					public void singBeforeQuest() {
+						stream.println("Fa la la, the knight is so brave!");
+					}
+					public void singAfterQuest() {
+						stream.println("Tee hee hee, the brave knight " +"did embark on a quest!");
+					}
+				}
+				
+				<?xml version="1.0" encoding="UTF-8"?>
+				<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans
+							http://www.springframework.org/schema/beans/spring-beans.xsd">
+					<bean id="knight" class="com.springinaction.knights.BraveKnight">
+						<constructor-arg ref="quest" />
+					</bean>
+					<bean id="quest" class="com.springinaction.knights.SlayDragonQuest">
+						<constructor-arg value="#{T(System).out}" />
+					</bean>
+					
+					<bean id="minstrel" class="com.springinaction.knights.Minstrel">
+						<constructor-arg value="#{T(System).out}" />
+					</bean>
+					
+					<aop:config>
+						<aop:aspect ref="minstrel">
+							<aop:pointcut id="embark" expression="execution(* *.embarkOnQuest(..))"/>
+							<aop:before pointcut-ref="embark" method="singBeforeQuest"/>
+							<aop:after pointcut-ref="embark" method="singAfterQuest"/>
+						</aop:aspect>
+					</aop:config>
+				</beans>
+				
+				IN A SPRING-BASED APPLICATION, YOUR APPLICATION OBJECTS LIVE IN THE SPRING CONTAINER!!!!!!
+				Spring container implementation can be catagorized into two distinct types :
+					1 BEAN FACTORIES
+					2 APPLICATION CONTEXTS
+						AnnotationConfigApplicationContext
+							If we'd rather load your application context from a Java configuration :
+									ApplicationContext context = new AnnotationConfigApplicationContext(com.springinaction.knights.config.KnightConfig.class);
+						AnnotationConfigWebApplicationContext
+						ClassPathXmlApplicationContext
+							ApplicationContext context = new ClassPathXmlApplicationContext("knight.xml");
+						FileSystemXmlApplicationContext
+							ApplicationContext context = new FileSystemXmlApplicationContext("c:/knight.xml");
+						XmlWebApplicationContext
+						
+					Bean Lifecycle
+						Instantiate
+						Populate properties
+						BeanNameAware (if bean implement BeanNameAware interface) the method setBeanName is called
+							setBeanName() -> Spring passes the bean's ID
+						BeanFactoryAware
+							setBeanFactory -> Passes bean factory itseld
+						ApplicationContextAware
+							setApplicationContext()
+						BeanPostProcessor
+							postProcessBeforeInitialization
+						InitializingBean
+							afterPropertiesSet()
+							IF THE BEAN WAS DECLARED WITH AN initMethod THEN THE SPECIFIED INITIALIZATION IS CALLED
+						BeanPostProcessor
+							postProcessorAfterInitialization()
+						---------------------------------------------->BEAN READY TO USE<----------------------------------------------------------------------
+						DisposableBean
+							destroy()
+							IF THE BEAN WAS DECLARED WITH AN destroy-method THEN THE SPECIFIED METHOD IS CALLED
+							
+				SPRING WIRING OPTIONS
+					XML
+					JAVA
+					AUTOMATIC WIRING
+						@Component(@Named) -> Identifies a class as a component and serves as a clue to Spting that a bean should be created for the class.
+						
+						@Configuration
+						@ComponentScan()packages to be scanned ->("soundsystem") || (basePacjages={"soudsystem","video"}) || basePackageClasses={CDPlayer.class,DVDPlayer.class}
+										We could create an empty marker interface in the packages to be scanned.
+							public class CDPlayerConfig {
+						}
+						
+							@ComponentScan will default to scanning the same package as the configuration class!!!
+							In XML 
+									<context:component-scan base-package="soundsystem" />
+									
+									
+						@Autowired(required=false) || @Inject
+						
+						@Component
+						public class CDPlayer implements MediaPlayer {
+							private CompactDisc cd;
+							
+							@Autowired
+							public CDPlayer(CompactDisc cd) {
+								this.cd = cd;
+							}
+							public void play() {
+								cd.play();
+							}
+						}
+						
+						IF WE WANT TO WIRE COMPONENTS FROM SOME THIRD-PARTY LIBRARY INTO OUR APPLICATION ,BECAUSE WE DO NOT HAVE THE SOURCE CODE FOR THAT LIBRARY , THERE IS NO OPPORTUNITY TO ANNOTATE ITS CLASSES
+						WITH @COMPONENT AND @AUTOWIRED.
+						
+						JAVA EXPLICIT CONFIG
+							@Configuration
+							public class CDPlayerConfig {
+								@Bean(name="otherName")
+								public CompactDisc sgtPeppers() {
+									return new SgtPeppers();
+								}
+								
+								@Bean
+								public CDPlayer anotherCDPlayer() {
+									return new CDPlayer(sgtPeppers());   IMPORTANT : The sgtPeppers() method will return the same instance(BY DEFAULT,ALL BEANS IN SPRING ARE SINGLETONS AND THERE IS NO REASON WE
+								}												     NEED TO CREATE A DUPLICATE INSTANCE, SO SPRING INTERCEPTS THE CALL TO sgtPeppers() AND MAKES SURE THAT WHAT IS RETURNED IS THE 
+							                                                         SPRING BEAN THAT WAS CREATED WHEN SPRING ITSELF CALLED sgtPeppers() TO CREATE THE CompactDisc BEAN)
+							
+								//Alternative
+								@Bean
+								public CDPlayer cdPlayer(CompactDisc compactDisc) {
+									return new CDPlayer(compactDisc);                -> Best choice because it does not depend on the CompactDisc bean being declared in the same configuration class.It could be 
+								}                                                       discovered by component scanning or declared in XML
+								
+								//Setter method
+								@Bean
+								public CDPlayer cdPlayer(CompactDisc compactDisc) {
+									CDPlayer cdPlayer = new CDPlayer(compactDisc);
+									cdPlayer.setCompactDisc(compactDisc);
+									return cdPlayer;
+								}
+							
+							}
+						XML
+							<bean class="soundsystem.SgtPeppers" />
+							<bean id="compactDisc" class="soundsystem.SgtPeppers" />
+								Constructor Injection
+									1:The <constructor-arg> element
+									2:Using the c-namespace introduced in Spring 3.0
+									
+									<bean id="cdPlayer" class="soundsystem.CDPlayer">
+										<constructor-arg ref="compactDisc" />
+									</bean>
+									<bean id="cdPlayer" class="soundsystem.CDPlayer" c:cd-ref="compactDisc" /> (cd -> constructor argument name |-ref -> naming convention that indicates to Spring that we are wiring 
+									                                                                                                             a reference to a bean)
+									Alternative
+									<bean id="cdPlayer" class="soundsystem.CDPlayer" c:_0-ref="compactDisc" />
+									<bean id="cdPlayer" class="soundsystem.CDPlayer"c:_-ref="compactDisc" /> -> JUST ONE CONSTRUCTOR ARGUMENT
+									
+							LITERAL VALUES
+								
+								public class BlankDisc implements CompactDisc {
+									private String title;
+									private String artist;
+									
+									public BlankDisc(String title, String artist) {
+										this.title = title;
+										this.artist = artist;
+									}
+									public void play() {
+										System.out.println("Playing " + title + " by " + artist);
+									}
+								}
+							
+								<bean id="compactDisc" class="soundsystem.BlankDisc">
+									<constructor-arg value="Sgt. Pepper's Lonely Hearts Club Band" />   -> INSTEAD OF "REF" WE USE THE "VALUE" ATTRIBUTE
+									<constructor-arg value="The Beatles" />
+								</bean>
+								
+								<bean id="compactDisc" class="soundsystem.BlankDisc" c:_title="Sgt. Pepper's Lonely Hearts Club Band" c:_artist="The Beatles" />
+									<bean id="compactDisc" class="soundsystem.BlankDisc" c:_0="Sgt. Pepper's Lonely Hearts Club Band" c:_1="The Beatles" />
+							
+							WIRING COLLECTIONS
+								public class BlankDisc implements CompactDisc {
+									private String title;
+									private String artist;
+									private List<String> tracks;
+									
+									public BlankDisc(String title, String artist, List<String> tracks) {
+										this.title = title;
+										this.artist = artist;
+										this.tracks = tracks;
+									}
+									
+									public void play() {
+										System.out.println("Playing " + title + " by " + artist);
+										for (String track : tracks) {
+											System.out.println("-Track: " + track);
+										}
+									}
+								}
+								
+								<bean id="compactDisc" class="soundsystem.BlankDisc">
+									<constructor-arg value="Sgt. Pepper's Lonely Hearts Club Band" />
+									<constructor-arg value="The Beatles" />
+									<constructor-arg>
+										<list>
+											<value>Sgt. Pepper's Lonely Hearts Club Band</value>  -> IF WE WANT TO REFERENCE A BEAN <ref bean="" /> INSTEAD
+											<value>With a Little Help from My Friends</value>
+											<value>Lucy in the Sky with Diamonds</value>
+											<value>Getting Better</value>
+											<value>Fixing a Hole</value>
+										</list>
+									</constructor-arg>
+								</bean>
+								
+								SETTING PROPERTIES
+									public class CDPlayer implements MediaPlayer {
+										private CompactDisc compactDisc;
+										
+										@Autowired
+										public void setCompactDisc(CompactDisc compactDisc) {
+											this.compactDisc = compactDisc;
+										}
+										public void play() {
+											compactDisc.play();
+										}
+									}
+									
+									<bean id="cdPlayer" class="soundsystem.CDPlayer">
+										<property name="compactDisc" ref="compactDisc" />
+									</bean>
+									
+									<bean id="cdPlayer" class="soundsystem.CDPlayer" p:compactDisc-ref="compactDisc" />
+									
+									PROPERTIES THROUGH LITERAL VALUES
+										public class BlankDisc implements CompactDisc {
+											private String title;
+											private String artist;
+											private List<String> tracks;
+											
+											public void setTitle(String title) {
+												this.title = title;
+											}
+											
+											public void setArtist(String artist) {
+												this.artist = artist;
+											}
+											
+											public void setTracks(List<String> tracks) {
+												this.tracks = tracks;
+											}
+											
+											public void play() {
+												System.out.println("Playing " + title + " by " + artist);
+												for (String track : tracks) {
+													System.out.println("-Track: " + track);
+												}
+											}
+										}
+
+										<bean id="compactDisc" class="soundsystem.BlankDisc">
+											<property name="title" value="Sgt. Pepper's Lonely Hearts Club Band" />
+											<property name="artist" value="The Beatles" />
+											<property name="tracks">
+												<list>
+												<value>Sgt. Pepper's Lonely Hearts Club Band</value>
+												<value>With a Little Help from My Friends</value>
+												<value>Lucy in the Sky with Diamonds</value>
+												<value>Getting Better</value>
+												<value>Fixing a Hole</value>
+												</list>
+											</property>
+										</bean>
+									
+										TO USE THE C:NAMESPACE OR P:NAMESPACE WITH LIST USE THE UTIL-NAMESPACE WHICH CREATES A LIST BEAN!!!
+										
+								MIXING CONFIGURATION
+									@Configuration
+									public class CDConfig {
+										@Bean
+										public CompactDisc compactDisc() {
+											return new SgtPeppers();
+										}
+									}
+									
+									@Configuration
+									@Import(CDConfig.class)
+									public class CDPlayerConfig {
+										@Bean
+										public CDPlayer cdPlayer(CompactDisc compactDisc) {
+											return new CDPlayer(compactDisc);
+										}
+									}
+									
+															OR
+															
+									@Configuration
+									@Import({CDPlayerConfig.class, CDConfig.class})
+									public class SoundSystemConfig {
+									}
+
+
+									ONE OF THE CONFIGURATIONS ARE IN XML
+										<bean id="compactDisc" class="soundsystem.BlankDisc" c:_0="Sgt. Pepper's Lonely Hearts Club Band" c:_1="The Beatles">
+											<constructor-arg>
+											<list>
+												<value>Sgt. Pepper's Lonely Hearts Club Band</value>
+												<value>With a Little Help from My Friends</value>
+												<value>Lucy in the Sky with Diamonds</value>
+												<value>Getting Better</value>
+												<value>Fixing a Hole</value>
+											</list>
+											</constructor-arg>
+										</bean>
+										
+										@Configuration
+										@Import(CDPlayerConfig.class)
+										@ImportResource("classpath:cd-config.xml")
+										public class SoundSystemConfig {
+										}
+										
+										FROM XML
+											<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://www.springframework.org/schema/c"
+													xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+												<import resource="cd-config.xml" />
+												<bean id="cdPlayer" class="soundsystem.CDPlayer" c:cd-ref="compactDisc" />
+											</beans>
+											
+											<?xml version="1.0" encoding="UTF-8"?>
+											<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://www.springframework.org/schema/c"
+													xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+												<bean class="soundsystem.CDConfig" />
+												<bean id="cdPlayer" class="soundsystem.CDPlayer" c:cd-ref="compactDisc" />
+											</beans>
+											
+											Because the <import> element only works to import other XML configuration files and there is not an XML element whose job it is to import JavaConfig classes we use
+											the <bean> element!!!
+											
+								PROFILES
+									We can develop three different DataSource beans to three different environments(Dev/QA/PRD)
+									One way is to configure each bean in a separate configuration class(or XML) and them make a a build-time decision(perhaps using Maven profiles) about which to compile.
+									Using PROFILE BEANS
+									
+									@Configuration
+									@Profile("dev")
+									public class DevelopmentProfileConfig {
+										@Bean(destroyMethod="shutdown")
+										public DataSource dataSource() {
+										return new EmbeddedDatabaseBuilder()
+											.setType(EmbeddedDatabaseType.H2)
+											.addScript("classpath:schema.sql")
+											.addScript("classpath:test-data.sql")
+											.build();
+										}
+									}
+									
+									@Configuration
+									public class DataSourceConfig {
+										@Bean(destroyMethod="shutdown")                        -> METHOD LEVEL
+										@Profile("dev")
+										public DataSource embeddedDataSource() {
+										return new EmbeddedDatabaseBuilder()
+										.setType(EmbeddedDatabaseType.H2)
+										.addScript("classpath:schema.sql")
+										.addScript("classpath:test-data.sql")
+										.build();
+										}
+										
+									XML
+									 ...profile="dev">
+									 
+									ACTIVATING PROFILES
+										spring.profiles.active
+										spring.profiles.default
+										
+											There are several ways to set these properties:
+												As initialization parameters on DispatcherServlet
+												As context parameters of a web application
+												As JNDI entries
+												As environment variables
+												As JVM system properties
+												Using the @ActiveProfiles annotation on an integration test class
+									
+									CONDITIONAL BEANS
+										@Bean
+										@Conditional(MagicExistsCondition.class)
+										public MagicBean magicBean() {
+											return new MagicBean();
+										}
+										
+											public interface Condition {
+												boolean matches(ConditionContext ctxt,AnnotatedTypeMetadata metadata);
+											}
+											
+											public class MagicExistsCondition implements Condition {
+												public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+													Environment env = context.getEnvironment();
+													return env.containsProperty("magic");
+												}
+											}
+											
+											public interface ConditionContext {
+												BeanDefinitionRegistry getRegistry(); -> Check for bean definitions
+												ConfigurableListableBeanFactory getBeanFactory(); -> Check for the presence of beans, and even dig into bean properties
+												Environment getEnvironment(); -> Check for the presence and values of environment variables
+												ResourceLoader getResourceLoader(); -> Read and inspect the contents of resources loaded via the ResourceLoader
+												ClassLoader getClassLoader(); -> Load and check for the presence of classes via the ClassLoader
+											}
+											
+											public interface AnnotatedTypeMetadata {
+												boolean isAnnotated(String annotationType);
+												Map<String, Object> getAnnotationAttributes(String annotationType);
+												Map<String, Object> getAnnotationAttributes(
+												String annotationType, boolean classValuesAsString);
+												MultiValueMap<String, Object> getAllAnnotationAttributes(
+												String annotationType);
+												MultiValueMap<String, Object> getAllAnnotationAttributes(
+												String annotationType, boolean classValuesAsString);
+											}
+											
+											The class given to @Conditional can be any type that implements the Condition interface.
+											
+											@Primary
+											primary="true"
+											
+											The @Qualifier annotation is the main way to work with qualifiers. It can be applied alongside @Autowired or @Inject at the point of injection to specify which
+											bean you want to be injected.
+											
+											@Autowired
+											@Qualifier("iceCream")
+											public void setDessert(Dessert dessert) {
+												this.dessert = dessert;
+											}
+											
+											Problem is that you specified a qualifier on setDessert() that is tightly coupled to the class name of the bean being injected.
+											Instead of relying on the bean ID as the qualifier, you can assign your own qualifier to a bean.
+											
+											@Component
+											@Qualifier("cold")
+											public class IceCream implements Dessert { ... }
+											
+											@Target({ElementType.CONSTRUCTOR, ElementType.FIELD,ElementType.METHOD, ElementType.TYPE})
+											@Retention(RetentionPolicy.RUNTIME)
+											@Qualifier
+											public @interface Cold { }
+											
+									SCOPING BEANS
+										By default, all beans created in the Spring application context are created as singletons.
+										That is to say, no matter how many times a given bean is injected into other beans, it’s always the same instance that is injected each time.
+											Singleton : One instance of the bean is created for the entire application.
+											Prototype : One instance of the bean is created every time the bean is injected into or retrieved from the Spring application context.
+											Session : In a web application, one instance of the bean is created for each session.
+											Request : In a web application, one instance of the bean is created for each request.
+											
+											@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+												scope="prototype"/>
+												
+											@Scope(value=WebApplicationContext.SCOPE_SESSION,proxyMode=ScopedProxyMode.INTERFACES)
+											
+												Problem:
+													@Component
+													public class StoreService {
+													
+														@Autowired
+														public void setShoppingCart(ShoppingCart shoppingCart) {
+														this.shoppingCart = shoppingCart;
+														}
+														...
+													}
+													
+													ShoppingCart is a session scope bean.
+													Because StoreService is a singleton bean, it will be created as the Spring application context is loaded. 
+													As it's created, Spring will attempt to inject ShoppingCart into the setShoppingCart() method. But the ShoppingCart bean, being session scoped,
+													doesn't exist yet. There won't be an instance of ShoppingCart until a user comes along and a session is created.
+													Moreover, there will be many instances of ShoppingCart: one per user. You don't want Spring to inject just any single instance of ShoppingCart into StoreService. 
+													You want StoreService to work with the ShoppingCart instance for whichever session happens to be in play when StoreService needs to work with the shopping cart.
+													Instead of injecting the actual ShoppingCart bean into StoreService, Spring should inject a proxy to the ShoppingCart bean. 
+													This proxy will expose the same methods as ShoppingCart so that for all StoreService knows, it is the shopping cart. 
+													But when StoreService calls methods on ShoppingCart, the proxy will lazily resolve it and delegate the call to the actual session-scoped Shopping-Cart bean.
+													As configured, proxyMode is set to ScopedProxyMode.INTERFACES, indicating that the proxy should implement the ShoppingCart interface and delegate to the implementation bean.
+													This is fine (and the most ideal proxy mode) as long as ShoppingCart is an interface and not a class. But if ShoppingCart is a concrete class, there’s no way Spring can
+													create an interface-based proxy. Instead, it must use CGLib to generate a class-based proxy. 
+													So, if the bean type is a concrete class, you must set proxyMode to ScopedProxy- Mode.TARGET_CLASS to indicate that the proxy should be generated as an extension of
+													the target class.
+											
+											  XML
+												scope="session">
+											    <aop:scoped-proxy />
+											    <aop:scoped-proxy proxy-target-class="false" />
+												
+											AVOID HARD-CODED VALUES
+												Placeholders
+												SPEL
+												
+												@PropertySource("classpath:/com/soundsystem/app.properties") -> Declare a property source
+												
+												@Autowired
+												Environment env;
+												
+												env.getProperty("disc.title")
+												
+												
+													
+											
+										
