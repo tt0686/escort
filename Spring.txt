@@ -568,6 +568,336 @@ Dependency Injection
 												
 												env.getProperty("disc.title")
 												
+												XML PLACEHOLDERS
+												<bean id="sgtPeppers" class="soundsystem.BlankDisc" c:_title="${disc.title}" c:_artist="${disc.artist}" />
+												
+												COMPONENT-SCANNING
+													public BlankDisc(@Value("${disc.title}") String title,@Value("${disc.artist}") String artist) {
+														this.title = title;
+														this.artist = artist;
+													}
+												
+												In order to use placeholder values, you must configure either a PropertyPlaceholder- Configurer bean or a PropertySourcesPlaceholderConfigurer bean.
+												
+												@Bean
+												public static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
+													return new PropertySourcesPlaceholderConfigurer();
+												}
+												
+												WHY IS A BEAN DECLARED STATIC ?
+													SPECIAL CONSIDERATION MUST BE TAKEN for @Bean methods that return Spring BeanFactoryPostProcessor types!!
+													BFPP objects must be instantiated very early in the container lifecycle,they can interfere with processing of annotations such as 
+													@Autowire ,@Value .By making these methods as static,it can be invoked without causing instantiation of its declaring @Configuration class,
+													thus avoiding the above-mentioned lifecycle conflits!!!
+													
+												In XML 
+													<context:property-placeholder />
+													
+												SPEL
+													public BlankDisc(@Value("#{systemProperties['disc.title']}") String title,@Value("#{systemProperties['disc.artist']}") String artist) {
+														this.title = title;
+														this.artist = artist;
+													}
+													
+													<bean id="sgtPeppers" class="soundsystem.BlankDisc" c:_title="#{systemProperties['disc.title']}" c:_artist="#{systemProperties['disc.artist']}" />
+													
+													Call methods
+														#{artistSelector.selectArtist()}
+														To guard against a NullPointerException, you can use the type-safe operator:
+														#{artistSelector.selectArtist()?.toUpperCase()}
+														
+														The key to working with class-scoped methods and constants in SpEL is to use the T() operator.
+															T(java.lang.Math)
+														The result of the T() operator, as shown here, is a Class object that represents java.lang.Math.
+														
+															#{jukebox.songs.?[artist eq 'Aerosmith']}
+															#{jukebox.songs.^[artist eq 'Aerosmith']}
+															#{jukebox.songs.![title]}
+															
+										AOP
+											Spring ascpects types
+												Before
+												After
+												After-Returning
+												After-Throwing
+												Around
+											
+											Introductions
+												An introduction allows us to add new methods or attributes to existing classes.
+											Weaving
+												Is the process of applying aspects to a target object to create a new proxied object.The aspects are woven into the target object at the specified join points.
+													Compile Time : Requires special compiler(Aspect's weaving compiler)
+													Class Load time : Special ClassLoader
+													RunTime : Aspects we woven in sometime during the execution of the application.
+													
+													Spring’s support for AOP comes in four styles:
+														Classic Spring proxy-based AOP
+														Pure-POJO aspects
+														@AspectJ annotation-driven aspects
+														Injected AspectJ aspects (available in all versions of Spring)
+														
+													Spring AOP is built around dynamic proxies. Consequently, Spring’s AOP support is limited to method interception.
+													
+													execution(* concert.Performance.perform(..))
+													          |           |           |      |->Taking any arguments
+															  |           |           |->The method
+															  |           |->The type that the method belongs to
+															  |->Return any type
+															  
+													execution(* concert.Performance.perform(..)) && within(concert.*)) LIMIT THE MATCH TO ONLY THE CONCERT PACKAGE
+													
+													@Aspect
+													public class Audience {
+														@Pointcut("execution(** concert.Performance.perform(..))")
+														public void performance() {}
+														
+														@Before("performance()")
+														public void silenceCellPhones() {
+															System.out.println("Silencing cell phones");
+														}
+														
+														@Before("performance()")
+														public void takeSeats() {
+															System.out.println("Taking seats");
+														}
+														
+														@AfterReturning("performance()")
+														public void applause() {
+															System.out.println("CLAP CLAP CLAP!!!");
+														}
+														
+														@AfterThrowing("performance()")
+														public void demandRefund() {
+															System.out.println("Demanding a refund");
+														}
+													}
+													
+													@Bean
+													public Audience audience() {
+														return new Audience();
+													}
+													
+													JAVA CONFIG
+														@Configuration
+														@EnableAspectJAutoProxy
+														@ComponentScan
+														public class ConcertConfig {
+														
+															@Bean
+															public Audience audience() {
+																return new Audience();
+															}
+														}
+														
+													XML
+														
+															<context:component-scan base-package="concert" />
+															<aop:aspectj-autoproxy />
+															<bean class="concert.Audience" />
+														</beans>
+														
+														In XML
+												<aop:config>
+													<aop:aspect ref="audience">
+														<aop:before pointcut="execution(** concert.Performance.perform(..))" method="silenceCellPhones"/>
+														<aop:before pointcut="execution(** concert.Performance.perform(..))" method="takeSeats"/>
+														<aop:after-returning pointcut="execution(** concert.Performance.perform(..))" method="applause"/>
+														<aop:after-throwing pointcut="execution(** concert.Performance.perform(..))" method="demandRefund"/>
+													</aop:aspect>
+												</aop:config>
+												
+												THIS MAKES SPRING'S XML CONFIGURATION FOR AOP A HANDY WAY TO USE TYPES DEFINED IN THIRD-PARTY LIBRARIES AS ADVICE, EVEN THOUGH WE CAN'T ANNOTATE THEM WITH ASPECTJ ASPECTS.
+												
+												<aop:config>
+													<aop:aspect ref="audience">
+														<aop:pointcut id="performance" expression="execution(** concert.Performance.perform(..))" />
+														<aop:before pointcut-ref="performance" method="silenceCellPhones"/>
+														<aop:before pointcut-ref="performance" method="takeSeats"/>
+														<aop:after-returning pointcut-ref="performance" method="applause"/>
+														<aop:after-throwing pointcut-ref="performance" method="demandRefund"/>
+													</aop:aspect>
+												</aop:config>
+														
+												REWRITING WITH AROUND
+													@Aspect
+													public class Audience {
+														@Pointcut("execution(** concert.Performance.perform(..))")
+														public void performance() {}
+														
+														@Around("performance()")
+														public void watchPerformance(ProceedingJoinPoint jp) {
+															try {
+																System.out.println("Silencing cell phones");
+																System.out.println("Taking seats");
+																jp.proceed();
+																System.out.println("CLAP CLAP CLAP!!!");
+															} catch (Throwable e) {
+																System.out.println("Demanding a refund");
+															}
+														}
+													}
+													
+													Example with arguments
+														@Pointcut(
+									"execution(* soundsystem.CompactDisc.playTrack(int)) && args(trackNumber)")
+									public void trackPlayed(int trackNumber) {}
+									
+									INTRODUCTIONS
+										
+											Adding new methods to Spring Beans.
+											When a method on the introduced interface is called, the proxy delegates the call to some other object that provides the implementation of the new
+											interface. Effectively, this gives you one bean whose implementation is split across multiple classes.
+											
+											@Aspect
+											public class EncoreableIntroducer {
+												@DeclareParents(value="concert.Performance+",defaultImpl=DefaultEncoreable.class)
+												public static Encoreable encoreable;
+											}
+											
+											
+											
+							SPRING MVC FRAMEWORK
+							
+								Request ------> DISPATCH SERVLET ----> HANDLER MAPPING ----> CONTROLLER -> MODEL & LOGICAL VIEW NAME ---> VIEW RESOLVER  -----> VIEW ---> RESPONSE
+								
+								
+								Like most Javabased web frameworks, Spring MVC funnels requests through a single front controller servlet. A front controller is a common web application pattern where a single servlet
+								delegates responsibility for a request to other components of an application to perform actual processing. In the case of Spring MVC, DispatcherServlet is the front controller.
+								The DispatcherServlet’s job is to send the request on to a Spring MVC controller.
+								A controller is a Spring component that processes the request. But a typical application may have several controllers, and DispatcherServlet needs some help deciding
+								which controller to send the request to. So the DispatcherServlet consults one or more handler mappings C to figure out where the request’s next stop will be. The
+								handler mapping pays particular attention to the URL carried by the request when making its decision.
+								Once an appropriate controller has been chosen, DispatcherServlet sends the request on its merry way to the chosen controller D. At the controller, the request
+								drops off its payload (the information submitted by the user) and patiently waits while the controller processes that information. (Actually, a well-designed controller performs
+								little or no processing itself and instead delegates responsibility for the business logic to one or more service objects.)
+								The logic performed by a controller often results in some information that needs to be carried back to the user and displayed in the browser. This information is
+								referred to as the model. But sending raw information back to the user isn’t sufficient— it needs to be formatted in a user-friendly format, typically HTML. 
+								For that, the information needs to be given to a view, typically a JavaServer Page (JSP).
+								One of the last things a controller does is package up the model data and identify the name of a view that should render the output. It then sends the request, along
+								with the model and view name, back to the DispatcherServlet. So that the controller doesn’t get coupled to a particular view, the view name.
+								The DispatcherServlet consults a view resolver to map the logical view name to a specific view implementation, which may or may not be a JSP.
+								
+								Configure DispatchServlet in Java instead of the traditional web.xml
+									Using the Servlet 3.0 specification , the servlet container looks for any classes in the classpath that implements the javax.servlet.ServletContainerInitializer interface,
+									if they are found,they are used to configure the servlet container.
+									Spring supplies an implementation of that interface called SpringServletContainerInitializer that,in turn,seeks out any classes that implement WebApplicationInitializer and 
+									delegates to them for configuration.
+									
+									IN SPRING MVC THERE ARE TWO APPLICATION CONTEXT
+										DispatcherServlet is expected to load beans containing web components such as controllers, view resolvers, and handler mappings, ContextLoaderListener is
+										expected to load the other beans in your application. These beans are typically the middle-tier and data-tier components that drive the back end of the application.
+										Under the covers, AbstractAnnotationConfigDispatcherServletInitializer creates both a DispatcherServlet and a ContextLoaderListener. The @Configuration
+										classes returned from getServletConfigClasses() will define beans for DispatcherServlet’s application context. Meanwhile, the @Configuration class’s returned 
+										getRootConfigClasses() will be used to configure the application context created by ContextLoaderListener.
+										
+										@Configuration
+										@EnableWebMvc
+										@ComponentScan("spitter.web")
+										public class WebConfig extends WebMvcConfigurerAdapter {
+										
+											@Bean
+											public ViewResolver viewResolver() {
+												InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+												resolver.setPrefix("/WEB-INF/views/");
+												resolver.setSuffix(".jsp");
+												resolver.setExposeContextBeansAsAttributes(true);
+												return resolver;
+											}
+											
+											@Override
+											public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+												configurer.enable();
+											}
+										}
+										
+										WebConfig class extends WebMvcConfigurerAdapter and overrides its configureDefaultServletHandling() method. By calling enable() on the given
+										DefaultServletHandlerConfigurer, you’re asking DispatcherServlet to forward requests for static resources to the servlet container’s default servlet and not to try to
+										handle them itself.
+										
+										@Component ===== @Controller
+										
+										@Controller
+										public class HomeController {
+											@RequestMapping(value="/", method=GET)
+											public String home() {
+												return "home";
+											}
+										}
+										
+										TEST SPRING MVC CONTROLLERS
+											public class HomeControllerTest {
+												@Test
+												public void testHomePage() throws Exception {
+													HomeController controller = new HomeController();
+													MockMvc mockMvc = standaloneSetup(controller).build();
+													mockMvc.perform(get("/")).andExpect(view().name("home"));
+												}
+											}
+											
+											@Test
+											public void shouldShowRecentSpittles() throws Exception {
+												List<Spittle> expectedSpittles = createSpittleList(20);
+												SpittleRepository mockRepository = mock(SpittleRepository.class);
+												when(mockRepository.findSpittles(Long.MAX_VALUE, 20)).thenReturn(expectedSpittles);
+												SpittleController controller = new SpittleController(mockRepository);
+												SpittleController controller = new SpittleController(mockRepository);
+												MockMvc mockMvc = standaloneSetup(controller).setSingleView(new InternalResourceView("/WEB-INF/views/spittles.jsp")).build();
+												mockMvc.perform(get("/spittles")).andExpect(view().name("spittles")).andExpect(model().attributeExists("spittleList")).andExpect(model().attribute("spittleList",hasItems(expectedSpittles.toArray())));
+											}
+											
+											@Controller
+											@RequestMapping("/spittles")
+											public class SpittleController {
+												private SpittleRepository spittleRepository;
+												@Autowired
+												public SpittleController(SpittleRepository spittleRepository) {
+													this.spittleRepository = spittleRepository;
+												}
+												
+												@RequestMapping(method=RequestMethod.GET)
+												public String spittles(Model model) {
+													model.addAttribute(spittleRepository.findSpittles(Long.MAX_VALUE, 20));
+													return "spittles";
+												}
+											}
+											
+											The Model is essentially a map (that is, a collection of key-value pairs) that will be handed off to the view so that the data can be rendered to the client. 
+											When add-Attribute() is called without specifying a key, the key is inferred from the type of object being set as the value. In this case, because it’s a List<Spittle>, 
+											the key will be inferred as spittleList.
+											LIKEWISE, IF YOU’D PREFER TO WORK WITH A NON-SPRING TYPE, YOU CAN ASK FOR A JAVA .UTIL.MAP INSTEAD OF MODEL!!!
+											
+											Here’s another way to write the spittles() method:
+											@RequestMapping(method=RequestMethod.GET)
+											public List<Spittle> spittles() {
+												return spittleRepository.findSpittles(Long.MAX_VALUE, 20));
+											}
+											
+											When a handler method returns an object or a collection like this, the value returned is put into the model, and the model key is inferred from its type.
+											As for the logical view name, it’s inferred from the request path. Because this method handles GET requests for /spittles, the view name is spittles (chopping off the leading slash).
+											Now that there’s data in the model, how does the JSP access it? As it turns out, when the view is a JSP, the model data is copied into the request as request attributes.
+											Therefore, the spittles.jsp file can use JavaServer Pages Standard Tag Library’s (JSTL).
+											
+											Spring MVC provides several ways that a client can pass data into a controller’s handler method. These include
+												Query parameters
+													@RequestMapping(method=RequestMethod.GET)
+													public List<Spittle> spittles(@RequestParam(value="max",defaultValue=MAX_LONG_AS_STRING) long max,@RequestParam(value="count", defaultValue="20") int count) {
+														return spittleRepository.findSpittles(max, count);
+													}
+												Form parameters
+												Path variables
+													Resource-oriented controllers
+													The resource being identified (the Spittle) would be identified by the URL path, not by query parameters.
+													A GET request for /spittles/12345 is better than one for /spittles/show?spittle_id=12345.
+													To accommodate these path variables, Spring MVC allows for placeholders in an @RequestMapping path.
+																										
+													@RequestMapping(value="/{spittleId}", method=RequestMethod.GET)
+													public String spittle(@PathVariable("spittleId") long spittleId,Model model) {
+														model.addAttribute(spittleRepository.findOne(spittleId));
+														return "spittle";
+													}
+													
+													Because the method parameter name happens to be the same as the placeholder name, you can optionally omit the value parameter on @PathVariable.
+												
 												
 													
 											
