@@ -884,6 +884,37 @@ Dependency Injection
 														return spittleRepository.findSpittles(max, count);
 													}
 												Form parameters
+													<form method="POST">
+														First Name: <input type="text" name="firstName" /><br/>
+													...
+													
+													Notice that the <form> tag doesn’t have an action parameter set. Because of that, when this form is submitted, it will be posted back to the same 
+													URL path that displayed it.
+													
+													@RequestMapping(value="/register", method=POST)
+													public String processRegistration(Spitter spitter) {
+														spitterRepository.save(spitter);
+														return "redirect:/spitter/" + spitter.getUsername();
+													}
+													
+														When InternalResourceViewResolver sees the redirect: prefix on the view specification, it knows to interpret it as a redirect specification instead of as a view name. 
+														In this case, it will redirect to the path for a user’s profile page. For example, if the Spitter.username property is jbauer, then the view will redirect 
+														to /spitter/jbauer.
+														It’s worth noting that in addition to redirect:, InternalResourceViewResolver also recognizes the forward: prefix. When it sees a view specification prefixed with
+														forward:, the request is forwarded to the given URL path instead of redirected.
+														
+														SPRING MVC supports JAVA Validation API
+														
+														@NotNull
+														@Size(min=5, max=16 , message="{username.size}")
+														private String username;
+														
+														public String processRegistration(@Valid Spitter spitter,Errors errors) {
+															if (errors.hasErrors()) {
+															return "registerForm";
+														}
+													
+													
 												Path variables
 													Resource-oriented controllers
 													The resource being identified (the Spittle) would be identified by the URL path, not by query parameters.
@@ -892,11 +923,205 @@ Dependency Injection
 																										
 													@RequestMapping(value="/{spittleId}", method=RequestMethod.GET)
 													public String spittle(@PathVariable("spittleId") long spittleId,Model model) {
-														model.addAttribute(spittleRepository.findOne(spittleId));
+														model.addAttribute(spittleRepository.findOne(spittleId)); ---> MODEL KEY WILL BE "spittle" inferred by the type passed in to addAttribute();
 														return "spittle";
 													}
 													
+													The data in the Spittle object can then be rendered in the view by referring to the request attribute whose key is spittle (the same as the model key).
+														<div class="spittleMessage"><c:out value="${spittle.message}" /></div>
+													
 													Because the method parameter name happens to be the same as the placeholder name, you can optionally omit the value parameter on @PathVariable.
+													
+											VIEW RESOLUTION
+												
+												public interface ViewResolver {
+													View resolveViewName(String viewName, Locale locale)
+												throws Exception;
+												}
+
+												public interface View {
+													String getContentType();
+													void render(Map<String, ?> model,HttpServletRequest request,HttpServletResponse response) throws Exception;
+												}
+												
+												Views Implementations
+													BeanNameViewResolver
+													ContentNegotiatingViewResolver
+													FreeMarkerViewResolver
+													InternalResourceViewResolver
+													JasperReportsViewResolver
+													ResourceBundleViewResolver
+													TilesViewResolver
+													UrlBasedViewResolver
+													VelocityLayoutViewResolver
+													VelocityViewResolver
+													XmlViewResolver
+													XsltViewResolver
+													
+												But if those JSP files are using JSTL tags for formatting or messages, then you may want to configure InternalResourceViewResolver to resolve a JstlView instead.
+												JSTL’s formatting tags need a Locale to properly format locale-specific values such as dates and money. And its message tags can use a Spring message source and a
+												Locale to properly choose messages to render in HTML. By resolving JstlView, the JSTL tags will be given the Locale and any message source configured in Spring.	
+													
+												@Bean
+												public ViewResolver viewResolver() {
+													InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+													resolver.setPrefix("/WEB-INF/views/");
+													resolver.setSuffix(".jsp");
+													resolver.setViewClass(org.springframework.web.servlet.view.JstlView.class);
+													return resolver;
+												}
+												
+												<%@ taglib uri="http://www.springframework.org/tags/form" prefix="sf" %>
+												<sf:form method="POST" commandName="spitter"> ---->  commandName attribute -> There must be an object in the model whose key is "spitter".
+													First Name: <sf:input path="firstName" /><br/>
+													Last Name: <sf:input path="lastName" /><br/>
+													Email: <sf:input path="email" /><br/>
+													Username: <sf:input path="username" /><br/>
+													Password: <sf:password path="password" /><br/>
+													<input type="submit" value="Register" />
+												</sf:form>
+												
+												Displaying errors
+													<sf:form method="POST" commandName="spitter">
+														First Name: <sf:input path="firstName" />
+														<sf:errors path="firstName" /><br/>
+														
+														
+														<sf:errors path="*" element="div" cssClass="errors" />
+														<sf:label path="firstName" cssErrorClass="error">First Name</sf:label>:
+														<sf:input path="firstName" cssErrorClass="error" /><br/>
+												
+											Message Properties
+												@Bean
+												public MessageSource messageSource() {
+													ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+													messageSource.setBasename("messages");
+													return messageSource;
+												}
+
+												@Bean
+												public MessageSource messageSource() {
+													ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
+													messageSource.setBasename("file:///etc/spittr/messages");
+													messageSource.setCacheSeconds(10);
+													return messageSource;
+												}
+
+												The
+												basename property can be set to look for messages in the classpath (with a classpath: prefix), in the filesystem (with a file: prefix), or at the root of the web application
+												(with no prefix). Here, it’s configured to look for messages in properties files in the /etc/spittr directory of the server’s filesystem and with a base filename of “messages”.
+
+												create the default properties
+												file named messages.properties.
+
+												If, for example, you wanted to show the welcome message in Spanish for anyone whose language settings are set to Spanish, you’d need to create another properties
+												file named messages_es.properties
+												
+												In its simplest form, <s:url> takes a servlet-context-relative URL and renders it with the servlet context path prepended. For example, consider this basic use of
+												<s:url>:
+												
+													<a href="<s:url href="/spitter/register" />">Register</a>
+
+												If the application’s servlet context is named spittr, then the following HTML will be rendered in the response:
+													<a href="/spittr/spitter/register">Register</a>
+												This enables you to create URLs without worrying about what the servlet context path will be.
+												
+											<s:url href="/spitter/{username}" var="spitterUrl">
+												<s:param name="username" value="jbauer" />
+											</s:url>
+												When the href value is a placeholder that matches a parameter specified by <s:param>, the parameter is inserted into the placeholder’s spot. 
+												If the <s:param> parameter doesn’t match any placeholders in href, then the parameter is used as a query parameter.
+												
+										APACHE TILES
+											Layout engine such as Apache Tiles to define a common page layout that will be applied to all pages.
+											In order to use Tiles with Spring, you’ll have to configure a couple of beans. You need a TilesConfigurer bean whose job is to locate and load tile definitions and generally
+											coordinate Tiles. In addition, you need a TilesViewResolver bean to resolve logical view names to tile definitions.
+											
+											@Bean
+											public TilesConfigurer tilesConfigurer() {
+												TilesConfigurer tiles = new TilesConfigurer();
+												tiles.setDefinitions(new String[] {"/WEB-INF/layout/tiles.xml"});
+												tiles.setCheckRefresh(true);
+												return tiles;
+											}
+											
+											@Bean
+											public ViewResolver viewResolver() {
+												return new TilesViewResolver();
+											}
+											
+											<tiles-definitions>
+												<definition name="base" template="/WEB-INF/layout/page.jsp">
+													<put-attribute name="header" value="/WEB-INF/layout/header.jsp" />
+													<put-attribute name="footer" value="/WEB-INF/layout/footer.jsp" />
+												</definition>
+
+												<definition name="home" extends="base">
+													<put-attribute name="body" value="/WEB-INF/views/home.jsp" />
+												</definition>
+												
+												<definition name="registerForm" extends="base">
+													<put-attribute name="body" value="/WEB-INF/views/registerForm.jsp" />
+												</definition>
+												
+											<html>
+												<head>
+													<title>Spittr</title>
+													<link rel="stylesheet" type="text/css" href="<s:url value="/resources/style.css" />" >
+												</head>
+												<body>
+												<div id="header">
+													<t:insertAttribute name="header" />
+												</div>
+												<div id="content">
+													<t:insertAttribute name="body" />
+												</div>
+												<div id="footer">
+													<t:insertAttribute name="footer" />
+												</div>
+
+										THYMELEAF
+										
+										@Bean
+										public ViewResolver viewResolver(SpringTemplateEngine templateEngine) {
+											ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
+											viewResolver.setTemplateEngine(templateEngine);
+											return viewResolver;
+										}
+										
+										@Bean
+										public TemplateEngine templateEngine(TemplateResolver templateResolver) {
+											SpringTemplateEngine templateEngine = new SpringTemplateEngine();
+											templateEngine.setTemplateResolver(templateResolver);
+											return templateEngine;
+										}
+										
+										@Bean
+										public TemplateResolver templateResolver() {
+											TemplateResolver templateResolver = new ServletContextTemplateResolver();
+											templateResolver.setPrefix("/WEB-INF/templates/");
+											templateResolver.setSuffix(".html");
+											templateResolver.setTemplateMode("HTML5");
+											return templateResolver;
+										}
+										
+										<label th:class="${#fields.hasErrors('firstName')}? 'error'">First Name</label>:
+										<input type="text" th:field="*{firstName}" th:class="${#fields.hasErrors('firstName')}? 'error'" /><br/>
+										
+										<form method="POST" th:object="${spitter}">
+											<div class="errors" th:if="${#fields.hasErrors('*')}">
+												<ul>
+													<li th:each="err : ${#fields.errors('*')}" th:text="${err}">Input is incorrect</li>
+												</ul>
+											</div>
+											<label th:class="${#fields.hasErrors('firstName')}? 'error'">
+												First Name</label>:
+												<input type="text" th:field="*{firstName}" th:class="${#fields.hasErrors('firstName')}? 'error'" /><br/>
+											
+												
+												
+												
+												
 												
 												
 													
