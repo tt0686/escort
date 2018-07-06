@@ -1117,7 +1117,278 @@ Dependency Injection
 											<label th:class="${#fields.hasErrors('firstName')}? 'error'">
 												First Name</label>:
 												<input type="text" th:field="*{firstName}" th:class="${#fields.hasErrors('firstName')}? 'error'" /><br/>
+												
+										But what if you want to register additional servlets, filters, or listeners?
+											Therefore, if you need to register any additional components into the web container, you need only create a new initializer class. 
+											The easiest way to do this is by implementing Spring's WebApplicationInitializer interface.
 											
+												public class MyServletInitializer implements WebApplicationInitializer {
+													@Override
+													public void onStartup(ServletContext servletContext) throws ServletException {
+														Dynamic myServlet = servletContext.addServlet("myServlet", MyServlet.class);
+														myServlet.addMapping("/custom/**");
+													}
+												}
+												
+										XML
+											web.xml
+											
+											<context-param>
+												<param-name>contextConfigLocation</param-name>
+												<param-value>/WEB-INF/spring/root-context.xml</param-value>
+											</context-param>
+											<listener>
+											<listener-class>
+												org.springframework.web.context.ContextLoaderListener
+											</listener-class>
+											</listener>
+											<servlet>
+												<servlet-name>appServlet</servlet-name>
+												<servlet-class>org.springframework.web.servlet.DispatcherServlet
+											</servlet-class>
+											<load-on-startup>1</load-on-startup>
+											</servlet>
+											<servlet-mapping>
+												<servlet-name>appServlet</servlet-name>
+												<url-pattern>/</url-pattern>
+											</servlet-mapping>
+											
+												ContextLoaderListener and DispatcherServlet each load a Spring application context. The contextConfigLocation context parameter
+												specifies the location of the XML file that defines the root application context loaded by ContextLoaderListener. 
+												The root context is loaded with bean definitions in /WEB-INF/spring/root-context.xml.
+												DispatcherServlet loads its application context with beans defined in a file whose name is based on the servlet name. 
+												The servlet is named appServlet. Therefore, DispatcherServlet loads its application context from an XML file at /WEB-INF/appServlet-context.xml.
+												
+										JAVA CONFIGURATION
+										
+											<context-param>
+												<param-name>contextClass</param-name>
+											<param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+											</context-param>
+											<context-param>
+												<param-name>contextConfigLocation</param-name>
+												<param-value>com.habuma.spitter.config.RootConfig</param-value>
+											</context-param>
+											<listener>
+												<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+											</listener>
+											<servlet>
+												<servlet-name>appServlet</servlet-name>
+												<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+													<init-param>
+													<param-name>contextClass</param-name>
+													<param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+												</init-param>
+												<init-param>
+													<param-name>contextConfigLocation</param-name>
+													<param-value>com.habuma.spitter.config.WebConfigConfig</param-value>
+												</init-param>
+												<load-on-startup>1</load-on-startup>
+											</servlet>
+											<servlet-mapping>
+												<servlet-name>appServlet</servlet-name>
+												<url-pattern>/</url-pattern>
+											</servlet-mapping>
+											
+											MultiPart Form Data
+												DispatcherServlet doesn’t implement any logic for parsing the data in a multipart request. Instead, it delegates to an implementation of Spring’s MultipartResolver
+												strategy interface to resolve the content in a multipart request.
+												
+												AUTOMATIC
+													@Bean
+													public MultipartResolver multipartResolver() throws IOException {
+														return new StandardServletMultipartResolver();
+													}
+													
+													If you’re configuring DispatcherServlet in a servlet initializer class that implements WebApplicationInitializer
+												
+													DispatcherServlet ds = new DispatcherServlet();
+													Dynamic registration = context.addServlet("appServlet", ds);
+													registration.addMapping("/");
+													registration.setMultipartConfig(new MultipartConfigElement("/tmp/spittr/uploads"));
+													
+													If you’ve configured DispatcherServlet in a servlet initializer class that extends AbstractAnnotationConfigDispatcherServletInitializer or 
+													AbstractDispatcherServletInitializer, you don’t create the instance of DispatcherServlet or register it with the servlet context directly.
+													
+													@Override
+													protected void customizeRegistration(Dynamic registration) {
+														registration.setMultipartConfig(new MultipartConfigElement("/tmp/spittr/uploads"));
+													}
+													
+													XML
+														<servlet>
+															<servlet-name>appServlet</servlet-name>
+															<servlet-class>
+																	org.springframework.web.servlet.DispatcherServlet
+															</servlet-class>
+															<load-on-startup>1</load-on-startup>
+															<multipart-config>
+																<location>/tmp/spittr/uploads</location>
+																<max-file-size>2097152</max-file-size>
+																<max-request-size>4194304</max-request-size>
+															</multipart-config>
+														</servlet>
+														
+													Handling MultiPart Request
+														@RequestMapping(value="/register", method=POST)
+														public String processRegistration(@RequestPart("profilePicture") byte[] profilePicture,@Valid Spitter spitter,Errors errors) {
+															...
+														}
+														
+														WORKING WITH THE UPLOADED FILE’S RAW BYTES IS SIMPLE BUT LIMITING. THEREFORE, SPRING ALSO OFFERS MULTIPARTFILE AS A WAY TO GET A RICHER OBJECT!!!
+														
+													Exceptions
+													
+														@ResponseStatus(value=HttpStatus.NOT_FOUND,reason="Spittle Not Found")
+														public class SpittleNotFoundException extends RuntimeException {
+														}
+														
+														@ExceptionHandler(DuplicateSpittleException.class)
+														public String handleDuplicateSpittle() {
+															return "error/duplicate";
+														}
+														
+														What’s especially interesting about @ExceptionHandler methods is that they handle their exceptions from any handler method in the same controller.
+														
+														@ControllerAdvice
+														public class AppWideExceptionHandler {
+															@ExceptionHandler(DuplicateSpittleException.class)
+															public String duplicateSpittleHandler() {
+																return "error/duplicate";
+															}
+														}
+														
+														Now, if a DuplicateSpittleException is thrown from any controller method, no matter which controller it’s in, this duplicateSpittleHandler() method will be called to
+														handle the exception.
+														
+														CARRYING DATA ACROSS REDIRECT REQUESTS
+														
+																When a controller method returns a String whose value starts with redirect:, that String isn’t used to look up a view, but is instead 
+																used as a path to redirect the browser to.
+																
+																	Passing data as path variables and/or query parameters using URL templates
+																		@RequestMapping(value="/register", method=POST)
+																		public String processRegistration(Spitter spitter, Model model) {
+																			spitterRepository.save(spitter);
+																			model.addAttribute("username", spitter.getUsername());
+																			model.addAttribute("spitterId", spitter.getId());
+																			return "redirect:/spitter/{username}";
+																		}
+																		
+																		Because the spitterId attribute from the model doesn’t map to any URL placeholders in the redirect, it’s tacked on to the redirect automatically as a query parameter.
+																		If the username attribute is habuma and the spitterId attribute is 42, then the resulting redirect path will be /spitter/habuma?spitterId=42.
+																	
+																	Sending data in flash attributes
+																		Spring offers a way to set flash attributes via RedirectAttributes, a sub-interface of Model
+																		@RequestMapping(value="/register", method=POST)
+																		public String processRegistration(Spitter spitter, RedirectAttributes model) {
+																			spitterRepository.save(spitter);
+																			model.addAttribute("username", spitter.getUsername());
+																			model.addFlashAttribute("spitter", spitter);
+																			return "redirect:/spitter/{username}";
+																		}
+																		
+																		Before the redirect takes place, all flash attributes are copied into the session. After the redirect, the flash attributes stored 
+																		in the session are moved out of the session and into the model. The method that handles the redirect request can then access the
+																		Spitter from the model, just like any other model object.
+																	
+																		@RequestMapping(value="/{username}", method=GET)
+																		public String showSpitterProfile(@PathVariable String username, Model model) {
+																			if (!model.containsAttribute("spitter")) {
+																				model.addAttribute(spitterRepository.findByUsername(username));
+																			}
+																			return "profile";
+																		}
+																		
+																		
+											SECURITY
+												Spring Security employs several servlet filters to provide various aspects of security.
+												DelegatingFilterProxy is a special servlet filter that, by itself, doesn’t do much.
+												Instead, it delegates to an implementation of javax.servlet.Filter that’s registered as a <bean> in the Spring application context		
+													
+												JAVA
+													If you'd rather configure DelegatingFilterProxy in Java with a WebApplication-
+													Initializer, then all you need to do is create a new class that extends AbstractSecurityWebApplicationInitializer:
+
+													public class SecurityWebInitializer extends AbstractSecurityWebApplicationInitializer {}
+													
+													AbstractSecurityWebApplicationInitializer implements WebApplicationInitializer, so it will be discovered by Spring and be used to register 
+													DelegatingFilterProxy with the web container.
+													
+													WHETHER YOU CONFIGURE DELEGATINGFILTERPROXY IN WEB.XML OR BY SUBCLASSING ABSTRACTSECURITYWEBAPPLICATIONINITIALIZER, IT WILL INTERCEPT REQUESTS COMING
+													INTO THE APPLICATION AND DELEGATE THEM TO A BEAN WHOSE ID IS SPRINGSECURITYFILTERCHAIN.
+													
+													@Configuration
+													@EnableWebSecurity
+													public class SecurityConfig extends WebSecurityConfigurerAdapter {
+													}
+													
+													Spring Security must be configured in a bean that implements WebSecurityConfigurer or (for convenience) extends WebSecurityConfigurerAdapter. 
+													Any bean in the Spring application context that implements WebSecurityConfigurer can contribute to Spring Security configuration, but it’s often most
+													convenient for the configuration class to extend WebSecurityConfigurerAdapter.
+													
+													We should consider using @EnableWebMvcSecurity
+													
+													@Configuration
+													@EnableWebMvcSecurity
+													public class SecurityConfig extends WebSecurityConfigurerAdapter {
+													}
+													
+													Among other things, the @EnableWebMvcSecurity annotation configures a Spring MVC argument resolver so that handler methods can receive the authenticated user’s
+													principal (or username) via @AuthenticationPrincipal-annotated parameters. It also configures a bean that automatically adds a hidden cross-site request forgery
+													(CSRF) token field on forms using Spring’s form-binding tag library.
+													
+													You can configure web security by overriding WebSecurityConfigurerAdapter’s three configure() methods.
+													
+													configure(WebSecurity) Override to configure Spring Security’s filter chain.
+													configure(HttpSecurity) Override to configure how requests are secured by interceptors.
+													configure(AuthenticationManagerBuilder)
+													
+													
+													Database Users
+													
+													@Autowired
+													DataSource dataSource;
+													
+													@Override
+													protected void configure(AuthenticationManagerBuilder auth)throws Exception {
+														auth.jdbcAuthentication().dataSource(dataSource).usersByUsernameQuery("select username, password, true from Spitter where username=?").
+														authoritiesByUsernameQuery("select username, 'ROLE_USER' from Spitter where username=?");
+													}
+													
+													LDAP Users
+													
+													@Override
+													protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+														auth.ldapAuthentication().userSearchFilter("(uid={0})").groupSearchFilter("member={0}");
+													}
+													
+													The key to fine-tuning security for each request is to override the configure (HttpSecurity) method
+													@Override
+													protected void configure(HttpSecurity http) throws Exception {
+														http.authorizeRequests().antMatchers("/spitters/me").authenticated().antMatchers(HttpMethod.POST, "/spittles").authenticated().anyRequest().permitAll();
+													}
+													
+													Securing with Spring Expressions
+														What if you wanted to restrict access to certain roles only on Tuesday?
+														Using the access() method, you can also use SpEL as a means for declaring access requirements
+														
+													Preventing cross-site request forgery
+														If you’re using Thymeleaf for your page template, you’ll get the hidden _csrf field automatically, as long as the <form> tag’s
+														action attribute is prefixed to come from the Thymeleaf namespace:
+						
+														<form method="POST" th:action="@{/spittles}">
+															...
+														</form>
+														
+														If you’re using JSP for page templates, you can do something very similar:
+														
+														<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
+														
+														Even better, if you’re using Spring’s form-binding tag library, the <sf:form> tag will automatically add the hidden CSRF token tag for you.
+														
+												
+												
 												
 												
 												
