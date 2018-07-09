@@ -1389,12 +1389,134 @@ Dependency Injection
 														
 												
 												
+												Form-based authentication is ideal for human users of an application. Later we’ll see how to turn some of your web application’s pages into a RESTful API.
+												When the user of the application is another application, prompting for login with a form just won’t do.
+												HTTP Basic authentication is one way to authenticate a user to an application directly in the HTTP request itself. You may have seen HTTP Basic authentication before.
 												
+													protected void configure(HttpSecurity http) throws Exception {
+															http.formLogin().loginPage("/login")
+															.and()
+															.httpBasic().realmName("Spittr")
+															.and()...
+															
+											SPRING BACKEND
+
+												All Spring JDBC exceptions are rooted with DataAccessException and what makes this Exception special is that it is an UNCHECKED EXCEPTION!!!!
 												
-												
+												Templating data access 
+													Spring use the Template Method Pattern
+													
+												JNDI datasources
+													XML
+														<jee:jndi-lookup id="dataSource" jndi-name="/jdbc/SpitterDS" resource-ref="true" />
+													Java Config
+														 @Bean
+														public JndiObjectFactoryBean dataSource() {
+															JndiObjectFactoryBean jndiObjectFB = new JndiObjectFactoryBean();
+															jndiObjectFB.setJndiName("jdbc/SpittrDS");
+															jndiObjectFB.setResourceRef(true);
+															jndiObjectFB.setProxyInterface(javax.sql.DataSource.class);
+															return jndiObjectFB;
+														}
+														
+												Pooled DataSource
+													XML
+														<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" p:driverClassName="org.h2.Driver"
+															p:url="jdbc:h2:tcp://localhost/~/spitter" p:username="sa" p:password="" p:initialSize="5" p:maxActive="10" />
+													Java Config
+														@Bean
+														public BasicDataSource dataSource() {
+															BasicDataSource ds = new BasicDataSource();
+															ds.setDriverClassName("org.h2.Driver");
+															ds.setUrl("jdbc:h2:tcp://localhost/~/spitter");
+															ds.setUsername("sa");
+															ds.setPassword("");
+															ds.setInitialSize(5);
+															ds.setMaxActive(10);
+															return ds;
+														}
+														
+												JDBC Driver-Based 		
+													Spring offers three such data-source classes to choose from :
+														 DriverManagerDataSource—Returns a new connection every time a connection is requested. Unlike DBCP’s BasicDataSource, the connections provided by DriverManagerDataSource aren’t pooled.
+														 SimpleDriverDataSource—Works much the same as DriverManagerDataSource except that it works with the JDBC driver directly to overcome class loading issues that may arise in certain environments, such as in an OSGi container.
+														 SingleConnectionDataSource—Returns the same connection every time a connection is requested. Although SingleConnectionDataSource isn’t exactly a pooled data source, you can think of it as a data source with a pool of exactly one connection.	
 												
 												
 												
 													
+													
+												JDBC TEMPLATE
+													@Bean
+													public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+														return new JdbcTemplate(dataSource);
+													}
+													
+													@Repository
+													public class JdbcSpitterRepository implements SpitterRepository {
+														private JdbcOperations jdbcOperations;
+														
+														@Inject
+														public JdbcSpitterRepository(JdbcOperations jdbcOperations) {
+															this.jdbcOperations = jdbcOperations;
+														}
+														...
+													}
+
+													@Bean
+													public SpitterRepository spitterRepository(JdbcTemplate jdbcTemplate) {
+														return new JdbcSpitterRepository(jdbcTemplate);
+													}
+													
+													SELECT STATEMENT
+													
+														public Spitter findOne(long id) {
+															return jdbcOperations.queryForObject(SELECT_SPITTER_BY_ID, new SpitterRowMapper(),id);
+														}
+														
+														private static final class SpitterRowMapper implements RowMapper<Spitter> {
+															public Spitter mapRow(ResultSet rs, int rowNum) throws SQLException {
+																return new Spitter(
+																	rs.getLong("id"),
+																	rs.getString("username"),
+																	rs.getString("password"),
+																	rs.getString("fullName"),
+																	rs.getString("email"),
+																	rs.getBoolean("updateByEmail"));
+															}
+														}
+														
+														Because the RowMapper interface only declares the addRow() method, it fits the bill for a functional interface. This means that if you’re developing your application using
+														Java 8, you can express the RowMapper implementation with a lambda instead of with a concrete class implementation.
+														
+														public Spitter findOne(long id) {
+															return jdbcOperations.queryForObject(SELECT_SPITTER_BY_ID,
+															(rs, rowNum) -> {
+																return new Spitter(
+																rs.getLong("id"),
+																rs.getString("username"),
+																rs.getString("password"),
+																rs.getString("fullName"),
+																rs.getString("email"),
+																rs.getBoolean("updateByEmail"));
+															},
+															id);
+														}
+														
+														Alternatively, you can use Java 8 method references to define the mapping in a separate method:
+														public Spitter findOne(long id) {
+															return jdbcOperations.queryForObject(SELECT_SPITTER_BY_ID, this::mapSpitter, id);
+															}
+															
+														private Spitter mapSpitter(ResultSet rs, int row) throws SQLException {
+															return new Spitter(
+															rs.getLong("id"),
+															rs.getString("username"),
+															rs.getString("password"),
+															rs.getString("fullName"),
+															rs.getString("email"),
+															rs.getBoolean("updateByEmail"));
+														}
+														
 											
 										
