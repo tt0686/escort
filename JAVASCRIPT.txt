@@ -64,7 +64,7 @@
 					this.objb = "ObjB";
 					this.getValuesInstance = function(){
 						console.log("Values "+this.obja+" "+this.objb);
-						}
+					}
 				}
 
 				Person.prototype.obja="ProtoA";
@@ -77,7 +77,7 @@
 				p.getValues();		   -> Evidence of the above phrase
 				Person.prototype.getValues(); -> The this is set to point to the prototype object
 										THIS IS WHY THE LINE p.getValues() log ObjA ObjB AND THE LINE Person.prototype.getValues(); log ProtoA and ProtoB
-										THE THIS VALUE IS SET WITH DIFFERENT CONTEXTS
+										THE THIS VALUE IS SET WITH DIFFERENT CONTEXTS.
 				IF WE CALL Person.getValues one error  is thrown. The Person object does not look into the prototype property , it will use is internal pointer that points to the Object.prototype.
 				
 		Returning to the execution context and scope chain !!!
@@ -282,7 +282,7 @@
 										function(){...}() -> SyntaxError
 											When the parser encounters the function keyword in the global scope or inside a function, it treats it as a function declaration (statement), and not as a function expression, 
 											by default. If you don't explicitly tell the parser to expect an expression, it sees what it thinks to be a function declaration without a name and 
-											hrows a SyntaxError exception because function declarations require a name.
+											throws a SyntaxError exception because function declarations require a name.
 											
 										MIMIC BLOCK SCOPE
 											function(){
@@ -321,7 +321,7 @@
 												name : "My Object",
 												getNameFunc : function(){
 													return function(){
-													return this.name;
+														return this.name;
 													};
 												}
 											};
@@ -442,6 +442,9 @@
 				Object.getOwnPropertyDescriptor()
 			
 			Scope-safe Constructors
+				There is a new property on function objects :
+					When we call a function with the NEW keyword , the value of the new.target within the function body is the function itself.
+					If the function is not called with the new,it is value is UNDEFINED.
 			Lazy Loading Functions
 			Tamper-Proof Objects
 				Once an object has been made tamper-proof, the operation cannot be undone.
@@ -491,6 +494,156 @@
 						There is a different global object and different objects and methods available inside of a Web Worker.
 						Inside of a Web Worker, there is no access to the DOM and, indeed, no way to affect the appearance of a page in any way.
 						The global object inside of a Web Worker is the worker object itself.
+						
+	///////////////////////////////////////////////////////////////REACT SUMMARY//////////////////////////////////////////////////////////////////////////////////////////////
+		Browser DOM is made of DOM elements
+		React DOM is made of React elements.React elements are instructions for how the browser DOM should be created.
+		
+	ELEMENT -> React.createElement(type,properties,childs);
+			{$$typeof : Symbol(React.element),
+			 "type" :
+			 "ref" :
+			 "props" :
+			 "key" :
+			 "_store"
+			 "_owner"
+			}
+			
+			React.createElement("ul",null,React.createElement("li",null,"Salmon"),React.createElement("li",null,"Squash"));
+			{"type" : "ul"
+			  "props" :{"children" :[{"type":"li","props":{"children" : "Salmon"}},
+			                         {"type":"li","props":{"children" : "Squash"}}
+									]
+				        }
+			}
+
+			Separete DATA from UI
+			React.createElement("ul", {className: "ingredients"},items.map((ingredient, i) => 
+																			React.createElement("li", { key: i }, ingredient)
+			))
+			WHEN BUILDING A LIST OF CHILD ELEMENTS THROUGH AN ARRAY WE MUST USE A KEY PROPERTY !!!
+			if we use the traditional method of passing each child element as argument like this
+				Reac.createElement("ul",null,React.createElement("li",null,"Salmon"),React.createElement...)
+			probably React.createElement under the hood detect that we are not passing an array object and add the key automatically
+			if it detects an array , probably adds the array content to the component tree automatically.
+			
+			COMPONETS
+				Three ways to create them : 
+					React.createClass -> IS DEPRECATED
+					extends React.Component
+					Stateless Functional Component
+					
+				Components are like templates , so they allow us to reuse the same DOM structure to different data!!!
+				Everything is an React element , the Component is just a function that is the "type" of the element :
+				{$$typeof : Symbol(React.element),
+				 "type" : function(){...//Our component}
+				}
+				 
+				In the above object (React Element) the type was set through the creation of the element React.createElement(IngredientsList,{items},null);
+				The IngredientsList is the component created through 
+				React.createClass(
+				{displayName : "",
+				 render(){
+					return React.createElement("ul",{className : "ingredients"},this.props.items.map((ingredient,i)=>React.createElement("li",{key : i},ingredient)))
+				 }
+				})
+				
+				Possible , when the render function is called , it is like a method of the React Element , so this.props works well.
+				The React.createElement(Component,,)-> The Component could be any of the path chosen above,even STATELESS FUNCTIONAL COMPONENT.
+				If we create with the Stateless Functional Component the {$$typeof : Symbol(React.element) , "type" : function(props) } the other two will have the following signature
+				"type" : function(props,context,updater)
+				
+				SO WHEN CREATING THE ELEMENT WITH THE COMPONENT THE SYNTAX WILL BE THE SAME,THE RENDER FUNCTION OF THE REACTDOM OBJECT WILL KNOW IF THE COMPONENT IS A CLASS OR A STATELESS FUNCTIONAL COMPOMENT.
+				
+				FACTORIES!!!
+					instead using the createElement (React.createElement("h1",..)) we use the React.DOM.h1(,,)
+					
+					Custom Factories 
+						var factory = React.createFactory(Component)  -> This component could be the Stateless or createClass or Class
+						factory({items}) -> The factory is just sugar syntax to createElemet, so under the hood it will know how to call the componnent
+						SO THIS SYNTAX CALL WORKS EITHER TO STATELESS COMPONENTS OR CREATECLASS OR CLASS COMPONENTS!!!
+						
+				Alternative way to createElement and Factories and the common -> JSX
+					React.createElement(Component,{list:[...]})
+					JSX -> <Component list={[...]}
+					
+					const Menu = (props) = > 
+						<article>
+							<header>
+								<h1>{props.title}</h1>
+							</header>
+							<div className="recipes">
+								{props.recipes.map((recipe,i)=><Recipe key={i} name={recipe.name} ingredients={recipe.ingredients} steps={recipe.steps} />)}
+							</div>
+						</article>
+						
+					The JSX transpiler take all the properties from the element and put them in the props property in the React.createElement object !!!!
+					
+					REFS
+						Allow React Components to interact with child elements.
+						class AddColorForm extends Component {
+							  constructor(props) {
+								super(props)
+								this.submit = this.submit.bind(this)  -> WE MUST BIND MANUALLY ALL THE METHODS !!! WITH CREATECLASS FUNCTION THE BIND IS DONE AUTOMATICALLY!!!!!
+							  }                              			  With ES6 component classes, we must bind the scope of the component to any methods that need to access that scope with this.
+							  submit(e) {
+								const { _title, _color } = this.refs
+								e.preventDefault();
+								alert(`New Color: ${_title.value} ${_color.value}`)
+								_title.value = '';
+								_color.value = '#000000';
+								_title.focus();
+							  }
+							  render() {
+								  return (
+									  <form onSubmit={this.submit}>
+										  <input ref="_title"
+												 type="text" 
+												 placeholder="color title..." required/>
+										  <input ref="_color"
+												 type="color" required/>
+										  <button>ADD</button>
+									  </form>
+								  )
+							  }
+							}
+							
+						Probably each element with a attribute "ref" is added to the "ref" property of the React.element !!!
+						
+					INVERSE DATA FLOW(TWO-WAY DATA BINDING)
+						Usually when we collect data from the form component a common solution for collecting data from a React Component is INVERSE DATA FLOW(TWO WAY DATA BINDING).
+						It involves sending a callback function to the component as a property that the component can use to pass data back as arguments.
+						IT IS CALLED INVERSE DATA FLOW BECAUSE WE SEND THE COMPONENT A FUNCTION AS A PROPERTY,AND THE COMPONENT SENDS BACK AS FUNCTION ARGUMENTS!!!
+						
+						REFS in stateless functional components
+							THIS COMPONENTS DOES NOT HAVE "THIS" !!!
+							Set refs using function 
+								<input ref={input => _title = input}
+								
+						React State Management
+							When the state of a component changes,the component renders a new UI that reflects those changes.
+							After every setState call, the render function is called, updating the state with the new UI.
+							INITIALIZE STATE VARIABLES BASED ON INCOMING PROPERTIES :
+								Using createClass -> componentWillMount() method -> THIS METHOD IS INVOKED ONCE WHEN THE COMPONENT MOUNTS!!!!
+								BELONGS TO THE COMPONENT LIFECYCLE!!
+								In the ES6 classes we can initialize on the constructor
+								We may need to reinitialize component state when a parent component changes those properties. The componentWillRecieveProps lifecycle method can be used to solve this issue.
+								Reducing state to root components is often recommended. You will encounter this approach in many React applications. 
+								Once your application reaches a certain size, two-way data binding and explicitly passing properties can become quite a nuisance. 
+								The Flux design pattern and Flux libraries like Redux can be used to manage state and reduce boilerplate in these situations.
+								
+								Components Lifecycle
+									Mounting Lifecycle
+										ES6 class			React.createClass()
+															getDefaultProps()
+									constructor(props)		getInitialState()
+									componentWillMount()	componentWillMount()
+									render()				render()
+									componentDidMount()		componentDidMount()
+									componentWillUnmount()	componentWillUnmount()
+					
+					
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 						
     /*******************************************************************************************************************************************************************/	
 													        JAVASCRIPT					
@@ -5020,7 +5173,34 @@
 														o.foo() // logs window [object Window]
 														o.bar() // logs o [object Object]
 														
+														The ES6 arrow function syntax uses "lexical scoping" to figure out what the value of "this" should be. 
+														Lexical scoping is fancy way of saying it uses “this” from the surrounding code… the code that contains the code in question.
+														
+														function UiComponent() {
+															var _this = this; // (A)
+															var button = document.getElementById('myButton');
+															button.addEventListener('click', function () {
+																console.log('CLICK');
+																_this.handleClick(); // (B)
+															});
+														}
+														UiComponent.prototype.handleClick = function () {
+															...
+														};
+														In ES6, you can use arrow functions, which don’t shadow this (line A):
+
+														function UiComponent() {
+															var button = document.getElementById('myButton');
+															button.addEventListener('click', () => {
+																console.log('CLICK');
+																this.handleClick(); // (A)
+															});
+														}
+														
 										Generator functions & Iterator Objects
+										
+											https://davidwalsh.name/es6-generators
+											
 											function *foo(){...}
 											Can be paused and resumed at anytime
 												Is paused by executing a yield keyword 
@@ -5053,6 +5233,299 @@
 												https://www.sitepoint.com/javascript-generators-preventing-callback-hell/
 												https://medium.com/javascript-scene/the-hidden-power-of-es6-generators-observable-async-flow-control-cfa4c7f31435
 												https://medium.com/@dtothefp/why-can-t-anyone-write-a-simple-es6-generators-tutorial-ec2bbdf6ff45
+												
+										Classes extends Super static 	
+											This new syntax is little more than syntactic sugar over the prototype-based behaviour delegation capabilities.
+											
+											Classes can only contain method definitions, not data properties
+											Methods are defined using shorthand method definitions
+											Only one Constructor
+											Derived classes can NOT contain an empty constructor
+											We must call SUPER in the constructor of a derived class before use THIS.
+											
+											EMULATING CLASS BEHAVIOUR
+											
+												https://scotch.io/tutorials/better-javascript-with-es6-pt-ii-a-deep-dive-into-classes
+											
+												function Food(name,carbs){									 |
+													this.name = name;										 |
+													this.carbs = carbs;                                      |
+												}                                                            |
+												                                                             |
+												Food.prototype.toString = function(){ return `${this.name}`;}|--------> Like class definition 
+												
+												function FatFreeFood(name,protein){
+													Food.call(this,name,protein);
+												}
+												
+												FatFreeFood.prototype = Object.create(Food.prototype);
+												
+												Object.defineProperty(FatFreeFood.prototype,"constructor",{enumerable : false , writable : true , value : FatFreeFood});
+												
+												
+												Like extends 
+													The FatFreeFood from Food , is the same technique applied to constructor stealing (inheritance)!!!!
+													
+												Static methods
+													Static methods are analogous to attaching properties directly to old-school function-as-constructors :
+													
+														function Food(name){
+															this.name = name;
+															Food.count +=1;
+														}
+														
+														Food.count = 0;
+														Food.describe = function count(){
+															console.log(`You have created ${Food.count} food(s).`);
+														}
+														
+													class Food{
+														//...
+														static describe(){
+															console...
+														}
+													}
+
+												Methods in classes are equivalent to methods defined on prototypes!!!
+												
+											Metaprogramming in ES6
+												New API's in ES6 : 
+													SYMBOLS : Reflection within implementation : sprinkle them on our existing classes and objects to change the behaviour
+													REFLECT : Reflection through introspection : Discover very low level information about our code
+													PROXY   : Reflection through interception  : Wrapping objects and intercepting their behaviour through traps.
+												
+												Symbols are a NEW primitive.
+												https://hacks.mozilla.org/2015/06/es6-in-depth-symbols/
+												Just like Number , String and Boolean primitives , Symbols have a Symbol function which can be used to create them.
+												Use Case
+													Sometimes it would be awfully convenient to stash some extra data on a JavaScript object that really belongs to someone else.
+													For example, suppose you’re writing a JS library that uses CSS transitions to make DOM elements zip around on the screen. 
+													You've noticed that trying to apply multiple CSS transitions to a single div at the same time doesn't work. 
+													It causes ugly, discontinuous "jumps". We think we can fix this, but first we need a way to find out if a given element is already moving.
+													How can we solve this?
+														One way is to use CSS APIs to ask the browser if the element is moving. But that sounds like overkill.
+														We could keep an array of all moving elements.A linear search will be slow if the array is big.
+														What you really want to do is just set a flag on the element:
+
+														if (element.isMoving) {
+														  smoothAnimations(element);
+														}
+														element.isMoving = true;
+														
+														There are some potential problems with this too. They all relate to the fact that your code isn't the only code using the DOM.
+															Other code using for-in or Object.keys() may stumble over the property you created.
+															Some other clever library author may have thought of this technique first, and your library would interact badly with that existing library.
+															Some other clever library author may think of it in the future, and your library would interact badly with that future library.
+															The standard committee may decide to add an .isMoving() method to all elements. Then you’re really hosed!
+															
+															Of course you can address the last three problems by choosing a string so tedious or so silly that nobody else would ever name anything that:
+																if (element.__$jorendorff_animation_library$PLEASE_DO_NOT_USE_THIS_PROPERTY$isMoving__) {
+															
+																We could generate a practically unique name for the property using cryptography:
+																 // get 1024 Unicode characters of gibberish
+																var isMoving = SecureRandom.generateName();
+
+																if (element[isMoving]) {
+
+																But this is going to lead to a bad debugging experience. Every time you console.log() an element with that property on it, 
+																you'll be looking a huge string of garbage. And what if you need more than one property like this?
+																How do you keep them straight? They'll have different names every time you reload.
+																
+																Symbols are the answer
+
+																Symbols are values that programs can create and use as property keys without risking name collisions!!!!!!!!!!!!!
+																	var mySymbol = Symbol();
+																	
+																	Calling Symbol() creates a new symbol, a value that's not equal to any other value.
+																	Just like a string or number, we can use a symbol as a property key. Because it's not equal to any string, 
+																	this symbol-keyed property is guaranteed not to collide with any other property.
+
+																	obj[mySymbol] = "ok!";  // guaranteed not to collide
+																	console.log(obj[mySymbol]);  // ok!
+																	
+																	Three sets of symbols
+																	There are three ways to obtain a symbol.
+
+																		Call Symbol(). As we already discussed, this returns a new unique symbol each time it's called.
+																		
+																		Call Symbol.for(string). This accesses a set of existing symbols called the symbol registry. 
+																		Unlike the unique symbols defined by Symbol(), symbols in the symbol registry are shared. 
+																		If we call Symbol.for("cat") thirty times, it will return the same symbol each time. 
+																		The registry is useful when multiple web pages, or multiple modules within the same web page, need to share a symbol.
+
+																		Use symbols like Symbol.iterator, defined by the standard. 
+																			A few symbols are defined by the standard itself. Each one has its own special purpose.
+																		
+																		
+																		Symbol.iterator is used by the for...of loop.
+																		
+																			Loops in JAVASCRIPT
+																				Old way
+																				
+																				for(var index =0;index < myArray.length;index++)
+																				
+																				myArray.forEach(function(value){console.log(value);})
+																					We can not break out of this loop using break or return from the enclosing function
+																				
+																				for-in																				
+																					for(var index in myArray)
+																					
+																					The for–in loop is for looping over object properties.
+																					
+																				for...of
+																					for (var value of myArray) {
+																						console.log(value);
+																					}
+																					
+																					this is the most concise, direct syntax yet for looping through array elements
+																					it avoids all the pitfalls of for–in
+																					unlike forEach(), it works with break, continue, and return
+																					
+																				The for–of loop is for looping over data—like the values in an array.
+
+																				for–of is not just for arrays. It also works on most array-like objects, like DOM NodeLists.
+																				It also works on strings,Map and Set
+																				What Arrays, Maps, Sets, and the other objects we talked about all have in common is that they have an iterator method.
+																				And there's another kind of object that can have an iterator method too: any object we want.
+																				Just as we can add a myObject.toString() method to any object and suddenly JS knows how to convert that object to a string, 
+																				we can add the myObject[Symbol.iterator]() method to any object and suddenly JS will know how to loop over that object.
+																				The standard committee could have just called this method .iterator(), but then, your existing code might already have some objects 
+																				with .iterator() methods, and that could get pretty confusing. So the standard uses a symbol, rather than a string, as the name of this method.
+																				An object that has a [Symbol.iterator]() method is called iterable.
+																				
+																				Iterator objects
+
+																				Now, there is a chance you will never have to implement an iterator object of your own from scratch. 
+																				A for–of loop starts by calling the [Symbol.iterator]() method on the collection. This returns a new iterator object. 
+																				An iterator object can be any object with a .next() method; 
+																				the for–of loop will call this method repeatedly, once each time through the loop.
+																				
+													PROXY
+														https://hacks.mozilla.org/2015/07/es6-in-depth-proxies-and-reflect/
+														var target = {}, handler = {};
+														var proxy = new Proxy(target, handler);
+														
+														proxy !== target
+														
+														Even if a proxy's target is a DOM Element, for example, the proxy isn't really an Element; 
+														so something like document.body.appendChild(proxy) will fail with a TypeError.
+														
+														 But there are a few fundamental abilities all objects share:
+
+														Objects have properties. You can get and set properties, delete them, and so on.
+														Objects have prototypes. This is how inheritance works in JS.
+														Some objects are functions or constructors. You can call them.
+														Almost everything JS programs do with objects is done using properties, prototypes, and functions.
+														
+														So when the ECMAScript standard committee defined a set of 14 internal methods, the common interface for all objects, 
+														it should come as no surprise that they ended up focusing on these three fundamental things.
+														
+														obj.[[Get]](key, receiver) – Get the value of a property.
+														obj.[[Set]](key, value, receiver) – Assign to a property of an object.
+														...
+														
+													PROMISES
+														CALLBACK FUNCTIONS ARE LIKE CLOSURES!!!
+														THEY SHARE THE SAME THIS!!!
+														
+														https://www.toptal.com/javascript/asynchronous-javascript-async-await-tutorial
+														
+														Async Javascript : From Callback Hell to Async and Await
+														
+														SYNCHRONIZING ASYNHCRONOUS TASKS IN JAVASCRIPT WAS A SERIOUS ISSUE FOR A VERY LONG TIME.
+														
+														On of the keys to write a successful web application is being able to make dozens of AJAX calls per page.
+														This is a typical asynchronous programming challenge.
+															The first and the most straightforward solution came in the form of nested functions as callbacks. This solution led to something called callback hell.
+															
+															Verify the username and password of a user.
+															Get application roles for the user.
+															Log application access time for the user.
+															
+															const verifyUser = function(username, password, callback){
+															   dataBase.verifyUser(username, password, (error, userInfo) => {
+																   if (error) {
+																	   callback(error)
+																   }else{
+																	   dataBase.getRoles(username, (error, roles) => {
+																		   if (error){
+																			   callback(error)
+																		   }else {
+																			   dataBase.logAccess(username, (error) => {
+																				   if (error){
+																					   callback(error);
+																				   }else{
+																					   callback(null, userInfo, roles);
+																				   }
+																			   })
+																		   }
+																	   })
+																   }
+															   })
+															};
+															
+															JavaScript Promises
+															
+
+															Promises were the next logical step in escaping callback hell. This method did not remove the use of callbacks, but it made the chaining of functions 
+															straightforward and simplified the code, making it much easier to read.
+															
+															const verifyUser = function(username, password) {
+															   database.verifyUser(username, password)
+																   .then(userInfo => dataBase.getRoles(userInfo))
+																   .then(rolesInfo => dataBase.logAccess(rolesInfo))
+																   .then(finalResult => {
+																	   //do whatever the 'callback' would do
+																   })
+																   .catch((err) => {
+																	   //do whatever the error handler needs
+																   });
+															};
+															
+															All of the functions used would have to be Promisified.
+															
+																const getRoles = function (username){
+																   return new Promise((resolve, reject) => {
+																	   database.connect((connection) => {
+																		   connection.query('get roles sql', (result) => {
+																			   resolve(result);
+																		   })
+																	   });
+																   });
+																};
+															
+															
+															The pyramid of doom was significantly mitigated with the introduction of Promises. However, we still had to rely on callbacks that are passed on to 
+															.then and .catch methods of a Promise.Promises paved the way to one of the coolest improvements in JavaScript. ECMAScript 2017 brought in 
+															syntactic sugar on top of Promises in JavaScript in the form of async and await statements.They allow us to write Promise-based code as if it were synchronous, 
+															but without blocking the main thread.
+															
+															const verifyUser = async function(username, password){
+															   try {
+																   const userInfo = await dataBase.verifyUser(username, password);
+																   const rolesInfo = await dataBase.getRoles(userInfo);
+																   const logStatus = await dataBase.logAccess(userInfo);
+																   return userInfo;
+															   }catch (e){
+																   //handle errors as needed
+															   }
+															};
+															
+															Awaiting Promise to resolve is allowed only within async functions which means that verifyUser had to be defined using async function.
+															
+														    Promise implementation
+																https://www.promisejs.org/implementing/
+																
+															when a Promise is created through the constructor (new Promise(fn)) a function is passed, this function contains 
+															the code that will be executed(could be asynchronous like an AJAX call (XMLHtmlRequest) or synchronous).
+															This function receives two parameters , it will be the resolve and error function.
+															This function will be executed right away, it does not wait for the THEN call.
+															The result is stored in the Promise object and the promise change state!!!
+															When then is called a new Promise is created but the this of "this" new Promise will be the same of the this of the first Promise,
+															this way we have access to the value of the first Promise.
+															
+															Async is just sugar syntax to promises , they are interchangeably
+													
 											
 									Transpiling 
 										Is the process of conv code to ES5 code!!!
@@ -5071,16 +5544,29 @@
 										Modules
 											https://medium.com/sungthecoder/javascript-module-module-loader-module-bundler-es6-module-confused-yet-6343510e7bde
 											https://spring.io/understanding/javascript-modules
-												Inline Scripts
+												Inline Scripts <script></script>
 													Lack of code reusability
+														If we need to add another page and need some of the functions from this page, we will have to copy and paste the code
 													Lack of dependency resolution
+														 You are responsible for having add, reduce and sum functions come before main part of the script.
 													Pollution of global namespace
+														All the functions and variables will reside on global scope.
 												Script tags
 													Lack of dependency resolution
-														Order of the files
+														 The order of the files are important.
+														 You are responsible for including add.js, reduce.js and sum.js files before main.js file.
 													Pollution of global namespace
 													
 												Module Object and IIFE(Module Pattern)
+													file0.js
+													var myApp = {}
+													file1.js
+														(function(){
+															myApp.add = function(a,b){ return a+b;}
+														})();
+													file2.js
+														(function(){myApp.reduce = function...})();
+														
 													We expose only one object to the global scope.The single object contains all the methods and values we need in our application.
 													Like the JQuery object "$" do.
 													Lack of Dependency Resolution: 
@@ -5090,7 +5576,7 @@
 												CommonJS
 													Is not a Javascript library.It is a standardization organization!!!
 													It is like ECMA or W3C.ECMA defines the language specification for Javascript.
-													W3C defines Javascript wen API,such as DOM and DOM events.
+													W3C defines Javascript web API,such as DOM and DOM events.
 													The goal of CommonJS is to define common APIs for web server,desktop and command line applications.
 													
 													CommonJS also defines APIs for module.Since there is no HTML page and no <script> tag on server application,it makes sense to have some clear APIs for modules.
