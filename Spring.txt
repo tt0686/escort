@@ -1630,420 +1630,772 @@ Dependency Injection
 																THE PROBLEM IS THAT AN ENTITYMANAGER ISN’T THREAD-SAFE AND GENERALLY SHOULDN’T BE INJECTED INTO A SHARED SINGLETON BEAN LIKE YOUR REPOSITORY.
 																
 																@Repository
-@Transactional
-public class JpaSpitterRepository implements SpitterRepository {
-@PersistenceContext
-private EntityManager em;
-public void addSpitter(Spitter spitter) {
-em.persist(spitter);
-}
-public Spitter getSpitterById(long id) {
-return em.find(Spitter.class, id);
-}
-public void saveSpitter(Spitter spitter) {
-em.merge(spitter);
-}
-...
-}
+																@Transactional
+																public class JpaSpitterRepository implements SpitterRepository {
+																	
+																	@PersistenceContext
+																	private EntityManager em;
+																	
+																	public void addSpitter(Spitter spitter) {
+																		em.persist(spitter);
+																	}
+																	
+																	public Spitter getSpitterById(long id) {
+																		return em.find(Spitter.class, id);
+																	}
+																	
+																	public void saveSpitter(Spitter spitter) {
+																		em.merge(spitter);
+																	}
+																	...
+																}
 
-This new version of JpaSpitterRepository is now given an EntityManager directly;
-there’s no need for it to create one from an EntityManagerFactory in each of its
-methods. Although this is much more convenient, you’re probably wondering about
-the thread-safety issues of working with an injected EntityManager.
-The truth is that @PersistenceContext doesn’t inject an EntityManager—at least,
-not exactly. Instead of giving the repository a real EntityManager, it gives a proxy to a
-real EntityManager. That real EntityManager either is one associated with the current
-transaction or, if one doesn’t exist, creates a new one. Thus, you know that you’re
-always working with an entity manager in a thread-safe way.
-It’s important to understand that @PersistenceUnit and @PersistenceContext
-aren’t Spring annotations; they’re provided by the JPA specification. In order for
-Spring to understand them and inject an EntityManagerFactory or EntityManager,
-Spring’s PersistenceAnnotationBeanPostProcessor must be configured. If you’re
-already using <context:annotation-config> or <context:component-scan>, then
-you’re good to go because those configuration elements automatically register a
-PersistenceAnnotationBeanPostProcessor bean. Otherwise, you’ll need to register
-that bean explicitly:
-@Bean
-public PersistenceAnnotationBeanPostProcessor paPostProcessor() {
-return new PersistenceAnnotationBeanPostProcessor();
-}
-@Repository serves the same purpose here as it did when you developed the Hibernate
-contextual session version of the repository. Without a template to handle exception
-translation, you need to annotate your repository with @Repository so
-PersistenceExceptionTranslationPostProcessor knows that this is a bean for which
-exceptions should be translated into one of Spring’s unified data-access exceptions.
-Speaking of PersistenceExceptionTranslationPostProcessor, you need to
-remember to wire it up as a bean in Spring just as you did for the Hibernate example:
-@Bean
-public BeanPostProcessor persistenceTranslation() {
-return new PersistenceExceptionTranslationPostProcessor();
-}
+									This new version of JpaSpitterRepository is now given an EntityManager directly; there’s no need for it to create one from an EntityManagerFactory in each of its methods. 
+									Although this is much more convenient, you’re probably wondering about the thread-safety issues of working with an injected EntityManager.
+									The truth is that @PersistenceContext doesn’t inject an EntityManager—at least, not exactly. Instead of giving the repository a real EntityManager, it gives a proxy to a
+									real EntityManager. That real EntityManager either is one associated with the current transaction or, if one doesn’t exist, creates a new one. 
+									Thus, you know that you’re always working with an entity manager in a thread-safe way.
+									It’s important to understand that @PersistenceUnit and @PersistenceContext aren’t Spring annotations; they’re provided by the JPA specification. In order for Spring to understand them and inject an EntityManagerFactory 
+									or EntityManager, Spring’s PersistenceAnnotationBeanPostProcessor must be configured. If you’re already using <context:annotation-config> or <context:component-scan>, then
+									you’re good to go because those configuration elements automatically register a PersistenceAnnotationBeanPostProcessor bean. Otherwise, you’ll need to register that bean explicitly:
+									
+												@Bean
+												public PersistenceAnnotationBeanPostProcessor paPostProcessor() {
+													return new PersistenceAnnotationBeanPostProcessor();
+												}
+												
+									@Repository serves the same purpose here as it did when you developed the Hibernate contextual session version of the repository. Without a template to handle exception
+									translation, you need to annotate your repository with @Repository so PersistenceExceptionTranslationPostProcessor knows that this is a bean for which
+									exceptions should be translated into one of Spring’s unified data-access exceptions.
+									Speaking of PersistenceExceptionTranslationPostProcessor, you need to remember to wire it up as a bean in Spring just as you did for the Hibernate example:
+									
+												@Bean
+												public BeanPostProcessor persistenceTranslation() {
+													return new PersistenceExceptionTranslationPostProcessor();
+												}
 
-Why keep writing the same persistence methods over and over again, just because
-you’re dealing with different domain types? Spring Data JPA brings an end to this boilerplate
-madness.
+									Why keep writing the same persistence methods over and over again, just because you’re dealing with different domain types? Spring Data JPA brings an end to this boilerplate madness.
 
-public interface SpitterRepository
-extends JpaRepository<Spitter, Long> {
-}
+									public interface SpitterRepository extends JpaRepository<Spitter, Long> {
+									}
 
-In doing so, JpaRepository is
-parameterized such that it knows this is a repository for persisting Spitter objects and
-that Spitters have an ID of type Long. It also inherits 18 methods for performing
-common persistence operations, such as saving a Spitter, deleting a Spitter, and
-finding a Spitter by its ID.
-To ask Spring Data to create an implementation of SpitterRepository, you need
-to add a single element to your Spring configuration.
+									In doing so, JpaRepository is parameterized such that it knows this is a repository for persisting Spitter objects and that Spitters have an ID of type Long. 
+									It also inherits 18 methods for performing common persistence operations, such as saving a Spitter, deleting a Spitter, and finding a Spitter by its ID.
+									To ask Spring Data to create an implementation of SpitterRepository, you need to add a single element to your Spring configuration.
 
-XML
-<jpa:repositories base-package="com.habuma.spittr.db" />
+												XML
+												<jpa:repositories base-package="com.habuma.spittr.db" />
 
-The <jpa:repositories> element holds all the magic of Spring Data JPA. Much
-like the <context:component-scan> element, <jpa:repositories> is given a basepackage
-to scan. But where <context:component-scan> scans a package (and its subpackages)
-for classes that are annotated with @Component, <jpa:repositories> scans
-its base package for any interfaces that extend Spring Data JPA’s Repository interface.
+									The <jpa:repositories> element holds all the magic of Spring Data JPA. Much like the <context:component-scan> element, <jpa:repositories> is given a basepackage
+									to scan. But where <context:component-scan> scans a package (and its subpackages) for classes that are annotated with @Component, 
+									<jpa:repositories> scans its base package for any interfaces that extend Spring Data JPA’s Repository interface.
 
-JAVA
-@Configuration
-@EnableJpaRepositories(basePackages="com.habuma.spittr.db")
-public class JpaConfiguration {
-...
-}
+												JAVA
+												@Configuration
+												@EnableJpaRepositories(basePackages="com.habuma.spittr.db")
+												public class JpaConfiguration {
+												...
+												}
 
-Getting back to the SpitterRepository interface, it extends JpaRepository.
-JpaRepository extends the marker Repository interface (albeit indirectly). Therefore,
-SpitterRepository transitively extends the Repository interface that repository-
-scanning is looking for. When Spring Data finds it, it creates an implementation
-of SpitterRepository, including an implementation of all 18 methods inherited
-from JpaRepository, PagingAndSortingRepository, and CrudRepository.
+									Getting back to the SpitterRepository interface, it extends JpaRepository.
+									JpaRepository extends the marker Repository interface (albeit indirectly). Therefore, SpitterRepository transitively extends the Repository interface that 
+									repository-scanning is looking for. When Spring Data finds it, it creates an implementation of SpitterRepository, including an implementation of all 18 methods inherited
+									from JpaRepository, PagingAndSortingRepository, and CrudRepository.
 
-public interface SpitterRepository
-extends JpaRepository<Spitter, Long> {
-Spitter findByUsername(String username);
-}
+											public interface SpitterRepository extends JpaRepository<Spitter, Long> {
+												Spitter findByUsername(String username);
+											}
 
-how do you get Spring Data JPA to incorporate an implementation of that
-method?
+									How do you get Spring Data JPA to incorporate an implementation of that method?
 
-Actually, nothing else needs to be done to implement findByUsername(). The
-method signature tells Spring Data JPA everything it needs to know in order to create
-an implementation for the method.
-In essence, Spring Data
-defines a sort of miniature domain-specific language (DSL) where persistence details
-are expressed in repository method signatures.
+									Actually, nothing else needs to be done to implement findByUsername(). The method signature tells Spring Data JPA everything it needs to know in order to create an implementation for the method.
+									In essence, Spring Data defines a sort of miniature domain-specific language (DSL) where persistence details are expressed in repository method signatures.
 
-In situations where the desired data can’t be adequately expressed in the method
-name, you can use the @Query annotation to provide Spring Data with the query that
-should be performed.
-@Query("select s from Spitter s where s.email like '%gmail.com'")
-List<Spitter> findAllGmailSpitters();
-When Spring Data JPA generates the implementation for a repository interface, it
-also looks for a class whose name is the same as the interface’s name postfixed with
-Impl.If the class exists, Spring Data JPA merges its methods with those generated by
-Spring Data JPA.
+									In situations where the desired data can’t be adequately expressed in the method name, you can use the @Query annotation to provide Spring Data with the query that should be performed.
+											
+											@Query("select s from Spitter s where s.email like '%gmail.com'")
+											List<Spitter> findAllGmailSpitters();
+											
+									When Spring Data JPA generates the implementation for a repository interface, it also looks for a class whose name is the same as the interface’s name postfixed with Impl.
+									If the class exists, Spring Data JPA merges its methods with those generated by Spring Data JPA.
 
-CACHE
+							CACHE
 
-Although
-Spring doesn’t implement a cache solution, it offers declarative support for caching
-that integrates with several popular caching implementations.
-Spring’s cache abstraction comes in two forms:
-	Annotation-driven caching
-	XML-declared caching
+									Although Spring doesn’t implement a cache solution, it offers declarative support for caching that integrates with several popular caching implementations. 
+									Spring’s cache abstraction comes in two forms:
+										Annotation-driven caching
+										XML-declared caching
 	
-	@Configuration
-@EnableCaching
-public class CachingConfig {
-@Bean
-public CacheManager cacheManager() {
-return new ConcurrentMapCacheManager();
+											@Configuration
+											@EnableCaching
+											public class CachingConfig {
+											
+											@Bean
+											public CacheManager cacheManager() {
+												return new ConcurrentMapCacheManager();
+											}
+											}
+
+											<cache:annotation-driven />
+											<bean id="cacheManager" class="org.springframework.cache.concurrent.ConcurrentMapCacheManager" />
+
+									Under the covers, @EnableCaching and <cache:annotation-driven> work the same way. They create an aspect with pointcuts that trigger off of Spring’s caching annotations.
+
+										cache manager
+										SimpleCacheManager
+										NoOpCacheManager
+										ConcurrentMapCacheManager
+										CompositeCacheManager
+										EhCacheCacheManager
+
+									Spring 3.2 introduced another cache manager for working with JCache
+									RedisCacheManager (from Spring Data Redis)
+									GemfireCacheManager (from Spring Data GemFire)
+
+											@Configuration
+											@EnableCaching
+											public class CachingConfig {
+											
+											@Bean
+											public EhCacheCacheManager cacheManager(CacheManager cm) {
+												return new EhCacheCacheManager(cm);
+											}
+											
+											@Bean
+											public EhCacheManagerFactoryBean ehcache() {
+												EhCacheManagerFactoryBean ehCacheFactoryBean = new EhCacheManagerFactoryBean();
+												ehCacheFactoryBean.setConfigLocation(new ClassPathResource("com/habuma/spittr/cache/ehcache.xml"));
+												return ehCacheFactoryBean;
+											}
+
+									Annotating methods for caching
+									@Cacheable
+									@CachePut
+									@CacheEvict
+									@Caching
+
+											@Cacheable("spittleCache")
+											public Spittle findOne(long id) {
+											
+												try {
+													return jdbcTemplate.queryForObject(SELECT_SPITTLE_BY_ID,new SpittleRowMapper(),id);
+												} catch (EmptyResultDataAccessException e) {
+													return null;
+												}
+											}
+
+									When you annotate the interface method, the @Cacheable annotation will be inherited by all implementations of SpittleRepository, and the same caching rules will be applied.
+
+											@CachePut(value="spittleCache", key="#result.id")
+											Spittle save(Spittle spittle);
+
+									Suppose you don’t want to cache any Spittle objects whose message property contains the text “NoCache”. 
+									To prevent such Spittles from being cached, you can set the unless attribute like this:
+
+											@Cacheable(value="spittleCache"
+											unless="#result.message.contains('NoCache')")
+											Spittle findOne(long id);
+
+							Securing methods with annotations
+
+										@Configuration
+										@EnableGlobalMethodSecurity(securedEnabled=true)
+										public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
+										}
+
+										@Secured("ROLE_SPITTER")
+										public void addSpittle(Spittle spittle) {
+										// ...
+										}
+										
+									The @Secured annotation takes an array of String as an argument. Each String value is an authorization, one of which is required to invoke the method. 
+									By passing in ROLE_SPITTER, you tell Spring Security to not allow the addSpittle() method to be invoked unless the authenticated user has ROLE_SPITTER as one of their granted authorities.
+
+									One drawback of the @Secured annotation is that it’s a Spring-specific annotation.
+									If you’re more comfortable using annotations defined in Java standards, then perhaps you should consider using @RolesAllowed instead.
+
+										@PreAuthorize Restricts access to a method before invocation based on the result of evaluating an expression
+										@PostAuthorize Allows a method to be invoked, but throws a security exception if the expression evaluates to false
+										@PostFilter Allows a method to be invoked, but filters the results of that method based on an expression
+										@PreFilter Allows a method to be invoked, but filters input prior to entering the method
+
+								We’ll look at specific examples of each of these in a moment. But first, you’ll need to enable them by setting @EnableGlobalMethodSecurity’s prePostEnabled attribute to true:
+										
+										@Configuration
+										public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
+										}
+
+									But there’s a lot more to @PreAuthorize than is apparent in this simple example.
+									The String argument to @PreAuthorize is a SpEL expression. With SpEL expressions guiding access decisions, far more advanced security constraints can be written. 
+
+									For example, suppose that the average Spittr user can only write spittles of 140 characters or less, but premium users are allowed unlimited spittle lengths.
+									The @Secured and @RolesAllowed annotations would be of no help here, but
+									@PreAuthorize is on the case:
+									@PreAuthorize("(hasRole('ROLE_SPITTER') and #spittle.text.length() <= 140)"+"or hasRole('ROLE_PREMIUM')")
+									public void addSpittle(Spittle spittle) {
+									// ...
+									}
+
+								@PreFilter("hasPermission(targetObject, 'delete')")
+								public void deleteSpittles(List<Spittle> spittles) { ... }
+
+								public class SpittlePermissionEvaluator implements PermissionEvaluator {
+
+									private static final GrantedAuthority ADMIN_AUTHORITY = new GrantedAuthorityImpl("ROLE_ADMIN");
+
+									public boolean hasPermission(Authentication authentication, Object target, Object permission) {
+										if (target instanceof Spittle) {
+											Spittle spittle = (Spittle) target;
+											String username = spittle.getSpitter().getUsername();
+											if ("delete".equals(permission)) {
+											return isAdmin(authentication) || username.equals(authentication.getName());
+											}
+										}
+									...
+
+								Exporting an RMI service
+								If you’ve ever created an RMI service, you know that it involves the following steps:
+								1 Write the service implementation class with methods that throw java.rmi
+								.RemoteException.
+								2 Create the service interface to extend java.rmi.Remote.
+								3 Run the RMI compiler (rmic) to produce client stub and server skeleton classes.
+								4 Start an RMI registry to host the services.
+								5 Register the service in the RMI registry.
+
+									@Bean
+									public RmiServiceExporter rmiExporter(SpitterService spitterService) {
+										RmiServiceExporter rmiExporter = new RmiServiceExporter();
+										rmiExporter.setService(spitterService);
+										rmiExporter.setServiceName("SpitterService");
+										rmiExporter.setServiceInterface(SpitterService.class);
+										rmiExporter.setRegistryHost("rmi.spitter.com");
+										rmiExporter.setRegistryPort(1199);
+										return rmiExporter;
+									}
+
+									@Bean
+									public RmiProxyFactoryBean spitterService() {
+										RmiProxyFactoryBean rmiProxy = new RmiProxyFactoryBean();
+										rmiProxy.setServiceUrl("rmi://localhost/SpitterService");
+										rmiProxy.setServiceInterface(SpitterService.class);
+										return rmiProxy;
+									}
+
+							RMI is an excellent way to communicate with remote services, but it has some limitations.
+							First, RMI has difficulty working across firewalls. That’s because RMI uses arbitrary ports for communication—something that firewalls typically don’t allow. 
+							In an intranet environment, this usually isn’t a concern. But if you’re working on the internet, you’ll probably run into trouble with RMI. 
+							Even through RMI has support for tunneling over HTTP (which is usually allowed by firewalls), setting up RMI tunneling can be tricky.
+							Another thing to consider is that RMI is Java-based. That means both the client and the service must be written in Java. And because RMI uses Java serialization, the types
+							of the objects being sent across the network must have the exact same version of the Java runtime on both sides of the call.
+							Hessian, like RMI, uses binary messages to communicate between client and service.
+							But unlike other binary remoting technologies (such as RMI), the binary message is portable to languages other than Java, including PHP, Python, C++, and C#.
+							Burlap is an XML-based remoting technology, which automatically makes it portable to any language that can parse XML. 
+							And because it’s XML, it’s more easily humanreadable than Hessian’s binary format. Unlike other XML-based remoting technologies (such as SOAP and XML-RPC), Burlap’s message structure 
+							is as simple as possible and doesn’t require an external definition language (such as WSDL or IDL).
+
+								HessianServiceExporter is a Spring MVC controller  that receives Hessian requests and translates them into method calls on the exported POJO.
+
+							@Bean
+							public HessianServiceExporter hessianExportedSpitterService(SpitterService service) {
+								HessianServiceExporter exporter = new HessianServiceExporter();
+								exporter.setService(service);
+								exporter.setServiceInterface(SpitterService.class);
+								return exporter;
+							}
+
+						Unlike RmiServiceExporter, you don’t need to get a serviceName property. With RMI, the serviceName property is used to register a service in the RMI registry. 
+						Hessian doesn’t have a registry, and, therefore, there’s no need to name a Hessian service.
+
+							Another major difference between RmiServiceExporter and HessianServiceExporter is that because Hessian is HTTP-based, HessianServiceExporter is implemented as a Spring MVC controller. 
+							This means that in order to use exported Hessian services, you’ll need to perform two additional configuration steps:
+								Configure a Spring DispatcherServlet in web.xml, and deploy your application as a web application.
+								Configure a URL handler in your Spring configuration to dispatch Hessian service URLs to the appropriate Hessian service bean.
+
+								@Bean
+								public HandlerMapping hessianMapping() {
+									SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
+									Properties mappings = new Properties();
+									mappings.setProperty("/spitter.service","hessianExportedSpitterService");
+									mapping.setMappings(mappings);
+									return mapping;
+								}
+
+							There is, however, a best-of-both-worlds solution. Let’s look at Spring’s HTTP invoker, which offers RPC over HTTP (like Hessian/Burlap) while at the same time
+							using Java serialization of objects (like RMI).
+							The Spring team recognized a void between RMI services and HTTP-based services such as Hessian and Burlap. On the one side, RMI uses Java’s standard object serialization
+							but is difficult to use across firewalls. On the other side, Hessian and Burlap work well across firewalls but use a proprietary object-serialization mechanism.
+
+								JAX-WS
+
+								@WebService(serviceName="SpitterService")
+								public class SpitterServiceEndpoint extends SpringBeanAutowiringSupport {
+								
+									@Autowired
+									SpitterService spitterService;
+									@WebMethod
+									public void addSpittle(Spittle spittle) {
+									spitterService.saveSpittle(spittle);
+								}
+
+								SpringBeanAutowiringSupport is useful when the object whose properties are being injected doesn’t have its lifecycle managed by Spring. 
+								But under the right circumstances, it’s possible to export a Spring-managed bean as a JAX-WS endpoint.
+
+									@Bean
+									public SimpleJaxWsServiceExporter jaxWsExporter() {
+									return new SimpleJaxWsServiceExporter();
+									}
+
+								As you can see, SimpleJaxWsServiceExporter needs nothing else to do its job. When it gets started, it digs through the Spring application context looking for beans that
+								are annotated with @WebService. When it finds one, it publishes the bean as a JAX-WS endpoint with a base address of http://localhost:8080/.
+
+						Client
+
+								@Bean
+								public JaxWsPortProxyFactoryBean spitterService() {
+									JaxWsPortProxyFactoryBean proxy = new JaxWsPortProxyFactoryBean();
+									proxy.setWsdlDocument("http://localhost:8080/services/SpitterService?wsdl");
+									proxy.setServiceName("spitterService");
+									proxy.setPortName("spitterServiceHttpPort");
+									proxy.setServiceInterface(SpitterService.class);
+									proxy.setNamespaceUri("http://spitter.com");
+									return proxy;
+								}
+
+						
+						REST
+							Spring offers two options to transform a resource’s Java representation into the representation that’s shipped to the client:
+							Content negotiation—A view is selected that can render the model into a representation to be served to the client.
+							Message conversion—A message converter transforms an object returned from the controller into a representation to be served to the client.
+
+							When it comes to resolving view names into views that can produce resource representations, there’s an additional dimension to consider. Not only does the view need
+							to match the view name, but the view also needs to be chosen to suit the client. If the client wants JSON data, then an HTML-rendering view won’t do—even if the view name matches.
+							Spring’s ContentNegotiatingViewResolver is a special view resolver that takes the content type that the client wants into consideration.
+
+							Working with HTTP message converters Message conversion is a more direct way to transform data produced by a controller into a representation that’s served to a client.
+							When using message conversion, DispatcherServlet doesn’t bother with ferrying model data to a view. In fact, there is no model, and there is no view. 
+							There is only data produced by the controller and a resource representation produced when a message converter transforms that data.
+
+							Normally, when a handler method returns a Java object (anything other than String or an implementation of View), that object ends up in the model for rendering in the view. 
+							But if you’re going to employ message conversion, you need to tell Spring to skip the normal model/view flow and use a message converter instead. 
+							There are a handful of ways to do this, but the simplest is to annotate the controller method with @ResponseBody.
+
+										@RequestMapping(method=RequestMethod.GET,
+										produces="application/json")
+										public @ResponseBody List<Spittle> spittles(@RequestParam(value="max",defaultValue=MAX_LONG_AS_STRING) long max,
+										@RequestParam(value="count", defaultValue="20") int count) {
+											return spittleRepository.findSpittles(max, count);
+										}
+										
+						 The @ResponseBody annotation tells Spring that you want to send the returned object as a resource to the client, converted into some representational form that the client can accept.
+						 More specifically, DispatcherServlet considers the request’s Accept header and looks for a message converter that can give the client the representation it wants.
+
+						RECEIVING RESOURCE STATE IN THE REQUEST BODY
+						So far, we’ve been focused on REST endpoints that serve resources to the client. But REST isn’t read-only. A REST API can also receive resource representations from the client. 
+						It’d be inconvenient if your controller had to convert a JSON or XML representation sent from a client into an object it can use. 
+						Spring’s message converters were able to convert objects into representations on the way out of your controllers can they do the same in reverse for representations coming in?
+						Just as @ResponseBody tells Spring to employ a message converter when sending data to a client, the @RequestBody tells Spring to find a message converter to convert a resource 
+						representation coming from a client into an object. 
+						For example, suppose that you need a way for a client to submit a new Spittle to be saved. You can write the controller method to handle such a request like this:
+
+										@RequestMapping(method=RequestMethod.POSTconsumes="application/json")
+										public @ResponseBody Spittle saveSpittle(@RequestBody Spittle spittle) {
+											return spittleRepository.save(spittle);
+										}
+
+						The @ResponseBody and @RequestBody annotations are succinct yet powerful ways to engage Spring’s message converters when handling requests. 
+						But if you’re writing a controller that has several methods, all of which should use message conversion, then those annotations get somewhat repetitive.
+						Spring 4.0 introduced the @RestController annotation to help with that. If you annotate your controller class with @RestController instead of @Controller, Spring applies message conversion to 
+						all handler methods in the controller. You don’t need to annotate each method with @ResponseBody. SpittleController, as defined thus far, can look like the next listing.
+
+						ASYNCHRONOUS COMMUNICATION
+
+							There are two main actors in asynchronous messaging: message brokers and destinations.
+							When an application sends a message, it hands it off to a message broker. A message broker is analogous to the post office. 
+							The message broker ensures that the message is delivered to the specified destination, leaving the sender free to go about other business.
+							Although different messaging systems may offer a variety of message-routing schemes, there are two common types of destinations: queues and topics. 
+							Each of these is associated with a specific messaging model: either point-to-point (for queues) or publish/subscribe (for topics).
+
+							POINT-TO-POINT MESSAGING
+							In the point-to-point model, each message has exactly one sender and one receiver. When the message broker is given a message, it places the message in a queue. 
+							When a receiver comes along and asks for the next message in the queue, the message is pulled from the queue and delivered to the receiver.
+							Because the message is removed from the queue as it’s delivered, it’s guaranteed that the message will be delivered to only one receiver.
+							Although each message in a message queue is delivered to only one receiver, this doesn’t imply that only one receiver is pulling messages from the queue. 
+							It’s likely that several receivers are processing messages from the queue. But they’ll each be given their own messages to process.
+
+						In the publish/subscribe messaging model, messages are sent to a topic.
+						As with queues, many receivers may be listening to a topic. But unlike with queues, where a message is delivered to exactly one receiver, all subscribers to a topic receive a copy of
+						the message
+
+				JMS
+						we'll need a JMS connection factory to be able to send messages through the message broker. 
+						Because you’re using ActiveMQ as your message broker, we'll have to configure the JMS connection factory so that it knows how to connect to ActiveMQ. 
+						ActiveMQConnectionFactory is the JMS connection factory that comes with ActiveMQ. You can configure it in Spring like this:
+						
+								<bean id="connectionFactory"class="org.apache.activemq.spring.ActiveMQConnectionFactory" />
+
+						Optionally, because you know you’re dealing with ActiveMQ, you can use ActiveMQ’s own Spring configuration namespace
+
+								<amq:connectionFactory id="connectionFactory" brokerURL="tcp://localhost:61616"/>
+
+								<bean id="queue" class="org.apache.activemq.command.ActiveMQQueue" c:_="spitter.queue" />
+
+						Optionnally
+
+								<amq:queue id="spittleQueue" physicalName="spittle.alert.queue" />
+
+						To use JmsTemplate, you’ll need to declare it as a bean in the Spring configuration file. 
+						The following XML should do the trick:
+								
+								<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate" c:_-ref="connectionFactory" />
+
+								public class AlertServiceImpl implements AlertService {
+								
+								private JmsOperations jmsOperations;
+								
+								@Autowired
+								public AlertServiceImpl(JmsOperations jmsOperatons) {
+									this.jmsOperations = jmsOperations;
+								}
+								
+								public void sendSpittleAlert(final Spittle spittle) {
+										jmsOperations.send("spittle.alert.queue", new MessageCreator() {
+																				public Message createMessage(Session session) throws JMSException {
+																					return session.createObjectMessage(spittle);
+																				}
+																			}
+														);
+										}
+								}
+
+						CONVERTING MESSAGES WHEN SENDING
+
+								public void sendSpittleAlert(Spittle spittle) {
+									jmsOperations.convertAndSend(spittle);
+								}
+
+								public interface MessageConverter {
+									Message toMessage(Object object, Session session) throws JMSException, MessageConversionException;
+									Object fromMessage(Message message) throws JMSException, MessageConversionException;
+								}
+
+
+								<bean id="messageConverter" class="org.springframework.jms.support.converter.MappingJacksonMessageConverter" />
+
+								Then you can wire it into JmsTemplate like this:
+								<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate" c:_-ref="connectionFactory" p:defaultDestinationName="spittle.alert.queue" p:messageConverter-ref="messageConverter" />
+
+						CONSUMING MESSAGES
+
+								public Spittle receiveSpittleAlert() {
+									try {
+										ObjectMessage receivedMessage = (ObjectMessage) jmsOperations.receive();
+										return (Spittle) receivedMessage.getObject();
+									} catch (JMSException jmsException) {
+										throw JmsUtils.convertJmsAccessException(jmsException);
+									}
+								}
+
+									take advantage of a message converter. You’ve seen how message converters can convert objects to Messages in convertAndSend(). 
+									But they can also be used on the receiving end with JmsTemplate’s receiveAndConvert():
+
+								public Spittle retrieveSpittleAlert() {
+									return (Spittle) jmsOperations.receiveAndConvert();
+								}
+
+								The big downside of consuming messages with JmsTemplate is that both the receive() and receiveAndConvert() methods are synchronous. 
+								This means the receiver must wait patiently for the message to arrive, because those methods will block until a message is available (or until a timeout condition occurs). 
+								Doesn’t it seem odd to synchronously consume a message that was asynchronously sent?
+								That’s where message-driven POJOs come in handy. Let’s see how to receive messages asynchronously using components that react to messages rather than wait on them.
+
+								Spring 2.0 addresses the need for asynchronous consumption of messages by providing its own form of message-driven bean that’s similar to EJB 3’s MDBs. 
+								In this section, you’ll learn how Spring supports asynchronous message consumption using message-driven POJOs (we’ll call them MDPs, for short).
+
+
+
+							How to make remote calls that use JMS as a transport.
+
+							To support message-based RPC, Spring offers JmsInvokerServiceExporter for exporting beans as message-based services and JmsInvokerProxyFactoryBean for clients to consume those services.
+							If HttpInvokerServiceExporter exports services that communicate over HTTP, then JmsInvokerServiceExporter must export services that converse over JMS.
+
+									@Component("alertService")
+									public class AlertServiceImpl implements AlertService {
+										private JavaMailSender mailSender;
+										private String alertEmailAddress;
+									
+										public AlertServiceImpl(JavaMailSender mailSender,String alertEmailAddress) {
+											this.mailSender = mailSender;
+											this.alertEmailAddress = alertEmailAddress;
+										}
+									
+										public void sendSpittleAlert(final Spittle spittle) {
+											SimpleMailMessage message = new SimpleMailMessage();
+											String spitterName = spittle.getSpitter().getFullName();
+											message.setFrom("noreply@spitter.com");
+											message.setTo(alertEmailAddress);
+											message.setSubject("New spittle from " + spitterName);
+											message.setText(spitterName + " says: " + spittle.getText());
+											mailSender.send(message);
+										}
+									}
+
+								Don’t concern yourself too much with the inner details of the sendSpittleAlert() method at this point. We’ll talk more about how to send emails with Spring later, in chapter 20. 
+								The important thing to notice is that AlertServiceImpl is a simple POJO and has nothing that indicates it will be used to handle JMS messages.
+
+								As you can see, AlertServiceImpl is annotated with @Component so that it will be automatically discovered and registered as a bean in the Spring application context with an ID of alertService. 
+								You’ll refer to this bean as you configure a JmsInvokerServiceExporter:
+
+								<bean id="alertServiceExporter" class="org.springframework.jms.remoting.JmsInvokerServiceExporter" p:service-ref="alertService" 
+								p:serviceInterface="com.habuma.spittr.alerts.AlertService" />
+
+							The exporter’s properties don’t describe the specifics of how the service will be carried over JMS.
+							But the good news is that JmsInvokerServiceExporter qualifies as a JMS listener. 
+							Therefore, you can configure it as such in a <jms:listener-container>
+							element:
+							
+							<jms:listener-container connection-factory="connectionFactory">
+								<jms:listener destination="spitter.alert.queue" ref="alertServiceExporter" />
+							</jms:listener-container>
+
+							To consume the alert service, you can wire the JmsInvokerProxyFactoryBean like this:
+							<bean id="alertService" class="org.springframework.jms.remoting.JmsInvokerProxyFactoryBean" p:connectionFactory-ref="connectionFactory" 
+							p:queueName="spittle.alert.queue" propp:serviceInterface="com.habuma.spittr.alerts.AlertService" />
+
+					Messaging with AMQP
+								You may be wondering why you need another messaging specification. Isn’t JMS good enough? What does AMQP bring to the table that is missing from JMS?
+								As it turns out, AMQP offers several advantages over JMS. First, AMQP defines a wire-level protocol for messaging, whereas JMS defines an API specification. 
+								JMS’s API specification ensures that all JMS implementations can be used through a common API but doesn’t mandate that messages sent by one JMS implementation can be consumed
+								by a different JMS implementation. AMQP’s wire-level protocol, on the other hand, specifies the format that messages will take when en route between the producer and consumer. 
+								Consequently, AMQP is more interoperable than JMS—not only across different AMQP implementations, but also across languages and platforms.
+								Another significant advantage of AMQP over JMS is that AMQP has a much more flexible and transparent messaging model. 
+								With JMS, there are only two messaging models to choose from: point-to-point and publish/subscribe. 
+								Both of those models are certainly possible with AMQP, but AMQP enables you to route messages in a number of ways, and it does this by decoupling the message producer 
+								from the queue(s) in which the messages will be placed.
+								To understand the AMQP messaging model, it may help to briefly recall the JMS messaging model.
+								In JMS, there are just three primary participants: the message producer, the message consumer(s), and a channel (either a queue or a topic) to carry the message between producers and consumers.
+								In JMS, the channel helps to decouple the producer from the consumer, but both are still coupled to the channel. 
+								A producer publishes messages to a specific queue or topic, and the consumer receives those message from a specific queue or topic. 
+								The channel has the double duty of relaying messages and determining how those messages will be routed; queues route using a point-to-point algorithm, 
+								and topics route in publish/subscribe fashion.
+								In contrast, AMQP producers don’t publish directly to a queue. 
+								Instead, AMQP introduces a new level of indirection between the producer and any queues that will carry the message:  the exchange.
+								The exchange isn’t a pass-through mechanism to a queue. 
+								AMQP defines four different types of exchanges, each with a different routing algorithm that decides whether to place a message in a queue. 
+								Depending on an exchange’s algorithm, it may consider the message’s routing key and/or arguments and compare those with the routing key and arguments of the binding between the
+								exchange and a queue. (A routing key can be loosely thought of as the To address in an email, specifying the intended recipient.) 
+								If the algorithm is satisfied with the comparison, the message will be routed to the queue. If not, then it won’t be routed to the queue.
+
+							The four standard types of AMQP exchanges are as follows:
+								Direct—A message will be routed to a queue if its routing key is a direct match for the routing key of the binding.
+								Topic—A message will be routed to a queue if its routing key is a wildcard match for the routing key of the binding.
+								Headers—A message will be routed to a queue if the headers and values in its table of arguments match those in the binding’s table of arguments. 
+										A special header named x-match can specify whether all values must match or if any can match.
+								Fanout—A message will be routed to all queues that are bound to the exchange, regardless of the routing key or headers/values in the table of arguments.
+
+With these four types of exchanges, it’s easy to imagine how you can define any number
+of routing schemes that go beyond simple point-to-point or publish/subscribe.2
+Fortunately, when it comes to sending and receiving messages, the routing algorithm(
+s) in play have little impact on how you develop the message producers and
+consumers. Put simply, producers publish to an exchange with a routing key; consumers
+retrieve from a queue.
+
+<connection-factory id="connectionFactory"
+host="${rabbitmq.host}"
+port="${rabbitmq.port}"
+username="${rabbitmq.username}"
+password="${rabbitmq.password}" />
+
+Unlike JMS, where the routing behavior of queues and topics is established by the
+specification, AMQP routing is richer and more flexible and thus depends on you to
+define the queues and exchanges and how they’re bound to each other. One way of
+declaring queues, exchanges, and bindings is via a variety of methods on the
+RabbitMQ Channel interface. But working with RabbitMQ’s Channel directly is
+involved. Can Spring AMQP help you declare your message-routing components?
+Fortunately, the rabbit namespace includes several elements to help declare
+queues, exchanges, and the bindings that tie them together.
+
+The simplest configuration for RabbitTemplate can be done using the <template>
+element from the rabbit configuration namespace as follows:
+<template id="rabbitTemplate"
+connection-factory="connectionFactory" />
+Now all you need to do to send a message is inject the template bean into Alert-
+ServiceImpl and use it to send a Spittle. The following listing shows a new version
+of AlertServiceImpl that uses RabbitTemplate instead of JmsTemplate to send a
+Spittle alert.
+
+As you’ll recall, Spring’s JMS support offers two ways to fetch a message from a queue:
+synchronously via JmsTemplate and asynchronously with message-driven POJOs.
+Spring AMQP offers similar options for retrieving messages sent over AMQP. Because
+you already have a RabbitTemplate handy.
+
+Finally, you need to declare a listener container and a listener to call on Spittle-
+AlertHandler when a message arrives. You did this for JMS-based MDPs, but there is a
+slight difference in the configuration for AMQP-based MDPs:
+<listener-container connection-factory="connectionFactory">
+<listener ref="spittleListener"
+method="handleSpittleAlert"
+queue-names="spittle.alert.queue" />
+</listener-container>
+Do you see the difference? I’ll agree that it’s not obvious. The <listener-container>
+and <listener> elements appear to be similar to their JMS counterparts. These elements,
+however, come from the rabbit namespace instead of the JMS namespace.
+
+WEBSOCKETS AND STOMP
+
+WebSocket is a protocol providing full-duplex communication across a single
+socket. It enables, among other things, asynchronous messaging between a web
+browser and a server. Being full-duplex means that the server can send messages to
+the browser as well as the browser sending messages to the server.
+
+To handle
+messages in Spring with low-level WebSocket support, you must write a class that implements WebSocketHandler:
+
+public interface WebSocketHandler {
+	void afterConnectionEstablished(WebSocketSession session) throws Exception;
+	void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception;
+	void handleTransportError(WebSocketSession session, Throwable exception) throws Exception;
+	void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception;
+	boolean supportsPartialMessages();
+}
+
+public class MarcoHandler extends AbstractWebSocketHandler {
+	private static final Logger logger = LoggerFactory.getLogger(MarcoHandler.class);
+	
+	protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+		logger.info("Received message: " + message.getPayload());
+		Thread.sleep(2000);
+	session.sendMessage(new TextMessage("Polo!"));
+	}
+}
+
+public class MarcoHandler extends AbstractWebSocketHandler {
+private static final Logger logger =
+LoggerFactory.getLogger(MarcoHandler.class);
+protected void handleTextMessage(
+WebSocketSession session, TextMessage message) throws Exception {
+logger.info("Received message: " + message.getPayload());
+Thread.sleep(2000);
+session.sendMessage(new TextMessage("Polo!"));
 }
 }
 
-<cache:annotation-driven />
-<bean id="cacheManager" class=
-"org.springframework.cache.concurrent.ConcurrentMapCacheManager" />
+Alternatively, you could extend TextWebSocketHandler instead of AbstractWebSocketHandler:
 
-Under the covers, @EnableCaching and <cache:annotation-driven> work the same
-way. They create an aspect with pointcuts that trigger off of Spring’s caching annotations.
-
-cache manager
-SimpleCacheManager
-NoOpCacheManager
-ConcurrentMapCacheManager
-CompositeCacheManager
-EhCacheCacheManager
-
-Spring 3.2 introduced another cache manager for working with JCache
-RedisCacheManager (from Spring Data Redis)
-GemfireCacheManager (from Spring Data GemFire)
-
-@Configuration
-@EnableCaching
-public class CachingConfig {
-@Bean
-public EhCacheCacheManager cacheManager(CacheManager cm) {
-return new EhCacheCacheManager(cm);
-}
-@Bean
-public EhCacheManagerFactoryBean ehcache() {
-EhCacheManagerFactoryBean ehCacheFactoryBean =
-new EhCacheManagerFactoryBean();
-ehCacheFactoryBean.setConfigLocation(
-new ClassPathResource("com/habuma/spittr/cache/ehcache.xml"));
-return ehCacheFactoryBean;
-}
-
-Annotating methods for caching
-@Cacheable
-@CachePut
-@CacheEvict
-@Caching
-
-@Cacheable("spittleCache")
-public Spittle findOne(long id) {
-try {
-return jdbcTemplate.queryForObject(
-SELECT_SPITTLE_BY_ID,
-new SpittleRowMapper(),
-id);
-} catch (EmptyResultDataAccessException e) {
-return null;
-}
-}
-
-When you annotate the interface method, the @Cacheable annotation will be inherited
-by all implementations of SpittleRepository, and the same caching rules will be
-applied.
-
-@CachePut(value="spittleCache", key="#result.id")
-Spittle save(Spittle spittle);
-
-suppose you don’t want to cache any
-Spittle objects whose message property contains the text “NoCache”. To prevent
-such Spittles from being cached, you can set the unless attribute like this:
-@Cacheable(value="spittleCache"
-unless="#result.message.contains('NoCache')")
-Spittle findOne(long id);
-
-Securing methods with annotations
-
-@Configuration
-@EnableGlobalMethodSecurity(securedEnabled=true)
-public class MethodSecurityConfig
-extends GlobalMethodSecurityConfiguration {
-}
-
-@Secured("ROLE_SPITTER")
-public void addSpittle(Spittle spittle) {
-// ...
-}
-The @Secured annotation takes an array of String as an argument. Each String value
-is an authorization, one of which is required to invoke the method. By passing in
-ROLE_SPITTER, you tell Spring Security to not allow the addSpittle() method to be
-invoked unless the authenticated user has ROLE_SPITTER as one of their granted
-authorities.
-
-One drawback of the @Secured annotation is that it’s a Spring-specific annotation.
-If you’re more comfortable using annotations defined in Java standards, then perhaps
-you should consider using @RolesAllowed instead.
-
-@PreAuthorize Restricts access to a method before invocation based on the result of evaluating
-an expression
-@PostAuthorize Allows a method to be invoked, but throws a security exception if the expression
-evaluates to false
-@PostFilter Allows a method to be invoked, but filters the results of that method based
-on an expression
-@PreFilter Allows a method to be invoked, but filters input prior to entering the method
-
-We’ll look at specific examples of each of these in a moment. But first, you’ll need
-to enable them by setting @EnableGlobalMethodSecurity’s prePostEnabled attribute
-to true:
-@Configuration
-public class MethodSecurityConfig
-extends GlobalMethodSecurityConfiguration {
-}
-
-But there’s a lot more to @PreAuthorize than is apparent in this simple example.
-The String argument to @PreAuthorize is a SpEL expression. With SpEL expressions
-guiding access decisions, far more advanced security constraints can be written. For
-example, suppose that the average Spittr user can only write spittles of 140 characters
-or less, but premium users are allowed unlimited spittle lengths.
-The @Secured and @RolesAllowed annotations would be of no help here, but
-@PreAuthorize is on the case:
-@PreAuthorize(
-"(hasRole('ROLE_SPITTER') and #spittle.text.length() <= 140)"
-+"or hasRole('ROLE_PREMIUM')")
-public void addSpittle(Spittle spittle) {
-// ...
-}
-
-@PreFilter("hasPermission(targetObject, 'delete')")
-public void deleteSpittles(List<Spittle> spittles) { ... }
-
-public class SpittlePermissionEvaluator implements PermissionEvaluator {
-Using expressions for method-level security 389
-private static final GrantedAuthority ADMIN_AUTHORITY =
-new GrantedAuthorityImpl("ROLE_ADMIN");
-public boolean hasPermission(Authentication authentication,
-Object target, Object permission) {
-if (target instanceof Spittle) {
-Spittle spittle = (Spittle) target;
-String username = spittle.getSpitter().getUsername();
-if ("delete".equals(permission)) {
-return isAdmin(authentication) ||
-username.equals(authentication.getName());
-}
-}
+public class MarcoHandler extends TextWebSocketHandler {
 ...
 
-Exporting an RMI service
-If you’ve ever created an RMI service, you know that it involves the following steps:
-1 Write the service implementation class with methods that throw java.rmi
-.RemoteException.
-2 Create the service interface to extend java.rmi.Remote.
-3 Run the RMI compiler (rmic) to produce client stub and server skeleton classes.
-4 Start an RMI registry to host the services.
-5 Register the service in the RMI registry.
+}
 
+TextWebSocketHandler is a subclass of AbstractWebSocketHandler that refuses to handle binary messages. It overrides handleBinaryMessage() to close the WebSocket
+connection if a binary connection is received. In a similar way, Spring also offers BinaryWebSocketHandler, a subclass of AbstractWebSocketHandler that overrides
+handleTextMessage() to close the connection if a text message is received.
+
+public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+	logger.info("Connection established");
+}
+@Override
+public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+	logger.info("Connection closed. Status: " + status);
+}
+
+Now that you have a message handler class, you must configure it so that Spring will
+dispatch messages to it. In Spring’s Java configuration, this involves annotating a configuration
+class with @EnableWebSocket and implementing the WebSocketConfigurer
+interface
+
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
+@Override
+public void registerWebSocketHandlers(
+WebSocketHandlerRegistry registry) {
+registry.addHandler(marcoHandler(), "/marco");
+}
 @Bean
-public RmiServiceExporter rmiExporter(SpitterService spitterService) {
-RmiServiceExporter rmiExporter = new RmiServiceExporter();
-rmiExporter.setService(spitterService);
-rmiExporter.setServiceName("SpitterService");
-rmiExporter.setServiceInterface(SpitterService.class);
-rmiExporter.setRegistryHost("rmi.spitter.com");
-rmiExporter.setRegistryPort(1199);
-return rmiExporter;
+public MarcoHandler marcoHandler() {
+return new MarcoHandler();
+}
 }
 
-@Bean
-public RmiProxyFactoryBean spitterService() {
-RmiProxyFactoryBean rmiProxy = new RmiProxyFactoryBean();
-rmiProxy.setServiceUrl("rmi://localhost/SpitterService");
-rmiProxy.setServiceInterface(SpitterService.class);
-return rmiProxy;
+WebSocket fallback is the specialty of SockJS. SockJS is a WebSocket
+emulator that mirrors the WebSocket API as closely as possible on the surface, but
+under the covers is clever enough to choose another form of communication when
+WebSocket isn’t available. SockJS will always favor WebSocket first, but if WebSocket
+isn’t an option, it will determine the best available option from the following:
+ XHR streaming
+ XDR streaming
+ iFrame event source
+ iFrame HTML file
+XHR polling
+ XDR polling
+ iFrame XHR polling
+ JSONP polling
+
+to enable SockJS communication on the server side, you can simply
+ask for it in the Spring configuration. Revisiting the registerWebSocketHandlers()
+method from listing 18.2, you can enable WebSocket with a small addition:
+@Override
+public void registerWebSocketHandlers(
+WebSocketHandlerRegistry registry) {
+registry.addHandler(marcoHandler(), "/marco").withSockJS();
+}
+By simply calling withSockJS() on the WebSocketHandlerRegistration returned
+from the call to addHandler(), you’re saying that you want SockJS to be enabled, and
+for its fallbacks to go into effect if WebSocket can’t be used.
+
+to enable SockJS communication on the server side, you can simply
+ask for it in the Spring configuration. Revisiting the registerWebSocketHandlers()
+method from listing 18.2, you can enable WebSocket with a small addition:
+@Override
+public void registerWebSocketHandlers(
+WebSocketHandlerRegistry registry) {
+registry.addHandler(marcoHandler(), "/marco").withSockJS();
+}
+By simply calling withSockJS() on the WebSocketHandlerRegistration returned
+from the call to addHandler(), you’re saying that you want SockJS to be enabled, and
+for its fallbacks to go into effect if WebSocket can’t be used.
+
+Enabling STOMP messaging
+In a moment, you’ll see how to annotate controller methods with @MessageMapping to
+handle STOMP messages within Spring MVC in a way very similar to how @Request-
+Mapping-annotated methods handle HTTP requests. Unlike @RequestMapping, however,
+@MessageMapping isn’t enabled by the @EnableWebMvc annotation. Spring’s web
+messaging is built around a message broker, so there’s more to configure than just telling
+Spring that you’d like to handle messages. You must also configure a message broker and some basic destination details.
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketStompConfig
+extends AbstractWebSocketMessageBrokerConfigurer {
+@Override
+public void registerStompEndpoints(StompEndpointRegistry registry) {
+registry.addEndpoint("/marcopolo").withSockJS();
+}
+@Override
+public void configureMessageBroker(MessageBrokerRegistry registry) {
+registry.enableSimpleBroker("/queue", "/topic");
+registry.setApplicationDestinationPrefixes("/app");
+}
 }
 
-RMI is an excellent way to communicate with remote services, but it has some limitations.
-First, RMI has difficulty working across firewalls. That’s because RMI uses arbitrary
-ports for communication—something that firewalls typically don’t allow. In an
-intranet environment, this usually isn’t a concern. But if you’re working on the internet,
-you’ll probably run into trouble with RMI. Even through RMI has support for tunneling
-over HTTP (which is usually allowed by firewalls), setting up RMI tunneling can
-be tricky.
-Another thing to consider is that RMI is Java-based. That means both the client and
-the service must be written in Java. And because RMI uses Java serialization, the types
-of the objects being sent across the network must have the exact same version of the
-Java runtime on both sides of the call.
-Hessian, like RMI, uses binary messages to communicate between client and service.
-But unlike other binary remoting technologies (such as RMI), the binary message
-is portable to languages other than Java, including PHP, Python, C++, and C#.
-Burlap is an XML-based remoting technology, which automatically makes it portable
-to any language that can parse XML. And because it’s XML, it’s more easily humanreadable
-than Hessian’s binary format. Unlike other XML-based remoting technologies
-(such as SOAP and XML-RPC), Burlap’s message structure is as simple as possible
-and doesn’t require an external definition language (such as WSDL or IDL).
+WebSocketStompConfig also configures a simple message broker by overriding the
+configureMessageBroker() method. This method is optional. If you don’t override
+it, you’ll get a simple in-memory message broker configured to handle messages prefixed
+with /topic.
 
-HessianServiceExporter is a Spring MVC controller 
-that receives Hessian requests and translates them into method calls on the exported
-POJO.
+The simple broker is great for getting started, but it has a few limitations. Although it
+mimics a STOMP message broker, it only supports a subset of STOMP commands. And
+because it’s memory-based, it’s not suitable for clusters where each node would be
+managing its own broker and set of messages.
+For a production application, you’ll probably want to back your WebSocket messaging
+with a real STOMP-enabled broker, such as RabbitMQ or ActiveMQ. Such brokers
+will offer more scalable and robust messaging, not to mention the complete set of
+STOMP commands. You’ll need to be sure to set up your broker for STOMP according
+to their documentation. Once the broker is ready, you can replace the default inmemory
+broker with a STOMP broker relay by overriding the configureMessage-
+Broker() method
 
-@Bean
-public HessianServiceExporter
-hessianExportedSpitterService(SpitterService service) {
-HessianServiceExporter exporter = new HessianServiceExporter();
-exporter.setService(service);
-exporter.setServiceInterface(SpitterService.class);
-return exporter;
-}
+SPRING BOOT
 
-Unlike RmiServiceExporter, you don’t need to get a serviceName property. With
-RMI, the serviceName property is used to register a service in the RMI registry. Hessian
-doesn’t have a registry, and, therefore, there’s no need to name a Hessian service.
 
-Another major difference between RmiServiceExporter and HessianService-
-Exporter is that because Hessian is HTTP-based, HessianServiceExporter is implemented
-as a Spring MVC controller. This means that in order to use exported Hessian
-services, you’ll need to perform two additional configuration steps:
-	Configure a Spring DispatcherServlet in web.xml, and deploy your application
-as a web application.
-	Configure a URL handler in your Spring configuration to dispatch Hessian service
-URLs to the appropriate Hessian service bean.
-
-@Bean
-public HandlerMapping hessianMapping() {
-SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-Properties mappings = new Properties();
-mappings.setProperty("/spitter.service",
-"hessianExportedSpitterService");
-mapping.setMappings(mappings);
-return mapping;
-}
-
-There is, however, a best-of-both-worlds solution. Let’s look at Spring’s HTTP
-invoker, which offers RPC over HTTP (like Hessian/Burlap) while at the same time
-using Java serialization of objects (like RMI).
-The Spring team recognized a void between RMI services and HTTP-based services
-such as Hessian and Burlap. On the one side, RMI uses Java’s standard object serialization
-but is difficult to use across firewalls. On the other side, Hessian and Burlap work
-well across firewalls but use a proprietary object-serialization mechanism.
-
-JAX-WS
-
-@WebService(serviceName="SpitterService")
-public class SpitterServiceEndpoint
-extends SpringBeanAutowiringSupport {
-@Autowired
-SpitterService spitterService;
-@WebMethod
-public void addSpittle(Spittle spittle) {
-spitterService.saveSpittle(spittle);
-}
-
-SpringBeanAutowiringSupport is useful when the object whose properties
-are being injected doesn’t have its lifecycle managed by Spring. But under the right
-circumstances, it’s possible to export a Spring-managed bean as a JAX-WS endpoint.
-@Bean
-public SimpleJaxWsServiceExporter jaxWsExporter() {
-return new SimpleJaxWsServiceExporter();
-}
-
-As you can see, SimpleJaxWsServiceExporter needs nothing else to do its job. When
-it gets started, it digs through the Spring application context looking for beans that
-are annotated with @WebService. When it finds one, it publishes the bean as a JAX-WS
-endpoint with a base address of http://localhost:8080/.
-
-Client
-
-@Bean
-public JaxWsPortProxyFactoryBean spitterService() {
-JaxWsPortProxyFactoryBean proxy = new JaxWsPortProxyFactoryBean();
-proxy.setWsdlDocument(
-"http://localhost:8080/services/SpitterService?wsdl");
-proxy.setServiceName("spitterService");
-proxy.setPortName("spitterServiceHttpPort");
-proxy.setServiceInterface(SpitterService.class);
-proxy.setNamespaceUri("http://spitter.com");
-return proxy;
-}
-
-REST
-Spring offers two options to transform a resource’s Java representation into the
-representation that’s shipped to the client:
-   Content negotiation—A view is selected that can render the model into a representation
-to be served to the client.
-   Message conversion—A message converter transforms an object returned from
-the controller into a representation to be served to the client.
-
-When it comes to resolving view names into views that can produce resource representations,
-there’s an additional dimension to consider. Not only does the view need
-to match the view name, but the view also needs to be chosen to suit the client. If the
-client wants JSON data, then an HTML-rendering view won’t do—even if the view
-name matches.
-Spring’s ContentNegotiatingViewResolver is a special view resolver that takes the
-content type that the client wants into consideration.
 															
 														
 											
