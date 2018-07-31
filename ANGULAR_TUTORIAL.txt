@@ -1,0 +1,352 @@
+ANGULAR
+
+	https://blog.thoughtram.io/angular/2015/05/03/the-difference-between-annotations-and-decorators.html
+
+	TYPESCRIPT
+	
+		METADATA ANNOTATIONS
+			@Component({
+			  selector: 'tabs',
+			  template: `
+				<ul>
+				  <li>Tab 1</li>
+				  <li>Tab 2</li>
+				</ul>
+			  `
+			})
+			export class Tabs {
+
+			}
+			
+			We have a class Tabs that is basically empty. The class has one annotation @Component. If we’d remove all annotations, what would be left is just an empty class that doesn’t have any special meaning right? 
+			So it seems that @Component add some metadata to the class in order to give it a specific meaning. This is what annotations are all about. They are a declarative way to add metadata to code.
+			
+			Where do those annotations come from? This is nothing that JavaScript gives us out of the box right?
+			
+				import { 
+				  ComponentMetadata as Component,
+				} from '@angular/core';
+				
+				export class ComponentMetadata extends DirectiveMetadata {
+
+				  constructor() {
+					...
+				  }
+				}
+				
+				We can see that ComponentMetadata is in fact an implementation detail of the Angular framework. This answers our second question.
+				But wait. It’s just yet another class? How can just a simple class change the way how other classes behave? 
+				And why are we able to use those classes as annotations by just prefixing them with an @ sign? Well, actually we can’t. 
+				Annotations are not available in browser’s of today, which means we need to transpile it to something that does run in current browsers.
+				Even though we have a couple of transpilers we can choose from. Babel, Traceur, TypeScript, … 
+				It turns out there’s only one that actually implements annotations as we know them from AtScript: Traceur. Taking the component code from above, this is what it translates to using Traceur
+				
+				var Tabs = (function () {
+				  function Tabs() {}
+
+				  Tabs.annotations = [
+					new ComponentMetadata({...}),
+				  ];
+
+				  return Tabs;
+				})
+				
+				In the end, a class is just a function, which is also just an object, and all annotations end up as instance calls on the annotations property of the class.
+				class MyClass {
+
+				  constructor(@Annotation() foo) {
+					...
+				  }
+				}
+				This would translate to something like this:
+
+				var MyClass = (function () {
+				  function MyClass() {}
+
+				  MyClass.parameters = [[new Annotation()]];
+
+				  return MyClass;
+				})
+				
+				The reason why this translate to a nested array, is because a parameter can have more than one annotation.
+				Another very interesting learning is that Angular expects the metadata on annotations and parameters properties of classes. 
+				If Traceur would not translate them to those particular properties, Angular wouldn’t know from where to get the metadata. Which makes AtScript Annotations just a very specific implementation of what annotations could actually be.
+				Wouldn’t it be nicer if you as a consumer could decide where your metadata is attached to in your code? Yes! And this is where decorators come into play.
+				
+				Decorators
+					Decorators are a proposed standard for ECMAScript 2016 by Yehuda Katz, to annotate and modify classes and properties at design time. 
+					This sounds pretty much like what annotations do right? Well… sort of. Let’s take a look at what a decorator looks like:
+
+						// A simple decorator
+						@decoratorExpression
+						class MyClass { }
+						
+				Wait. This looks exactly like an AtScript annotation! That’s right. But it isn’t. From a consumer perspective, a decorator indeed looks like the thing that we know as “AtScript Annotation”. 
+				There is a significant difference though. We are in charge of what our decorator does to our code. 
+				Taking the code above, a corresponding decorator implementation for @decoratorExpression could look like this:
+
+						function decoratorExpression(target) {
+						   // Add a property on target
+						   target.annotated = true;
+						}
+				
+				Right. A decorator is just a function that gives you access to the target that needs to be decorated. 
+				Get the idea? Instead of having a transpiler that decides where your annotations go, we are in charge of defining what a specific decoration/annotation does.
+				This, of course, also enables us to implement a decorator that adds metadata to our code the same way AtScript annotations do 
+				(I keep referring to “AtScript annotations” because what they do, is really an AtScript specific thing). Or in other words: with decorators, we can build annotations.
+				
+		Interfaces
+			INTERFACES ARE NOT TO BE CONVERTED TO JAVASCRIPT. IT’S JUST PART OF TYPESCRIPT!!!
+			
+			interface Lakes {
+				name: string,
+				area: number,
+				countries: string[],
+				frozen?: string[],
+				readonly size: number,
+				[extraProp: string]: any
+			}
+			
+			Function and Interfaces
+			
+			interface EnemyHit {
+				(name: Enemy, damageDone: number): number;
+			}
+			 
+			let tankHit: EnemyHit = function(tankName: Enemy, damageDone: number) {
+				tankName.health -= damageDone;
+				return tankName.health;
+			}
+			
+		Types
+			Javascript has seven different types:
+				Undefined,Null,Boolean,Number,String,Symbol,Object
+			Typescript
+				Null      let a:null = null;
+				Undefined
+				Void
+				Boolean
+				Number
+				String
+				Array  let a: number[] = [1, 12, 93, 5];
+					   let d: Array<number> = [null, undefined, 10, 15];
+				Tuple
+					let a: [number, string] = [11, "monday"];
+					let b: [number, string] = ["monday", 11]; // Error
+					let d: [number, string] = [105, "owl", 129, 45, "cat"];
+					let e: [number, string] = [13, "bat", "spiderman", 2];
+				Enum
+					enum Animals {cat, lion, dog, cow, monkey}
+					let c: Animals = Animals.cat;
+					console.log(Animals[3]); // cow
+					console.log(Animals.monkey); // 4
+				Any
+					let a: any = "apple";
+					let b: any = 14;
+					let c: any = false;
+					let d: any[] = ["door", "kitchen", 13, false, null];
+					b = "people";
+				Never
+				
+		Classes
+			class Person{
+				private name:string;
+				constructor(theName: string){
+					this.name = theName;
+				}
+				introducedSelf(){
+					console.log(...)
+				}
+			}
+			
+		Inheritance
+			class Friend extends Person {
+				yearsKnown: number;
+				constructor(name: string, yearsKnown: number) {
+					super(name);
+					this.yearsKnown = yearsKnown;
+				}
+				timeKnown() {
+					console.log("We have been friends for " + this.yearsKnown + " years.")
+				}
+			}
+			
+				class Person {
+					private name: string;
+					protected age: number;
+					protected constructor(theName: string, theAge: number) {
+						this.name = theName;
+						this.age = theAge;
+					}
+					introduceSelf() {
+						console.log("Hi, I am " + this.name + "!");
+					}
+				}
+ 
+				class Friend extends Person {
+					yearsKnown: number;
+					constructor(name: string, age: number, yearsKnown: number) {
+						super(name, age);
+						this.yearsKnown = yearsKnown;
+					}
+					timeKnown() {
+						console.log("We have been friends for " + this.yearsKnown + " years.")
+					}
+					friendSince() {
+						let firstAge = this.age - this.yearsKnown;
+						console.log(`We have been friends since I was ${firstAge} years old.`)
+					}
+				}
+
+		Generics
+			function randomElem<T>(theArray: T[]): T {
+				let randomIndex = Math.floor(Math.random()*theArray.length);
+				return theArray[randomIndex];
+			}
+			 
+			let colors: string[] = ['violet', 'indigo', 'blue', 'green'];
+			let randomColor: string = randomElem(colors);
+
+			INSTEAD OF USING THE ANY TYPE !!!
+			
+			interface People {
+				name: string
+			}
+ 
+			interface Family {
+				name: string,
+				age: number,
+				relation: string
+			}
+			 
+			interface Celebrity extends People {
+				profession: string
+			}
+			 
+			function printName<T extends People>(theInput: T): void {
+				console.log(`My name is ${theInput.name}`);
+			}
+			 
+			let serena: Celebrity = {
+				name: 'Serena Williams',
+				profession: 'Tennis Player'
+			}
+			
+			
+			MIXIN
+				https://javascript.info/mixins
+				http://justinfagnani.com/2015/12/21/real-mixins-with-javascript-classes/
+				http://raganwald.com/2015/06/17/functional-mixins.html
+				
+				In JavaScript we can only inherit from a single object. There can be only one [[Prototype]] for an object. And a class may extend only one other class.
+				But sometimes that feels limiting.
+				As defined in Wikipedia, a mixin is a class that contains methods for use by other classes without having to be the parent class of those other classes.
+				In other words, a mixin provides methods that implement a certain behavior, but we do not use it alone, we use it to add the behavior to other classes.
+				
+			DECORATORS
+				https://medium.com/google-developers/exploring-es7-decorators-76ecb65fb841
+			
+				'@' indicates to the parser that we’re using a decorator while mydecorator references a function by that name. Our decorator takes an argument (the function being decorated) and returns the 
+				same function with added functionality.
+				Decorators are helpful for anything you want to transparently wrap with extra functionality. These include memoization, enforcing access control and authentication, 
+				instrumentation and timing functions, logging, rate-limiting, and the list goes on.
+				
+				class Cat{
+					meow() {return `${this.name} says Meow!`;}
+				}
+				
+				equivalent to this
+				
+				Object.defineProperty(Cat.prototype,'meow',{value : "function() {return `${this.name} says Meow!`;}",enumerable :false ,configurable :true ,writable :true})
+				
+				Imagine we want to mark a property or method name as not being writable. A decorator precedes the syntax that defines a property. We could thus define a `@readonly` decorator for it as follows:
+				
+				function readonly(target,key,descriptor){
+					descriptor.writable = false;
+					return descriptor;
+				}
+				
+				class Cat{
+					@readonly
+					meow() {return `${this.name} says Meow!`;}
+				}
+				
+				Can decorate classes either 
+				
+				function superhero(target){
+					target.isSuperHero = true;
+					target.power = "flight";
+				}
+				
+				@superhero
+				class MySuperHero(){}
+				
+				function superhero(isSuperHero){
+					return function(target){
+						target.isSuperhero = isSuperhero;
+					}
+				}
+				
+				@superhero(true)
+				class MySuperHero(){}
+				
+		ANGULAR
+			The 1.x version had limitations, and a number of optimizations were built into the framework. The concept of two-way databinding (being able to sync data between the controller and the view automatically), 
+			which was touted early on as its best feature, became a performance bottleneck in large applications that abused its utility. To help mitigate this problem, one-way and one-time binding options were 
+			introduced to improve performance, but they required developers to opt in. Also, components were introduced as a better way to organize and structure applications, 
+			but taking advantage of them required refactoring of existing applications.
+			
+			COMPONENT BASED ARCHITECTURE
+				Components key characteristics
+					Encapsulation
+					Isolation
+					Reusability
+					Evented
+					Customizable
+					Declarative
+					
+					Standard required to implement web components :
+						Custom elements
+							https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements
+							Mean to be able to extend HTML with our own additional elements
+						Shadow DOM
+							https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM
+							Isolate styling behaviors inside of a component.Is an isolated Document Object Model tree that is detached from the typical CSS inheritance, allowing us to create a barrier
+							between markup inside and outside of the Shadow DOM.
+							For example, if you have a button inside of a Shadow DOM and a button outside, any CSS for the button written outside the Shadow DOM won’t affect the button inside it. 
+							This is important for Angular because it allows us to have better control over how CSS affects the way the components display.
+							Shadow DOM allows hidden DOM trees to be attached to elements in the regular DOM tree — this shadow DOM tree starts with a shadow root, 
+							underneath which can be attached to any elements you want, in the same way as the normal DOM.
+						Templates
+						
+					REACTING PROGRAMMING
+						https://medium.com/@tkssharma/reactive-programming-rx-js-introduction-32bf963eee1b
+						https://dzone.com/refcardz/rxjs-streams?chapter=6
+						https://www.sitepoint.com/functional-reactive-programming-rxjs/
+						https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators
+						https://www.47deg.com/blog/road-to-frp-js-part-1/
+						
+						"Reactive programming is programming with asynchronous data streams."
+
+						In a way, this isn’t anything new. Event buses or your typical click events are really an asynchronous event stream, on which you can observe and do some side effects. 
+						Reactive is that idea on steroids. You are able to create data streams of anything, not just from click and hover events. 
+						Streams are cheap and ubiquitous, anything can be a stream: variables, user inputs, properties, caches, data structures, etc. 
+						For example, imagine your Twitter feed would be a data stream in the same fashion that click events are. You can listen to that stream and react accordingly.
+						On top of that, you are given an amazing toolbox of functions to combine, create and filter any of those streams.That’s where the “functional” magic kicks in. 
+						A stream can be used as an input to another one. Even multiple streams can be used as inputs to another stream. You can merge two streams. 
+						You can filter a stream to get another one that has only those events you are interested in. You can map data values from one stream to another new one.
+						A stream is a sequence of ongoing events ordered in time. It can emit three different things: a value (of some type), an error, or a “completed” signal.
+						
+						
+						
+					https://codeburst.io/javascript-es-2017-learn-async-await-by-example-48acc58bad65
+					Async Functions and Promises
+						Async functions return a PROMISE.
+						
+							
+							
+					
+				
+				
+				
+				
