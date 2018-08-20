@@ -343,6 +343,246 @@ ANGULAR
 					Async Functions and Promises
 						Async functions return a PROMISE.
 						
+						
+		COMPILER
+
+			https://blog.angularindepth.com/a-deep-deep-deep-deep-deep-dive-into-the-angular-compiler-5379171ffb7a
+			
+			ANGULAR RESUME
+			
+			COMPONENT ARCHITECTURE
+				
+				Concepts :
+					Encapsulation
+					Isolation
+					Reusability
+					Evented
+					Customizable
+					Declarative
+					
+					The W3C is developing an official Web Component specification:
+						Custom Elements(encapsulation,declarative,reusability,customizable)
+							Allow developers to create new HTML elements that essentially blend naturally and natively into the DOM.
+							Custom elements have a lot of the stuff necessary for building components. In fact, we could stop with custom elements and be fairly happy. It gives us a declarative way to create
+							a reusable component, which encapsulates the internal mechanics of the component away from the rest of the application, but can emit events to enable other components to hook into the lifecycle. 
+							Angular uses these concepts in its implementation of components.
+							
+							<tabs>
+								<tab title="About">
+									<h1>This is the about tab</h1>
+								</tab>
+								<tab title="Profile">
+									<h2>This is the profile tab</h2>
+								</tab>
+								<tab title="Contact Us">
+									<form>
+										<textarea name="message"></textarea>
+										<input type="submit" value="Send">
+									</form>
+								</tab>
+							</tabs>
+							
+								This looks and feels like natural HTML because these would be two custom elements: tabs and tab elements.
+							
+						Shadow DOM (isolation,encapsulation,customizable)
+							Despite the rather ominous-sounding name, the Shadow DOM is really your best friend when it comes to trying to isolate styling behaviors inside of a component.
+							The Shadow DOM is an isolated Document Object Model (DOM) tree that’s detached from the typical CSS inheritance, allowing you to create a barrier between markup inside and outside
+							of the Shadow DOM
+						Templates(encapsulation,isolation)
+						Javascript modules(encapsulation,isolation,reusability)
+						
+						
+						import {Component} from '@angular/core';
+							
+							@Component({                                        The Decorator : Way to add metadata to the class , Angular use them as a way to understand what type of class has been declared.
+								selector: 'my-component',                                       In this case, it is a component and Angular will know how to render a component based on this decorator.
+								template: `                                                     There are several other ones,such as Injectable and Pipe.
+									<div>
+									<h4>{{title}}</h4>
+									</div>
+									`
+								})
+							export class MyComponent {
+								constructor() {
+								this.title = 'My Component';
+								}
+							}
+							
+							Observables
+								New pattern to Javascript applications to manage asynchronous activities.
+								Promises have a major limitation in that they're only useful for one call cycle. For example, if you wanted to have a promise return a value on an event like a user click, 
+								that promise would resolve on the first click. But you might be interested in handling every user click action.
+								Reactive programming is the higher-level name for what observables provide, which is a pattern for dealing with asynchronous data streams.
+								Another interesting capability of observables is that they are composable into many combinations. Observables can be combined, flattened into one, filtered, and more.
+								
+								e2e 							End-to-end testing folder, contains a basic stub test
+								node_modules 					Standard NPM modules directory, no code should be placed here
+								src 							Source directory for the application
+										app 				Contains the primary App component and module
+										assets 				Empty directory to store static assets like images
+										environments		Environment configurations to allow you to build for different targets, like dev or production
+										favicon.ico 		Image displayed as browser favorite icon
+										index.html  		Root HTML file for the application
+										main.ts     		Entry point for the web application code
+										polyfills.ts		Imports some common polyfills required to run Angular properly on some browsers
+										styles.css  		Global stylesheet
+										test.ts     		Unit test entry point, not part of application
+										tsconfig.app		TypeScript compiler configuration for apps
+										tsconfig.spec.json  TypeScript compiler configuration for unit tests
+										typings.d.ts        Typings configuration
+										
+								.editorconfig 		Editor configuration defaults
+								.angular-cli.json 	Configuration file for the CLI about this project
+								karma.conf.js 		Karma configuration file for unit test runner
+								package.json 		Standard NPM package manifest file
+								protractor.conf.js 	Protractor configuration file for e2e test runner
+								README.md 			Standard readme file, contains starter information
+								tsconfig.json 		Default configuration file for TypeScript compiler
+								tslint.json 		TSLint configuration file for TypeScript linting rules
+								
+								
+								src/app/app.component.ts -> File that contains the App Component,which is the root of the application.
+								
+									import { Component } from '@angular/core';
+									
+									@Component({
+										selector: 'app-root',
+										templateUrl: './app.component.html',
+										styleUrls: ['./app.component.css']
+									})
+									export class AppComponent {
+										title = 'app works!';
+									}
+									
+								app/app.component.html
+										<h1>
+										{{title}}  <- Interpolation
+										</h1>
+
+								The App module is the packaging that helps tell Angular what's available to render.
+								
+								src/app/app.module.ts
+								
+									import { BrowserModule } from '@angular/platform-browser';
+									import { NgModule } from '@angular/core';
+									import { AppComponent } from './app.component';
+									
+									@NgModule({
+										declarations: [AppComponent],  <- Components and directives to make available to the entire application
+										imports: [BrowserModule,],     <- Array of another modules upon which this module depends
+										providers: [],                 <- Services
+										bootstrap: [AppComponent]      <- Which components to bootstrap at runtime.
+									})
+									export class AppModule { }
+									
+								BOOTSTRAPPING THE APPLICATION
+
+									The application must be bootstrapped at runtime to start the process of rendering.The CLI takes care of wiring up the building tooling,which is based on webpack(module bundler).
+									At the .angular-cli.json file. You’ll see an array of apps, and one of the properties is the main property. By default, it points to the src/app/main.ts file.
+									This means that when the application gets built, it will automatically call the contents of the main.ts file as the first set of instructions.
+									The role of main.ts is to bootstrap the Angular application.
+									
+									import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+									import { enableProdMode } from '@angular/core';
+									import { environment } from './environments/environment';
+									import { AppModule } from './app/';
+									
+									if (environment.production) {
+										enableProdMode();
+									}
+									platformBrowserDynamic().bootstrapModule(AppModule); <- That is the point where code begins to execute !!!
+									
+									src/index.html file:
+										<body>
+											<app-root></app-root>
+										</body>
+										
+									SERVICE
+										ng generate service services/stocks
+									
+										CLI doesn’t automatically register the service with the App module, and we need to register HttpClient with the application.
+										
+										import { Injectable } from '@angular/core';
+										import { HttpClient } from '@angular/common/http';
+										
+										let stocks: Array<string> = ['AAPL', 'GOOG', 'FB', 'AMZN', 'TWTR'];
+										let service: string = 'https://angular2-in-action-api.herokuapp.com';
+										
+										export interface StockInterface {
+											symbol: string;
+											lastTradePriceOnly: number;
+											change: number;
+											changeInPercent: number;
+										}
+										
+										@Injectable()
+										export class StocksService {
+											constructor(private http: HttpClient) {}
+											
+										src/app/app.module.ts
+										
+										imports: [
+											BrowserModule,
+											HttpClientModule
+											],
+								
+										Now we need to register the new StocksService with the providers property to inform Angular that it should be made available for the module to use:
+											providers: [StocksService]
+											
+											<div ...[ngClass]="{increase: isPositive(), decrease: isNegative()}">  -> DIRECTIVE(ngClass)
+												...
+												{{stock?.lastTradePriceOnly | currency:'USD':'symbol':'.2'}}  | -> PIPE
+												
+												ncClass is able to add or remove CSS classes to and from the element.
+												The properties map to methods on the controller
+												Pipes only modify the data before it is displayed, and do not change the value in the controller!!!
+												
+										In the controller :
+											@Input() stock: any; -> DECLARES A PROPERTY THAT IS AN INPUT VALUE.
+												This indicates that this property is to be provided to the component by a parent component passing it to the summary.
+												
+												<summary [stock]="stockData"></summary>
+												
+										In the component css file
+											:host .stock-card...   -> Because components need to be as self-contained as possible, they rely on the Shadow DOM concepts. When Angular renders this component,
+																		it will modify the output to ensure that the CSS selector is unique and doesn’t accidentally interfere with other elements on the page. 
+																		This behavior is configurable.The host selector is a way to specify that you want the styles to apply to the element that hosts the element, 
+																		so in this case it will look at the Summary component element itself rather than the contents inside it.
+											
+											
+										export class DashboardComponent implements OnInit
+										
+											must implement 
+													
+												ngOnInit() {
+													this.service.load(this.symbols).subscribe(stocks => this.stocks = stocks);
+												}
+												
+												In the constructor 
+												
+													constructor(private service: StocksService) {
+														this.symbols = service.get();
+													}
+													
+													The constructor method runs as soon as the component is created.
+													It will import the Stocks service onto the service property and then request the current list of stock symbols from it. 
+													This works because this is a synchronous action that loads a value directly from memory.
+													The constructor fires early in the rendering of a component, which means that often, values are not yet ready to be consumed.
+													Components expose a number of lifecycle hooks that allow you to execute commands at various stages of rendering, giving you greater control over when things occur.
+													In our code, we use the ngOnInit lifecycle hook to call the service to load the stock data.
+													
+													*ngFor="let stock of stocks"
+								
+								
+								
+							
+							
+						
+						
+					
+				
+			
+						
 							
 							
 					
