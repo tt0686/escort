@@ -572,8 +572,179 @@ ANGULAR
 													In our code, we use the ngOnInit lifecycle hook to call the service to load the stock data.
 													
 													*ngFor="let stock of stocks"
+													
+													EVENT BIDING
+														(submit) = "add()"
+														
+														TWO WAY BINDING -> [(ngModel)]="stock" IT WILL SYNC THE VALUE OF THE INPUT AND THE VALUE OF THE PROPERTY IN THE CONTROLLER ANYTIME IT CHANGES FROM EITHER LOCATION.
+														
+														
+							BINDINGS IN ANGULAR !!!!
+								 Interpolation {{prop}} -> Get prop from the controller
+								 
+								 Event Binding
+									(submit)="add"
+								    (click)="remove(symbol)" -> symbol in this case is a local variable
+								TWO WAY DATABINDING
+									[(ngModel)]=""
+									
+							ROUTING
+								Configures the different pages that the application can render!!!
+								src/app/app.routes.ts
 								
+									import { Routes, RouterModule } from '@angular/router';
+									import { DashboardComponent } from './components/dashboard/dashboard.component';
+									import { ManageComponent } from './components/manage/manage.component';
+									
+									const routes: Routes = [
+									{
+										path: '',
+										component: DashboardComponent
+									},
+									{
+										path: 'manage',  ----> In this case it will be the follow URL http://localhost:4200/manage
+										component: ManageComponent
+									}
+									];
+									
+									export const AppRoutes = RouterModule.forRoot(routes);
+									
+									Placeholder for the router
+									<router-outlet></router-outlet>
+									
+									Links in the application
+									 Directive
+																 [routerLink]="['/']">Dashboard</a>
+										<a class="mdl-navigation__link" [routerLink]="['/manage']">
+										
+										The directive parses the array and tries to match to a known route. Once it matches a route, it will add an href to the anchor tag that correctly links to that route.
+										
+										
+										ENTITIES
+											Modules   -> Objects that help you to organize dependencies into discrete units
+											Components-> New elements that will compose the majority of your application's structure and logic
+											Directives-> Objects that modify elements to give them new capabilities or change behaviors 
+											Pipes     -> Functions that format data before it's rendered 
+											Services  -> Reusable objects that fill niche roles such as data access or helper utilities
+											
+											<Core Pipes>--->[Angular Core]<----<Core Directives>  ANGULAR CORE LIBRARIES,INCLUDING PIPES AND DIRECTIVES ARE LOADED
+														        |
+																|
+																|          |Browser PLataform Module  THE APPLICATION MODULE IS BOOTSRAPPED AND INCLUDES DEPENDECY MODULES
+															   \ /         |Forms Module
+														  (APP MODULE)<--- |Http Module
+														        |
+																|
+																|
+															   \ /
+														  (APP COMPONENT)	   THE APP COMPONENT IS RENDERED,WHICH THEN TRIGGERS CHILDREN TO BE RENDERED.
+												-----------------------------------
+									      Route									Route
+										    |                                     |
+											|									  |
+											|                                     |
+								 	  DashBoard Component			        Manage Component 
+								       [NgFor Directive]
+							------------------------------------				
+							Summary Summar Summary Summary ...Component		   
+								|
+								|
+								|
+							Currency Pipe 
+                            Percent  Pipe
+
+								Modules
+									There are two kinds of modules in Angular
+										Javascript Modules
+											Every TypeScript file we wrote was a JavaScript module because it either imported or exported some values.
+										Angular Modules
+											Angular modules are logical constructs used for organizing similar groups of entities (such as all things needed for the router) and are used by Angular to understand 
+											what needs to be loaded as well as what dependencies exist.
+											An App module that holds a reference to all the application logic for Angular to render. There must always be an App module, but there will likely be additional modules 
+											in your application—either official Angular modules, third-party ones, or other ones you may create.
+											A module is declared by creating a class and decorating it with the @NgModule decorator.
+											
+								Components
+									Encapsulation
+									Isolation
+									Reusability
+									Event Based
+									Customizable
+									Declarative
+									
+									THE BASIC ITERATION OF COMPONENTS IS TO PUSH DATA DOWN FROM PARENTS TO COMPONENTS USUALLY THROUGH BINDING AND BACK UP USUALLY THROUGH EVENTS.
+									
+								Directives
+									Three categories of directives:
+										attribute (ngClass), 
+										structural Modify the DOM tree (ngIf) (ngFor)
+										componentes directives
+										
+										Directives make life much easier because they modify an element to give it a new capability, without having to use JavaScript to reach into the template and modify it on the fly.
+								Pipes
 								
+							Bootstrapping process
+								The CLI uses webpack to build, and it compiles all the JavaScript and adds it as script tags to the bottom of the index.html on build.
+								This is when it will run the code to begin your app.
+								Now that Angular has started, it loads your App module and reads through any additional dependencies that need to be loaded and bootstrapped. In the base app, 
+								the Browser module is loaded into the application before further execution happens.
+								Then Angular renders the App component, which is the root element of your application.
+								As this App component renders, any child components are also rendered as part of the component tree. This is like the DOM tree, except any special Angular template
+								syntax has to be rendered by Angular. As it renders, it will also resolve bindings and set up event listeners for anything that declares it.
+								
+								TWO TYPES OF COMPILER
+									Ahead Of Time (AoT)
+									Just In Time (JiT)
+									
+									One big difference is that with JiT, the application must also load the compiler library before the application can execute, whereas the AoT version is able to drop this
+									payload from being sent, causing a faster load experience.
+									
+								Dependency Injection
+									Dependency injection (DI) is a pattern for obtaining objects that uses a registry to maintain a list of available objects and a service that allows you to request the
+									object you need. Rather than having to pass around objects, you can ask for what you need when you need it.
+									There are a few key pieces to the DI system. The first is the injector. This is the service that Angular provides for requesting and registering dependencies. 
+									The injector is often at work behind the scenes, but occasionally is used directly. Most of the time, you’ll invoke the injector by declaring a type annotation on the property. 
+									We injected the HttpClient service like this:
+										
+										constructor(private http: HttpClient) {}
+										
+										Because we declare the type as HttpClient (which is a known service in Angular), the application will use the injector to ensure that the http property contains an instance
+										of the HttpClient service. This seems like magic, but it’s merely a way to alias the dependency you would like to request without directly calling the injector API.
+										The second part of DI is providers. 
+										Providers are responsible for creating the instance of the object requested. The injector knows the list of available providers, and based on the name (which above is HttpClient),
+										it calls a factory function from the provider and returns the requested object.
+										Anything that has been registered with an NgModule’s providers array is availableto be injected in your application code. You can inject anywhere, but I prefer to use the 
+										TypeScript approach, as we saw earlier, where the constructor properties are annotated with the specific type of service to inject. 
+										Alternatively, you could use the @Inject decorator to inject the Http service, like this:
+											constructor(private @Inject(HttpClient) http) {}
+	
+										This decorator wires up the dependency injection the same way as the TypeScript typing information. Either way you’ll get the same result.
+										Providers don’t have to be exposed to the root module and instead can be made visible only to a particular component or component tree.
+										
+								Change Detection
+									https://blog.thoughtram.io/angular/2016/02/22/angular-2-change-detection-explained.html#reducing-the-number-of-checks
+									http://teropa.info/blog/2015/03/02/change-and-its-detection-in-javascript-frameworks.html
+									https://blog.thoughtram.io/angular/2016/01/22/understanding-zones.html
+									http://teropa.info/blog/2015/03/02/change-and-its-detection-in-javascript-frameworks.html
+									https://medium.com/codingthesmartway-com-blog/angular-and-redux-ecd22ea53492
+									https://vsavkin.com/change-detection-in-angular-2-4f216b855d4c
+									https://blog.angularindepth.com/these-5-articles-will-make-you-an-angular-change-detection-expert-ed530d28930
+									https://blog.angular-university.io/how-does-angular-2-change-detection-really-work/
+									https://medium.com/@bencabanes/angular-change-detection-strategy-an-introduction-819aaa7204e7
+									https://blog.angular-university.io/angular-2-redux-ngrx-rxjs/
+									https://dzone.com/articles/why-should-you-be-using-redux-with-angular
+								
+									Change detection is the mechanism for keeping data and the rendered views in sync with one another.
+									Changes always come down from the model into the view, and Angular employs a unidirectional propagation of changes from parents down to children. 
+									This helps ensure that if a parent changes, any children are also checked, due to potential linked data.
+									
+									Basically application state change can be caused by three things:
+
+										Events - click, submit, …
+										XHR - Fetching data from a remote server
+										Timers - setTimeout(), setInterval()
+									
+									
 								
 							
 							
