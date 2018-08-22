@@ -745,8 +745,86 @@ ANGULAR
 										Timers - setTimeout(), setInterval()
 									
 									
-								
-							
+								    ZONES (zone.js)
+										https://blog.strongbrew.io/how-the-hell-do-zones-really-work/
+										https://blog.angularindepth.com/i-reverse-engineered-zones-zone-js-and-here-is-what-ive-found-1f48dc87659b
+										
+										A Zone is an execution context that PERSISTS across async tasks. You can think of it as thread-local storage for JavaScript VMs!!!
+										When zone.js is loaded
+											function zoneAwareAddEventListener() {...}
+											function zoneAwarePromise() {...}
+											
+											window.prototype.addEventListener = zoneAwareAddEventListener;
+											window.prototype.promise = zoneAwarePromise;
+											
+										zone.js overrides some of the functions on the window prototype and replaces the defaults with a proxy.	
+										This means that every event scheduled or every promise created after loading the file, will be wrapped in the proxy. This concept is called monkey-patching.
+										After that it creates a global property which we can use to access the root Zone.
+										
+										Zone.current.fork({}).run(function () {
+											Zone.current.inTheZone = true;
+
+											setTimeout(function () {
+												console.log('in the zone: ' + !!Zone.current.inTheZone);
+														}, 0);
+										});  <- A NEW ZONE IS CREATED BY FORKING THE ROOT ZONE VIA THE Zone.current
+										        CALLING RUN TO RUN SOMETHING INSIDE THIS ZONE.
+
+										console.log('in the zone: ' + !!Zone.current.inTheZone);
+										
+										'in the zone: false'
+										'in the zone: true'   <<<< WHY IF IT POINT TO THE SAME PROPERTY !!!!?
+										
+										Zone.current.fork({}).run(function () {
+											SETUP ZONE :
+												trigger : A call to the run function is made.First setup the zone before executing the function param
+												actions : Zone.current is set to the Zone in which the function is executed, in this case it is the one created by forking the root zone.
+												          zone lifecycles hooks are called.
+														  
+										 setTimeout(
+											...., 0);				  
+											
+											a timeout is registered.This is not the default timeout since these are monkey-patched.This is calling the proxy.
+											THIS PROXY WILL HOLD A REFERENCE TO THE ZONE IN WHICH IT WAS CREATED.
+											
+										});
+											TEARDOWN ZONE
+												Zone.current property is reset to the root Zone
+												Zone liufecycle hooks are called
+												
+											Log statement. The Zone.current property is currently pointing to the root Zone. Since this does not know an 'inTheZone' property, this will log false.
+												console.log('in the zone: ' + !!Zone.current.inTheZone);	
+
+											// The stack is cleared and the timer callback is executed
+											
+											SETUP ZONE
+											// trigger: The monkey-patched event is fired. The proxy wrapper
+											//          will trigger a Zone setup. Remember that the proxy
+											//          wrapper holds a reference to the Zone in which it
+											//          was created.
+											// actions:
+											//      - Zone.current property is set to the exampleZone (the
+											//        proxy holds a reference to the exampleZone)
+											//      - Zone lifecycle hooks are called
+										function () {
+												// The exampleZone does contain the 'inTheZone'
+												// property. So this will log true.
+												console.log('in the zone: ' + !!Zone.current.inTheZone);
+										}
+										
+										
+										https://blog.angularindepth.com/i-reverse-engineered-zones-zone-js-and-here-is-what-ive-found-1f48dc87659b
+										Zones work by associating each async operation with a zone. 
+										A developer can take advantage of this binding to:
+
+											Associate some data with the zone, analogous to thread-local storage in other languages, which is accessible to any async operation inside the zone.
+											Automatically track outstanding async operations within a given zone to perform cleanup or rendering or test assertion steps
+												PROBABLY THE POINT WHERE ANGULAR IS INTERESTED
+											Time the total time spent in a zone, for analytics or in-the-field profiling
+											Handle all uncaught exceptions or unhandled promise rejections within a zone, instead of letting them propagate to the top level
+										
+										
+										
 							
 						
 						
