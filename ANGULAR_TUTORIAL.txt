@@ -568,7 +568,7 @@ ANGULAR
 													It will import the Stocks service onto the service property and then request the current list of stock symbols from it. 
 													This works because this is a synchronous action that loads a value directly from memory.
 													The constructor fires early in the rendering of a component, which means that often, values are not yet ready to be consumed.
-													Components expose a number of lifecycle hooks that allow you to execute commands at various stages of rendering, giving you greater control over when things occur.
+													Components expose a number of lifecycle hooks that allow we to execute commands at various stages of rendering, giving we greater control over when things occur.
 													In our code, we use the ngOnInit lifecycle hook to call the service to load the stock data.
 													
 													*ngFor="let stock of stocks"
@@ -580,12 +580,48 @@ ANGULAR
 														
 														
 							BINDINGS IN ANGULAR !!!!
+								A template in angular is a HTML with additional markup in it.
+								A view is according to angularJs documentation is the parsed and processed template (the DOM)
+							
+								Bindings are the conduit for data or methods to be used from a controller in the template;they allow data  in the controller to flow into the template or events to call from the template
+								back in the controller.
 								 Interpolation {{prop}} -> Get prop from the controller
-								 
+												{{getName()}}
+												<a href="/users/{{user.user_id}}">View Profile</a>
+												
+								 Property Binding
+										<img [src]="user.img" />
+										Using the [] syntax binds to an element’s property, not the attribute. This is an important distinction, because properties are the DOM element’s property. 
+										That makes it possible to use any valid HTML element property (such as the img src property).
+										Instead of binding the data to the attribute, you’re binding data directly to the element property, which is quite efficient.
+										
+										Special Binding
+											[class.className] ->  The class binding syntax is useful for targeting specific classes to be added or removed from an element. 
+											It also only adds to the existing classes instead of replacing them entirely, like if we use [class]="getClass()".
+											
+								Attribute Binding
+										Some element properties can’t be directly bound, because some HTML elements have attributes that aren't also made available as properties of the element. 
+										The aria (accessibility) attributes are one such example of an attribute that doesn’t get added as a property to the element.
+										If we try to do aria-required="{{isRequired()}}" or [aria-required]="isRequired()", we’ll get a template parsing error. 
+										Because this attribute isn’t a property, it can’t be directly bound to.
+										The workaround is using the special attribute binding syntax, which looks like a property binding, except you put the name of the attribute in the brackets 
+										with the prefix attr., like this:
+											<input id="username" type="text" [attr.aria-required]="isRequired()" />
+											
 								 Event Binding
+									So far, all data has flowed from the component into the template elements. 
+									That’s great for displaying data, but we need some way for the elements in our template to bind back into the component. 
+									The good news is that JavaScript has a great mechanism built in to pass data back up, by using events!!!
+									The syntax for event bindings uses parentheses () to bind to a known event.
+									
 									(submit)="add"
 								    (click)="remove(symbol)" -> symbol in this case is a local variable
+									
 								TWO WAY DATABINDING
+									It uses both the property and event binding syntax together.
+									Those familiar with AngularJS will be familiar with how it allows you to sync the value of a binding as it changes in either the template or the controller. 
+									It does this by doing a regular property binding and setting up an event binding for you behind the scenes.
+									You can only use NgModel with form elements, but you can use two-way binding syntax on properties.
 									[(ngModel)]=""
 									
 							ROUTING
@@ -673,6 +709,104 @@ ANGULAR
 									Declarative
 									
 									THE BASIC ITERATION OF COMPONENTS IS TO PUSH DATA DOWN FROM PARENTS TO COMPONENTS USUALLY THROUGH BINDING AND BACK UP USUALLY THROUGH EVENTS.
+									A COMPONENT CREATES A VIEW, WHICH IS THE RENDERED RESULT OF A COMPONENT THAT THE USER CAN INTERACT WITH AND IS COMPRISED OF RENDERING THE COMPONENT TEMPLATE.
+									Have a lifecycle:
+										Component register with the module (NgModule) (during application bootstrap)
+																			When the component is registered, it creates a component factory class and stores it for later use.
+																			There is a registry of components that belong to the module, and Angular will look up the component in question and
+																			retrieve its component factory, which is generated during the compilation using the CLI before the app is run.
+										Template includes a component
+										Component is instantiated
+										Controller constructor is called
+										Compiler renders any child components in template
+								Components lifecycle hooks begin     ^
+																	 |
+										Application state changes  --- 
+										Component removed from view
+										
+									Lifecycle hooks
+										OnChanges            Input values have changed.
+										OnInit               Runs once after the component has fully initialized(though not necessarily when all child components are ready)
+										OnDestroy
+										DoCheck              Any time that change detection runs
+										AfterContentInit     When any content children have been fully initialized
+										AfterContentChecked  Every time that Angular checks the content children
+										AfterViewInit        This hook lets you run logic after all View Children have been initially rendered.
+										AfterViewChecked     When Angular checks the component view and any View Children have been checked
+										
+										NESTING COMPONENTS
+											There are two ways to nest components
+												Most often, components are nested by being declared in the template of another component. Any component that’s nested inside another’s template is called a View Child, 
+												so named because the template represents the view of the component and therefore is a child inside that view.
+												A View Child is declared inside the component template.
+												
+												Occasionally a component accepts content to be inserted into its template, and this is known as a Content Child, so named because these components are inserted as content
+												inside the component rather than being directly declared in the template. A Content Child is declared between the opening and closing tags when a component is used.
+											
+												Example
+													UserProfile component where the template take the following structure :
+														<user-avatar [avatar]="avatar"></user-avatar>    <--View Child
+														<ng-content></ng-content>                        <--Content Child
+										
+												Using the UserProfile component
+													<user-profile [avatar]="user.avatar">
+														<user-details [user]="user"></user-details>
+													</user-profile>
+									Inputs
+										When you create your own components, you can define properties that can accept input through property bindings.
+										By default, all properties of a component aren’t immediately bind-able, as you saw earlier. They must be declared as an input to allow the property to be bound. 
+										One reason is that we want encapsulation of our components, and it’s best not to automatically expose all properties. 
+										Another reason is that Angular needs to know which properties exist so it can properly handle the wiring of values into a component.
+										
+										@Input() title: string = '';
+										@Input() description: string = '';
+										@Input('used') value: number = 0;       <-- Alias 
+										@Input('available') max: number = 100;
+										
+									Intercepting Inputs
+										private _max: number = 100;
+										
+										@Input('used')
+										set value(value: number) {
+											if (isNaN(value)) value = 0;
+											this._value = value;
+										}
+										get value(): number { return this._value; }
+										
+										Content Projection
+											<thead>
+												<tr>
+													<th>Node</th>
+													<th [colSpan]="2">CPU</th>
+													<th [colSpan]="2">Memory</th>
+													<th>Details</th>
+												</tr>
+											</thead>
+											<ng-content></ng-content>  <--Insertion Point
+
+											On the @Component decorator change the selector property -> select : '[app-nodes]' 
+												INSTEAD OF LOOKING FOR AN ELEMENT ("TAG") IT WILL LOOK FOR THE ATTRIBUTE app-nodes
+												WE DO THIS SO WE CAN APPLY THIS COMPONENT ONTO ANOTHER ELEMENT
+	
+											In the DashBoard component
+												<table app-nodes class="table table-hover">
+													<tr app-nodes-row *ngFor="let node of cluster1" [node]="node"></tr>
+												</table>
+		
+											Because we used the attribute selector for the Nodes component on the table element, it will apply the component template inside the table. 
+											That will insert the table head elements that are in the Nodes component template, but it also contains the NgContent insertion point.
+
+											But what if we want to have multiple insertion points?
+											
+												<ng-content select="metric-title"></ngcontent>
+												
+												<app-metric class="col-sm-6" [used]="cpu.used" [available]="cpu.available">
+													<metric-title>CPU</metric-title>
+													<metric-description>utilization of CPU cores</metric-description>
+												</app-metric>
+
+												Now if you run the code, you’ll get a compilation error from Angular. 
+												It will try to parse these new elements, recognize that they’re not registered components, and throw an error.
 									
 								Directives
 									Three categories of directives:
@@ -713,7 +847,7 @@ ANGULAR
 										The second part of DI is providers. 
 										Providers are responsible for creating the instance of the object requested. The injector knows the list of available providers, and based on the name (which above is HttpClient),
 										it calls a factory function from the provider and returns the requested object.
-										Anything that has been registered with an NgModule’s providers array is availableto be injected in your application code. You can inject anywhere, but I prefer to use the 
+										Anything that has been registered with an NgModule’s providers array is available to be injected in your application code. You can inject anywhere, but I prefer to use the 
 										TypeScript approach, as we saw earlier, where the constructor properties are annotated with the specific type of service to inject. 
 										Alternatively, you could use the @Inject decorator to inject the Http service, like this:
 											constructor(private @Inject(HttpClient) http) {}
@@ -743,6 +877,9 @@ ANGULAR
 										Events - click, submit, …
 										XHR - Fetching data from a remote server
 										Timers - setTimeout(), setInterval()
+										
+										
+										
 									
 									
 								    ZONES (zone.js)
@@ -822,6 +959,35 @@ ANGULAR
 												PROBABLY THE POINT WHERE ANGULAR IS INTERESTED
 											Time the total time spent in a zone, for analytics or in-the-field profiling
 											Handle all uncaught exceptions or unhandled promise rejections within a zone, instead of letting them propagate to the top level
+											
+											When using fork we create a new CHILD zone and sets its parent to the zone used for forking
+											The object passed to the fork method is called ZoneSpec and defines a name, properties used to associate data with a zone.
+											The other properties are interception hooks that allow parent zone intercept certain operations of child zones.
+											
+										Javascript RunTime
+											https://medium.com/@gaurav.pandvia/understanding-javascript-function-executions-tasks-event-loop-call-stack-more-part-1-5683dea1f5ec
+											SINGLE THREADED
+											
+											Call Stack
+												https://www.learncpp.com/cpp-tutorial/79-the-stack-and-the-heap/
+												Stack Pointer
+												Each function call creates one stack frame which contains all the data associated with one function call.
+													The address of the instruction beyond the function call(called the return address)
+													All function arguments
+													Memory for any local variable
+													Saved copies of any registers modified by the function that need to be restored when the function returns
+											Heap
+											Message Queue
+												Fullfilled mainly  by browser APIs which are basically threads created by browser implemented in C++ to handle async events like DOM events, http request, setTimeout, etc.
+												Now these WebAPIs can’t themselves put the execution code on to the stack, if it did, then it would randomly appear in the middle of your code.
+												Any of the WebAPI pushes the callback onto this queue when it’s done executing. The Event Loop now is responsible for the execution of these callbacks in the 
+												queue and pushing it in the stack, when it is empty												
+											Event loop
+												https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
+												Event loop basic job is to look both at the stack and the task queue, pushing the first thing on the queue to the stack when it see stack as empty
+												
+										TOOLS
+											SessionStack
 										
 										
 										
