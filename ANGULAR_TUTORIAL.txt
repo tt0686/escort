@@ -773,7 +773,16 @@ ANGULAR
 										}
 										get value(): number { return this._value; }
 										
-										Content Projection
+										There’s another way to intercept and detect changes using the OnChanges lifecycle hook.
+										
+										implements OnChanges
+										
+										ngOnChanges(changes) {
+											if (changes.value && isNaN(changes.value.currentValue)) this.value = 0;
+											if (changes.max && isNaN(changes.max.currentValue)) this.max = 0;
+										}
+										
+									Content Projection
 											<thead>
 												<tr>
 													<th>Node</th>
@@ -807,6 +816,200 @@ ANGULAR
 
 												Now if you run the code, you’ll get a compilation error from Angular. 
 												It will try to parse these new elements, recognize that they’re not registered components, and throw an error.
+												
+									Communication between components
+										Inputs are the way to push data down the component tree to children and events are the way to pass data and notifications up through the component tree to parents.
+										
+										AppComponent
+											NavBar    Component
+											DashBoard Component
+											
+											
+											In NavBar controller
+												@Output() onRefresh: EventEmitter<null> = new EventEmitter<null>();
+												
+												refresh() {
+													this.onRefresh.emit();
+												}
+												
+												We begin by importing the Output decorator and EventEmitter factory object. We need both of these to set up an output event. 
+												The EventEmitter is a special object that helps us emit custom events that work with Angular’s change detection.
+												
+											In NavBar template
+												<button class="btn btn-success" type="button" (click)="refresh()">Reload</button>
+												
+											App component
+												<app-navbar (onRefresh)="dashboard.generateData()"></app-navbar> <<<<<<<<<<<<<<<<local template variable
+												<app-dashboard #dashboard></app-dashboard>
+												
+												If no components are listening to the event, then it will not propagate up the component tree. 
+												Output events only go to the parent component, unlike regular DOM events (such as click or keypress) that do propagate up the DOM tree.
+												
+												View Child to reference components
+												
+													In order to access a child component’s controller inside a parent controller, we can leverage ViewChild to inject that controller into our component.
+													
+													export class AppComponent {
+														@ViewChild(DashboardComponent) dashboard: DashboardComponent;
+														
+														refresh() {
+														this.dashboard.generateData();
+														}
+													}
+													
+													<app-navbar (onRefresh)="refresh()"></app-navbar>
+													<app-dashboard></app-dashboard>
+													
+									Styles to components
+										1 navbar/navbar.component.css
+										2
+										  styleUrls: ['./navbar.component.css'],
+										  styles: [`.btn { background-color: #999999; }`]
+										  
+										  The trick here is that whichever is declared last will win, so when we have both styles and styleUrls, the one declared last will override the first regardless of which
+										  one is used, due to the way the compiling works.
+										  
+										3 navbar/navbar.component.html
+
+									      <style>.btn { background-color: #3274b8; }</style>
+											Once we save this, the application will reload, and all of a sudden your button will now
+											be blue, which means that inline style declarations will override any values provide via
+											the styles or styleUrls properties.
+											
+										4 navbar/navbar.component.html
+											<button class="btn btn-success" type="button" style="background-color: #8616f6" (click)="refresh()">Reload</button>
+											
+											It should be noted that using the !important value will raise that particular rule above any others.
+											All CSS rules are added to the end of the document head inside a new style element.
+											As the application is rendered, components will get loaded, and those styles will get added to the document head. 
+											But depending on the encapsulation mode, the way those styles are rendered can change the way those styles are processed.
+											
+									Encapsulation modes
+										The most common approach is to use specific class naming conventions, as are found in most popular CSS libraries. 
+										These conventions provide a specific nomenclature for CSS classes that limits the chances of the same class being used elsewhere.
+										Enter the Shadow DOM, the official native browser standard for encapsulating styles.
+										Three encapsulation mode:
+											None
+												Once the mode is set, any styles you declare for the component will be hoisted up from the component template into the document head, and this is the only real modification
+												made to the markup. The style element is moved into the document head as is, which is a way of injecting global CSS rules.
+											Default(Emulated)
+												Emulated mode applies some transformations to any styles by adding unique attributes to HTML markup and CSS rules to increase the specificity of the CSS rules by making
+												them unique.
+											Native
+												While the component renders, it creates a shadow root in the component. The template is injected into the shadow root, along with the styles from the sibling and any
+												parent component.
+												
+									Dynamic Components
+										
+										1 USE NG_BOOTSPRAP
+										
+											constructor(public activeModal: NgbActiveModal) {}
+											
+												Unlike other components so far, this component won’t be called from a parent’s template. 
+												But we will need to pass it an input for the data, so we still need to declare the input property.
+												
+											In template
+												(click)="activeModal.dismiss()">
+												
+											In template in the Row component
+												<td><button class="btn btn-secondary" (click)="open(node)">View</button></td>
+												
+											Now in the controller
+												
+													constructor(private modalService: NgbModal) {}
+													
+													open(node) {
+														const modal = this.modalService.open(NodesDetailComponent);
+														modal.componentInstance.node = node;
+													}
+											Now lastly in the parent Dashboard Component
+												<template ngbModalContainer></template>     <-----PLACEHOLDER
+												
+											And in the application module
+												entryComponents: [NodesDetailComponent],
+												
+												Entry components are any components that need to be rendered dynamically in the browser, which will also include components that are linked to routes
+												
+										2 ANGULAR APIs
+											ViewContainerRef
+											ViewChild
+											ComponentFactoryResolver
+											
+											In alert.component.html
+												<div class="container mt-2">
+													<div class="alert alert-warning" role="alert">
+														The data was refreshed at {{date | date:'medium'}}
+													</div>
+												</div>
+												
+											Controller
+												@Component({
+													selector: 'app-alert',
+													templateUrl: './alert.component.html',
+													styleUrls: ['./alert.component.css']
+													})
+												export class AlertComponent {
+													@Input() date: Date;
+												}
+												
+												modules.ts
+													entryComponents: [
+														NodesDetailComponent,
+														AlertComponent
+													]
+													
+												dashboard.component.html
+													<app-navbar (onRefresh)="refresh()"></app-navbar>
+													<ng-template #alertBox></ng-template>
+													<app-dashboard></app-dashboard>
+													
+														
+												app/app.component.ts
+													export class AppComponent {
+														alertRef: ComponentRef<AlertComponent>;
+														@ViewChild(DashboardComponent) dashboard: DashboardComponent;
+														@ViewChild('alertBox', {read: ViewContainerRef}) alertBox: ViewContainerRef;
+														
+															constructor(private ComponentFactoryResolver: ComponentFactoryResolver) {}
+															
+														alert(date) {
+															if (!this.alertRef) {
+															const alertComponent = this.ComponentFactoryResolver.resolveComponentFactory(AlertComponent); //NOT yet rendered it is in RAW form.
+															this.alertRef = this.alertBox.createComponent(alertComponent);
+																//alertBox is the instance of the element where we will inject  the component,wrapped in a ViewContainerRef instance
+																//At this point, the component will be rendered into the template where the template element was declared.
+															}
+															this.alertRef.instance.date = date;
+															this.alertRef.changeDetectorRef.detectChanges(); //Trigger the change detection
+															setTimeout(() => this.destroyAlert(), 5000);
+														}
+														
+														destroyAlert() {
+															if (this.alertRef) {
+															this.alertRef.destroy();
+															delete this.alertRef;
+														}
+													}
+													
+													We then add two properties, with alertRef being a component reference to the Alert component (which is the declared typing). 
+													We will want to have this reference so we can keep track of the alert and later remove it if we want. 
+													The second property is another View Child, called alertBox. The ViewChild syntax is different because it allows us to pass in a string to reference a 
+													local template variable by that name and then "read" it as a particular type of entity—in this case, a ViewContainerRef. 
+													It will get the element based on the template variable and then parse it as a ViewContainerRef type.
+											
+											
+											
+											
+											
+											
+										EXPLORING DOM ABSTRACTIONS
+											
+											
+											
+												
+												
+									
+										
 									
 								Directives
 									Three categories of directives:
@@ -877,6 +1080,17 @@ ANGULAR
 										Events - click, submit, …
 										XHR - Fetching data from a remote server
 										Timers - setTimeout(), setInterval()
+										
+										Angular has to know that an asynchronous activity occurred,but setInterval and setTimeout APIs in Javascript occur outside Angular's awareness.
+										So Angular use Zone.js that MONKEY-PATCHED the default implementation of setInterval and setTimeout to have them properly trigger Angular change detection when 
+										an interval or timeout is resolved.Likewise, when an event binding is handled in Angular, it knows to trigger change detection(monkey-patched method addEventListener).
+										One the change detection mechanism is triggered, it will start from the top of the component tree and check each node to see whether the component model has
+										changed and requires rendering. That’s why input properties have to be made known to Angular, or it would fail to know how to detect changes.
+										Angular has two change detection modes: Default and OnPush.
+										You can also use the OnPush mode, which explicitly tells Angular that this component only needs to check for changes if one of the component inputs has changed.
+										That means if a parent component hasn’t changed, it’s known that the child component’s inputs won’t change, so it can skip change detection on that component
+										
+										
 										
 										
 										
