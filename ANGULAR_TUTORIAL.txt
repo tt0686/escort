@@ -998,9 +998,62 @@ ANGULAR
 													It will get the element based on the template variable and then parse it as a ViewContainerRef type.
 											
 											
+										SERVICES
+											Dependency Injection and Injector trees
 											
+												Every component has an injector!!!
+												Anytime you declare a providers array in the component metadata, that component will get its own injector. 
+												For a component that doesn’t have any providers declared, it will share the injector of its parent (or its parent’s parent if it doesn’t have one, or parent’s
+												parent’s parent, and so on). This is similar to how events bubble up—the injector will look up the injector tree until it finds what was requested 
+												(or throws an error when it cannot find it).
+												Imagine a large application, like an accounting program or an e-commerce platform. In that situation, it’s realistic for multiple teams to work on
+												the same application, and it’s likely that some services will be named the exact same thing. 
+												If these services were all registered at the topmost level, they would conflict. But if they’re properly managed and registered at a lower level, 
+												closer to where they’re used, then conflicts could be avoided. This is the principle of isolation at work.
+													Ways to override a provider with a secondary value or implementation :
+														ALIAS | CLASS | FACTORY | VALUE
+														
+											Why do we want to use DI instead of regular module loading in JavaScript?
 											
+											HttpInterceptors
+												@Injectable()
+												export class StocksInterceptor implements HttpInterceptor{
+												
+												intercept(req: HttpRequest<any>, next: HttpHandler):
+												Observable<HttpEvent<any>>
+												const request = req.clone();
+												request.headers.append('Accept', 'application/json');
+												return next.handle(request).do(event => {
+												if (event instanceof HttpResponse && event.url === ConfigService.
+												get('api')) {
+												const stocks = event.body as Array<Stock>;
+												let symbols = this.accountService.stocks.map(stock => stock.symbol);
+												stocks.forEach(stock => {
+												this.accountService.stocks.map(item => {
+												if (stock.symbol === item.symbol) {
+												item.price = stock.price;
+												item.change = ((stock.price * 100) - (item.cost * 100)) / 100;
+												}
+												});
+												});
+												
+												app/app.module.ts
+												
+												providers: [
+													LocalStorageService,
+													CurrencyPipe,
+													AccountService,
+													{
+													provide: HTTP_INTERCEPTORS,
+													useClass: StocksInterceptor,
+													multi: true
+													}
+													],
+												
 											
+												
+
+												
 											
 										EXPLORING DOM ABSTRACTIONS
 											
