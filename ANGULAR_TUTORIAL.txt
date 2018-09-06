@@ -1003,7 +1003,7 @@ ANGULAR
 											
 												Every component has an injector!!!
 												Anytime you declare a providers array in the component metadata, that component will get its own injector. 
-												For a component that doesn’t have any providers declared, it will share the injector of its parent (or its parent’s parent if it doesn’t have one, or parent’s
+												For a component that doesn't have any providers declared, it will share the injector of its parent (or its parent’s parent if it doesn’t have one, or parent’s
 												parent’s parent, and so on). This is similar to how events bubble up—the injector will look up the injector tree until it finds what was requested 
 												(or throws an error when it cannot find it).
 												Imagine a large application, like an accounting program or an e-commerce platform. In that situation, it’s realistic for multiple teams to work on
@@ -1015,27 +1015,75 @@ ANGULAR
 														
 											Why do we want to use DI instead of regular module loading in JavaScript?
 											
+											https://toddmotto.com/angular-dependency-injection
+											
+											Without Dependency Injection
+											
+												//Monitor.ts
+												export class Monitor {
+													 public monitorNo = 2;
+												}
+
+												// Keyboard.ts
+												export class Keyboard {
+													public keyboardNo = 1;
+												}
+												
+												//Computer.ts class
+												import { Monitor } from './Monitor';
+												import { CPU } from './CPU';
+												import { Keyboard } from './Keyboard';
+
+												export class Computer {
+												 
+												  public monitor: Monitor;
+												  public cpu: CPU;
+												  public keyboard: Keyboard;
+												 
+												  constructor() {
+													this.monitor = new Monitor();
+													this.cpu = new CPU();
+													this.keyboard = new Keyboard();
+												  }
+												 public description = 'This Matrix computer';
+												  complete() {
+													return `${this.description} has ` +
+													  `${this.monitor.monitorNo} monitors, ${this.cpu.cpuNo} cpus and, ${this.keyboard.keyboardNo} keyboard.`;
+												  }
+												}
+												
+												 Computer class is totally dependent on these three classes
+												 We are creating the instances in the constructor. So monitors, cpus, and keyboard are not decoupled from the Computer class.
+												 
+												 https://codecraft.tv/courses/angular/dependency-injection-and-providers/overview/
+												 
+												 The DI framework in Angular consists of 4 concepts working together:
+													Token : Uniquely identifies something that we want injected.
+													Dependency : The actual code we want injected
+													Provider : This is a map between a token and a list of dependencies
+													Injector : Function which when passed a token returns a dependency
+																								
+											
 											HttpInterceptors
+											
 												@Injectable()
 												export class StocksInterceptor implements HttpInterceptor{
 												
-												intercept(req: HttpRequest<any>, next: HttpHandler):
-												Observable<HttpEvent<any>>
-												const request = req.clone();
-												request.headers.append('Accept', 'application/json');
-												return next.handle(request).do(event => {
-												if (event instanceof HttpResponse && event.url === ConfigService.
-												get('api')) {
-												const stocks = event.body as Array<Stock>;
-												let symbols = this.accountService.stocks.map(stock => stock.symbol);
-												stocks.forEach(stock => {
-												this.accountService.stocks.map(item => {
-												if (stock.symbol === item.symbol) {
-												item.price = stock.price;
-												item.change = ((stock.price * 100) - (item.cost * 100)) / 100;
-												}
-												});
-												});
+													intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>>
+														const request = req.clone();
+														request.headers.append('Accept', 'application/json');
+														return next.handle(request).do(event => {
+																						if (event instanceof HttpResponse && event.url === ConfigService.get('api')) {
+																															const stocks = event.body as Array<Stock>;
+																															let symbols = this.accountService.stocks.map(stock => stock.symbol);
+																															stocks.forEach(stock => {
+																																this.accountService.stocks.map(item => {
+																																			if (stock.symbol === item.symbol) {
+																																				item.price = stock.price;
+																																				item.change = ((stock.price * 100) - (item.cost * 100)) / 100;
+																																			}
+																																								});
+																															});
 												
 												app/app.module.ts
 												
@@ -1044,18 +1092,11 @@ ANGULAR
 													CurrencyPipe,
 													AccountService,
 													{
-													provide: HTTP_INTERCEPTORS,
-													useClass: StocksInterceptor,
-													multi: true
+														provide: HTTP_INTERCEPTORS,useClass: StocksInterceptor,multi: true
 													}
 													],
 													
 													
-												
-											
-												
-
-												
 											
 										EXPLORING DOM ABSTRACTIONS
 											
@@ -1273,6 +1314,9 @@ ANGULAR
 														this.card.style.top = '';
 													}
 													
+													The event listener is triggered by using the @HostListener decorator, which takes a single argument for the event to listen to. 
+													This is an event binding, but done through the context of a directive. There are many cases where you will need 	a directive to listen for events to handle your logic.
+													
 													
 													<summary [stock]="stock" cardHover></summary>
 													
@@ -1317,7 +1361,478 @@ ANGULAR
 										A pure pipe is only run if the input value passed into the pipe has changed, making it more efficient because it won’t run very often. 
 										On the other hand, an impure pipe will execute on every change detection run, because an impure pipe has state that might have changed, 
 										and that would render a different output regardless of whether the input has changed.
-								
+										
+										@Pipe({
+											name: 'change'
+										})
+										export class ChangePipe implements PipeTransform {
+											constructor(private currencyPipe: CurrencyPipe, private percentPipe: PercentPipe) {}
+											
+											transform(stock: StockInterface, showPercent: boolean = true): any {
+													let value = `${this.currencyPipe.transform(stock.change, 'USD', 'symbol','.2')}`;
+														
+													if (showPercent) {
+														value += ` (${this.percentPipe.transform(stock.changeInPercent,'.2')})`;
+													}
+													return value;
+											}
+										}
+										
+										Be sure to return a value that’s either a string or that can be transformed into a string. You shouldn’t return an array or object, for example.
+										
+										Impure Pipe
+											@Pipe({
+												name: 'changeDetector',
+												pure: false
+												})
+												
+												export class ChangeDetectorPipe implements PipeTransform {
+												count: number = 0;
+													transform(value: any, args?: any): any {
+														this.count++;
+														console.log(`Component change detection executed ${this.count} times`);
+														return value;
+													}
+												}
+
+												We first set the pure property to false in the decorator to tell Angular that this pipe is impure and must be always reevaluated.
+												
+									FORMS
+										Two approaches to building forms :
+											reactive forms and template forms
+											
+											TEMPLATE FORM
+												You should recall the [()] syntax from earlier chapters, but to refresh your memory, it’s a way of doing two-way data binding in Angular.
+												The NgModel directive is part of the Forms module and we always use it with the two-way binding syntax.
+												inputs should always have a name when using NgModel, because it requires that information internally
+												
+												VALIDATION
+												Standard
+													<input name="phone" mdInput type="tel" placeholder="Phone" [(ngModel)]="customer.phone" required #phone="ngModel" minlength="7">
+													<md-error *ngIf="phone.touched && phone.errors?.required">
+														Phone number is required
+													</md-error>
+													
+													Form control validation properties Property
+													
+														valid     The form control is valid for all validations.
+														invalid   The form control has at least one invalid validation.
+														disabled  The form control is disabled and can’t be interacted with.
+														enabled   The form control is enabled and can be clicked or edited.
+														errors    An object that either contains keys with validations that are invalid, or null when all are valid.
+														pristine  The form control has not yet been changed by the user.
+														dirty     The form control has been changed by the user.
+														touched   The form control has been in focus, and then focus has left the field.
+														untouched The form control has not been in focus.
+												
+												Custom Validation
+												
+												import { AbstractControl, ValidatorFn } from '@angular/forms';
+												const expression = /((\(\d{3}\) ?)|(\d{3}-))?\d{3}-\d{4}/;
+												
+												export function PhoneValidator(): ValidatorFn {
+													return (control: AbstractControl): { [key: string]: any } => {
+													const valid = expression.test(control.value) && control.value.length < 14;
+													return valid ? null : { phone: true };
+																};
+												}
+												
+													@Directive({
+														selector: '[phone][ngModel]',
+														providers: [{ provide: NG_VALIDATORS, useExisting: PhoneDirective, multi:true }]
+													})
+													export class PhoneDirective implements Validator {
+														private validator = PhoneValidator();
+															validate(control: AbstractControl): { [key: string]: any } {
+															return this.validator(control);
+														}
+													}
+													
+													<input name="phone" mdInput type="tel" placeholder="Phone" [(ngModel)]="customer.phone" required phone #phone="ngModel"> 
+														<md-error *ngIf="phone.touched && phone.errors?.phone">
+														
+													To review, when we add the phone attribute, the NgModel will validate using the Phone validator directive. 
+													Internally, the Phone validator directive registers itself with the default list of validators that NgModel knows about by declaring the 
+													multiprovider (a special kind of provider that can be registered more than once) for NG_VALIDATORS. 
+													It then implements a validate method, which calls the validator function we created at the beginning.
+													
+												Handling submit and cancel events
+													Angular does another thing to forms that isn’t visible by default. 
+													It automatically implements an NgForm on a form even if you don’t declare a directive (unlike how you have to declare NgModel). 
+													When it does this, it essentially attaches an NgForm controller that then maintains the form controls in the form.
+													NgForm provides a couple of features we’ll need; the first is that it can tell us if the entire form is valid (not just an individual field) and help us 
+													implement an event binding for submitting the form.
+													
+													<form *ngIf="customer" #form="ngForm" (ngSubmit)="save()">
+													
+													we create another template variable and reference the NgForm controller. This is the same idea we used for our form controls with NgModel, 
+													except this local template variable will reference the entire form.
+													
+													NgForm is a directive that creates a top-level FormGroup instance and binds it to a form to track aggregate form value and validation status.
+													
+													https://www.concretepage.com/angular-2/angular-2-ngform-with-ngmodel-directive-example
+													
+													To understand NgForm, we should be aware with following classes. 
+														FormControl : This class tracks the value and validation status of an individual form control. 
+														FormGroup : This class tracks the value and validity state of a group of FormControl.
+
+														@NgModule({
+														  imports: [     
+																BrowserModule,
+																FormsModule
+
+														Once we import FormsModule, NgForm directive becomes active by default on all <form> tags.
+														
+														<form #userForm="ngForm" (ngSubmit)="onFormSubmit(userForm)">
+														
+														Exporting NgForm into local template variable is optional but useful.
+														Here local template variable is userForm. Using local template variable we can access form in our HTML template as following. 
+															userForm.value: 
+															userForm.valid: 
+															userForm.touched: 
+															userForm.submitted:
+															
+														onFormSubmit(userForm: NgForm) {
+															console.log(userForm.value);
+															console.log('Name:' + userForm.controls['name'].value);
+															console.log('Form Valid:' + userForm.valid);
+															console.log('Form Submitted:' + userForm.submitted);
+														}	
+
+													
+													
+												REACTIVE FORMS	
+												
+													The alternative to template-driven forms, reactive forms, is the other way to design your forms in Angular. 
+													The name reactive comes from the style of programming known as reactive, where you have immutable data structures and your views never mutate them directly.
+													That means no two-way binding is allowed.
+													The basic idea is that your form has a copy of the original model that it uses while the user is editing the form, and upon saving, 
+													you trigger an action like saving it to the database and update the original model. 
+													Template-driven forms only have one shared model, and because values are being constantly synced between the two, there may be timing issues of 
+													values changing in multiple places.
+													
+													export class InvoiceFormComponent implements OnInit {
+														invoiceForm: FormGroup;
+														...
+														this.invoiceForm = this.formBuilder.group({
+																		id: [''],
+																		service: ['', Validators.required],
+																		customerId: ['', Validators.required],
+																		rate: ['', Validators.required],
+																		hours: ['', Validators.required],
+																		date: ['', Validators.required],
+																		paid: ['']
+																		});
+														...
+														this.route.params.map((params: Params) => params.invoiceId).
+														subscribe(invoiceId => {
+															if (invoiceId) {
+																this.invoicesService.get<Invoice>(invoiceId).subscribe(invoice => {
+																this.invoiceForm.setValue(invoice);
+
+														<form *ngIf="invoice" [formGroup]="invoiceForm">
+															<input name="service" mdInput type="text" placeholder="Service" formControlName="service">
+															<input name="hours" mdInput type="number" placeholder="Hours"	formControlName="hours">
+
+													The first step is to use the FormGroup directive to bind the form we declared to the form element. 
+													If you miss this step, the form won’t know about the model you defined.
+													Then we just linked the form controls with the name used when we built the form, and at this point the form will now render properly.
+													
+													Watching changes
+														Unlike in template-driven forms, our reactive form controller has the source of truth
+														for the form state, and it gives us the ability to observe a form or a single control
+														for changes. This lets us run logic that might be useful, such as validation or saving progress.
+														In our case, we want to display the total invoice amount at the bottom, and that
+														requires multiplying the hours and rate. Each form control exposes an observable that
+														we can use to subscribe to changes, and we’ll use it to get both hours and rate values.
+														
+														Observable.combineLatest(
+															this.invoiceForm.get('rate').valueChanges,
+															this.invoiceForm.get('hours').valueChanges
+															).subscribe(([rate = 0, hours = 0]) => {
+															this.total = rate * hours;
+														});
+														
+														Custom validators with reactive forms
+														
+														Previously, when we implemented custom validation, we created both a validation function and a directive. 
+														With reactive forms, we only need to create the validation function and then add it into the form when we create it with FormBuilder.
+														
+														
+														this.invoiceForm = this.formBuilder.group({
+																		id: [''],
+																		service: ['', Validators.required],
+																		customerId: ['', Validators.required],
+																		rate: ['', Validators.required],
+																		hours: ['', [Validators.required, HoursValidator]],
+																		date: ['', Validators.required],
+																		paid: ['']
+																		});
+																		
+														<md-error *ngIf="invoiceForm.get('service').touched && invoiceForm.get('service').invalid">
+															Service is required
+														</md-error>
+
+											Custom Form Controls
+											
+												Book
+												
+												
+											Testing tools
+												Jasmine   -> Framework to writing tests,capable of connecting witha browser to execute tests using the browser's Javascript engine.
+												Karma     -> Can control any type of framework, run tests on multiple browsers at once and provide features for continuos integration tools.
+												Protactor -> Geared at helping run e2e type tests, control the browser like a real user,It's built on WebDriver, a specification for how to control a browser
+															 through automation.
+															 
+															 Unit Test
+																Isolated (for instance Pipe and Service)
+																Rendering a test bed module (mini Angular application)
+																
+																Anatomy
+																	describe
+																	it
+																	expect
+																	beforeEach/beforeAll
+																	afterEach/afterAll
+																	
+															Pipe
+																
+																import { ChangePipe } from './change.pipe';
+																import { CurrencyPipe, PercentPipe } from '@angular/common';
+																
+																describe('ChangePipe', () => {
+																	const currencyPipe = new CurrencyPipe('en-us');
+																	const percentPipe = new PercentPipe('en-us');
+																	const pipe = new ChangePipe(currencyPipe, percentPipe);
+																	
+																	const stock = {
+																		symbol: 'abc',
+																		lastTradePriceOnly: 10,
+																		change: 1,
+																		changeInPercent: 0.05
+																	};
+																	
+																	it('create an instance', () => {
+																		expect(pipe).toBeTruthy();
+																	});
+																	
+																	it('should transform a stock value', () => {
+																		expect(pipe.transform(stock)).toEqual(`$1.00 (5.00%)`);
+																		stock.change = -3.45;
+																		stock.changeInPercent = -0.0345;
+																		expect(pipe.transform(stock)).toEqual(`-$3.45 (-3.45%)`);
+																	});
+																});
+																
+																Service
+																	Because this service uses the HttpClient service, we also have to provide a solution to mocking HTTP requests.
+																	We do not want to make real HTTP calls during our unit tests.Angular provides a way to intercept HTTP requests and lets us send back a 
+																	mock response body that we can test.
+																	
+																	
+																	describe('Service: Stocks', () => {
+																		const baseUrl = 'https://angular2-in-action-api.herokuapp.com';
+																		let service, http;
+																		
+																		beforeEach(() => {
+																			TestBed.configureTestingModule({
+																				imports: [ HttpClientTestingModule ],
+																				providers: [ StocksService ]
+																			});
+																			service = TestBed.get(StocksService);
+																			http = TestBed.get(HttpTestingController);
+																		});
+																		
+																		afterEach(() => {
+																			http.verify();
+																		});
+																		
+																		it('should instantiate', () => {
+																			expect(service).toBeTruthy();
+																		});
+																		
+																		it('should manage a list of stocks', () => {
+																			expect(service.get()).toEqual(MockSymbolsList);
+																			service.add('TEST');
+																			expect(service.get()).toEqual([...MockSymbolsList, 'TEST']);
+																			service.remove('TEST');
+																			expect(service.get()).toEqual(MockSymbolsList);
+																		});
+																		
+																		it('should load the stock data from API', (done) => {
+																			service.load(MockSymbolsList).subscribe(result => {
+																				expect(result).toEqual(MockStocksResponse);
+																				done();
+																			});
+																			
+																			const request = http.expectOne(baseUrl + '/stocks/snapshot?symbols=' +MockSymbolsList.join(','));
+																			request.flush(MockStocksResponse);
+																		});
+																		
+																		In the last method is saying that we want to call the load method, subscribe to the response, and
+																		when it returns, verify that it matches our expectations. Finally it calls the done function
+																		to tell the test it has finished. This will make the observable subscribe immediately,
+																		but since we imported the HttpClientTestingModule, it won’t fire a request yet allowing
+																		the code after this block to execute.
+																		Then we use the HttpTestingController (part of the HttpClientTestingModule,
+																		which we injected in the beforeEach earlier), and we declare that we expect one URL to
+																		be called. We build the expected URL, pass it to http.expectOne, and then the test will
+																		know to look out for this URL.
+																		That’s the first line of the following code, and the second line tells the test to finally flush, or resolve, any pending requests
+																		for this URL, and takes an argument with the payload to send:
+																		Because our service should have made this request, at this point the result should be
+																		returned like a real response. The subscribe method would emit the MocksStockResponse
+																		object (because that’s what the flush method sends), and then the test would verify
+																		the match to complete the test.
+																		
+																	STUBBING A SERVICE	
+																		This will help simplify our other tests because our stub won’t call HTTP, and that allows us to avoid having to do the HTTP mocking 
+																		in every component that calls the service for data.
+																		
+																		import { Observable } from 'rxjs/Rx';
+																		import { HttpClient } from '@angular/common/http';
+																		import { MockNewsResponse, MockStocksResponse, MockSymbolsList } from './stocks.mock';
+																		import { StocksService } from './stocks.service';
+																		
+																		export class StubStocksService extends StocksService {
+																			constructor() {
+																				super({} as HttpClient);
+																			}
+																			
+																			load(symbols: string[]) {
+																				return Observable.of(MockStocksResponse);
+																			}
+																			
+																			getNewsSnapshot(source: string) {
+																				return Observable.of(MockNewsResponse);
+																			}
+																		}
+																		
+																		list of some common side effects of a service and why you would stub them:
+																			Asynchronous —If there are async events, tests have to be written in a way that handles that behavior. 
+																			              This can make them harder to test, but writing a stub for these can eliminate that.
+																			External dependencies —When an entity requires an external dependency (such as the Http service), it may require jumping through 
+																						  additional hoops to set up, and that can be avoided by stubbing it.
+																			Internal state —Sometimes services or entities have internal state that you need to manipulate in your tests, but the service doesn’t expose. 
+																			                A stub can expose additional logic to allow you to mutate that state.
+																			Redirects —Anytime an entity tries to redirect the user away from the current context, this usually breaks the test. 
+																			           Stubbing can prevent the location changes. This is usually a challenge for tests that deal with user authentication, for example.
+																					   
+																Testing COMPONENTS					   
+																		When we want to test a component, we need to start by creating a test module that’s a miniature Angular application with the bare 
+																		minimum required to set up and run.
+																		
+																		describe('ManageComponent', () => {
+																			let component: ManageComponent;
+																			let fixture: ComponentFixture<ManageComponent>;
+																			let el: HTMLElement;
+																			
+																			beforeEach(() => {
+																				TestBed.configureTestingModule({
+																					imports: [
+																						FormsModule,
+																					],
+																					declarations: [
+																						ManageComponent
+																					],
+																					providers: [
+																						{ provide: StocksService, useClass: StubStocksService }
+																					]
+																				});
+																			}))
+																			
+																			beforeEach(() => {
+																			fixture = TestBed.createComponent(ManageComponent);
+																			component = fixture.componentInstance;
+																			el = fixture.debugElement.nativeElement;
+																			fixture.detectChanges();
+																			});
+																			
+																			it('should create the component', () => {
+																				expect(component).toBeTruthy();
+																			});
+
+																			it('should add or remove symbols from the list', () => {
+																				expect(component.symbols).toEqual(MockSymbolsList);
+																				component.stock = 'ABC';
+																				component.add();
+																				expect(component.symbols).toEqual([...MockSymbolsList, 'ABC']);
+																				component.remove('ABC');
+																				expect(component.symbols).toEqual(MockSymbolsList);
+																			});
+																			
+																			it('should render the template with a list of stocks', () => {
+																				const items = el.querySelectorAll('td.mdl-data-table__cell--nonnumeric');
+																				for (let i = 0; i < items.length; ++i) {
+																					expect(items[i].innerHTML).toContain(MockSymbolsList[i]);
+																				}
+																			});
+																			
+																			});
+																			
+																			
+																There’s also another way to look at the rendered view, by using the Angular DebugElement. 
+																Instead of using the native DOM element directly, the DebugElement gives us a few additional options, the most powerful of which allows us 
+																to query the element based on a directive instead of only CSS selectors.
+
+																@Directive({
+																	selector: '[delay]'
+																	})
+																	class StubDelayDirective {
+																	@Input() set delay(ms: number) { this.viewContainer.createEmbeddedView(this.templateRef); }
+																	
+																	constructor(private templateRef: TemplateRef<any>, private viewContainer:
+																		ViewContainerRef) { }
+																	}
+																	
+																	@Component({
+																		selector: 'summary',
+																	template: '<div class="mdl-card">{{stock}}</div>'
+																	})
+																	class StubSummaryComponent {
+																		@Input() stock;
+																	}
+																	
+																	describe('DashboardComponent', () => {
+																		let component: DashboardComponent;
+																		let fixture: ComponentFixture<DashboardComponent>;
+																		let de: DebugElement;
+																		
+																		beforeEach(() => {
+																			TestBed.configureTestingModule({
+																				declarations: [
+																					DashboardComponent,
+																					StubSummaryComponent,
+																					StubDelayDirective,
+																					CardTypeDirective,
+																					CardHoverDirective
+																				],
+																				providers: [
+																					{ provide: StocksService, useClass: StubStocksService }
+																				]
+																			});
+																			});
+																			
+																	beforeEach(() => {
+																		fixture = TestBed.createComponent(DashboardComponent);
+																		component = fixture.componentInstance;
+																		de = fixture.debugElement;
+																		expect(component.stocks).toBeFalsy();
+																		fixture.detectChanges();
+																		expect(component.stocks).toBeTruthy();
+																	});
+																	
+																	it('should create the component', () => {
+																		expect(component).toBeTruthy();
+																		});
+																		
+																	it('should render the template', () => {
+																		expect(de.query(By.css('.mdl-cell')).properties.innerHTML).not.toContain('Loading');
+																		expect(de.queryAll(By.directive(StubSummaryComponent)).length).
+																		toEqual(MockSymbolsList.length);
+																	});
+																	});
+																		
 							Bootstrapping process
 								The CLI uses webpack to build, and it compiles all the JavaScript and adds it as script tags to the bottom of the index.html on build.
 								This is when it will run the code to begin your app.
