@@ -111,7 +111,7 @@ Dependency Injection
 				</beans>
 				
 				IN A SPRING-BASED APPLICATION, YOUR APPLICATION OBJECTS LIVE IN THE SPRING CONTAINER!!!!!!
-				Spring container implementation can be catagorized into two distinct types :
+				Spring container implementation can be categorized into two distinct types :
 					1 BEAN FACTORIES
 					2 APPLICATION CONTEXTS
 						AnnotationConfigApplicationContext
@@ -130,7 +130,7 @@ Dependency Injection
 						BeanNameAware (if bean implement BeanNameAware interface) the method setBeanName is called
 							setBeanName() -> Spring passes the bean's ID
 						BeanFactoryAware
-							setBeanFactory -> Passes bean factory itseld
+							setBeanFactory -> Passes bean factory itself
 						ApplicationContextAware
 							setApplicationContext()
 						BeanPostProcessor
@@ -149,7 +149,7 @@ Dependency Injection
 					XML
 					JAVA
 					AUTOMATIC WIRING
-						@Component(@Named) -> Identifies a class as a component and serves as a clue to Spting that a bean should be created for the class.
+						@Component(@Named) -> Identifies a class as a component and serves as a clue to Spring that a bean should be created for the class.
 						
 						@Configuration
 						@ComponentScan()packages to be scanned ->("soundsystem") || (basePacjages={"soudsystem","video"}) || basePackageClasses={CDPlayer.class,DVDPlayer.class}
@@ -2394,6 +2394,214 @@ broker with a STOMP broker relay by overriding the configureMessage-
 Broker() method
 
 SPRING BOOT
+
+	Core
+		Automatic configuration
+			If Spring Boot detects that we have the H2 database library in your application’s classpath, it will automatically configure an embedded H2 database. If JdbcTemplate is in the classpath, 
+			then it will also configure a JdbcTemplate bean for us.
+		Starter dependencies
+		CLI
+		The Actuator
+		
+		Spring Initializer
+		
+		@SpringBootApplication
+		public class ReadingListApplication {
+		
+			public static void main(String[] args) {
+				SpringApplication.run(ReadingListApplication.class, args);
+			}
+		}
+		
+		@SpringBootApplication enables Spring component-scanning and Spring Boot auto-configuration.combines three other useful annotations:
+			@Configuration
+			@ComponentScan
+			@EnableAutoConfiguration
+			
+		ReadingListApplication is also a bootstrap class. There are several ways to run Spring Boot applications, including traditional WAR file deployment. 
+		But for now the main() method here will enable you to run your application as an executable JAR file from the command line.
+		When you add Spring Boot to your application, there’s a JAR file named springboot- autoconfigure that contains several configuration classes. 
+		Every one of these configuration classes is available on the application’s classpath and has the opportunity to contribute to the configuration of your application. 
+		There’s configuration for Thymeleaf, configuration for Spring Data JPA, configuration for Spring MVC, and configuration for dozens of other things you might or might not want to take advantage of in
+		your Spring application.
+		It leverages Spring’s support for conditional configuration, which was introduced in Spring 4.0. Conditional configuration allows for configuration to be available in an application, but to
+		be ignored unless certain conditions are met.
+
+		public class JdbcTemplateCondition implements Condition {
+			@Override
+			public boolean matches(ConditionContext context,AnnotatedTypeMetadata metadata) {
+				try {
+					context.getClassLoader().loadClass("org.springframework.jdbc.core.JdbcTemplate");
+					return true;
+				} catch (Exception e) {
+					return false;
+				}
+			}
+		}
+
+		@Conditional(JdbcTemplateCondition.class)
+		public MyService myService() {
+		...
+		}
+
+		@ConditionalOnBean
+		@ConditionalOnMissingBean
+		@ConditionalOnClass
+		@ConditionalOnMissingClass
+		@ConditionalOnExpression
+		
+		Override auto-configuration with explicit configuration
+			Add security to the application
+				Add in Maven the followinf dependency :
+				<dependency>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-security</artifactId>
+				</dependency>
+				
+				The security starter adds Spring Security (among other things) to the application’s classpath.
+				With Spring Security on the classpath, auto-configuration kicks in and a very basic Spring Security setup is created.
+				
+				Configuration classes that extend WebSecurityConfigurerAdapter can override two different configure() methods.
+				
+				@Configuration
+				@EnableWebSecurity
+				public class SecurityConfig extends WebSecurityConfigurerAdapter {
+					@Autowired
+					private ReaderRepository readerRepository;
+					
+					@Override
+					protected void configure(HttpSecurity http) throws Exception {
+					http.authorizeRequests().antMatchers("/").access("hasRole('READER')").antMatchers("/**").permitAll()
+					.and()
+					.formLogin().loginPage("/login").failureUrl("/login?error=true");
+					}
+					
+					@Override
+					protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+						auth.userDetailsService(new UserDetailsService() {
+													@Override
+													public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+														return readerRepository.findOne(username);
+													}
+					});
+					}
+				}
+				
+				Externalizing configuration with properties
+				
+					1 Command-line arguments
+					2 JNDI attributes from java:comp/env
+					3 JVM system properties
+					4 Operating system environment variables
+					5 Randomly generated values for properties prefixed with random.* (referencedwhen setting other properties, such as `${random.long})
+					6 An application.properties or application.yml file outside of the application
+					7 An application.properties or application.yml file packaged inside of the application
+					8 Property sources specified by @PropertySource
+					9 Default properties
+				
+				As for the application.properties and application.yml files, they can reside in any of four locations:
+					1 Externally, in a /config subdirectory of the directory from which the application is run
+					2 Externally, in the directory from which the application is run
+					3 Internally, in a package named config"
+					4 Internally, at the root of the classpath
+					
+					
+				Configuring with profiles
+					
+			
+				@Profile("production")
+				@Configuration
+				@EnableWebSecurity
+				public class SecurityConfig extends WebSecurityConfigurerAdapter {
+					...
+				}
+		
+				
+				The @Profile annotation used here requires that the "production" profile be active at runtime for this configuration to be applied. If the "production" profile isn’t active,
+				this configuration will be ignored and, for lack of another overriding security configuration, the auto-configured security configuration will be applied.
+				using application.properties to express configuration properties, you can provide profile-specific properties by creating additional properties files named with
+				the pattern "application-{profile}.properties".
+				
+				Configure Error
+					Ultimately this depends on the view resolvers in place when the error view is being resolved. This includes
+						 Any bean that implements Spring’s View interface and has a bean ID of "error" (resolved by Spring’s BeanNameViewResolver)
+						 A Thymeleaf template named "error.html" if Thymeleaf is configured
+						 A FreeMarker template named "error.ftl" if FreeMarker is configured
+						 A Velocity template named "error.vm" if Velocity is configured
+						 A JSP template named "error.jsp" if using JSP views
+						 
+				TESTS
+					SpringJUnit4ClassRunner helps load a Spring application context in JUnit-based application tests.
+					When integration testing a Spring application, it’s important to let Spring wire up the beans that are the target of the test the same way it wires up those beans when the
+					application is running in production. Sure, you might be able to manually instantiate the components and inject them into each other, but for any substantially big application,
+					that can be an arduous task. Moreover, Spring offers additional facilities such as component-scanning, autowiring, and declarative aspects such as caching, transactions,
+					and security. Given all that would be required to recreate what Spring does, it’s generally best to let Spring do the heavy lifting, even in an integration test.
+					Spring has offered excellent support for integration testing since version 1.1.1.
+					Since Spring 2.5, integration testing support has been offered in the form of SpringJUnit4ClassRunner, a JUnit class runner that loads a Spring application context
+					for use in a JUnit test and enables autowiring of beans into the test class.
+					Although @ContextConfiguration does a great job of loading the Spring application context, it doesn’t load it with the full Spring Boot treatment. 
+					Spring Boot applications are ultimately loaded by SpringApplication, either explicitly (as in listing 2.1) or using SpringBootServletInitializer (which we’ll look at in chapter 8). 
+					SpringApplication not only loads the application context, but also enables logging, the loading of external properties (application.properties or application.yml), and other features 
+					of Spring Boot. If you’re using @ContextConfiguration, you won’t get those features.
+					To get those features back in your integration tests, you can swap out @ContextConfiguration for Spring Boot’s @SpringApplicationConfiguration.
+					To properly test a web application, you need a way to throw actual HTTP requests at it and assert that it processes those requests correctly.
+					 1	Spring Mock MVC—Enables controllers to be tested in a mocked approximation of a servlet container without actually starting an application server
+					 2	Web integration tests—Actually starts the application in an embedded servlet container (such as Tomcat or Jetty), enabling tests that exercise the application in a real application server
+					 
+					 1 To set up a Mock MVC in your test, you can use MockMvcBuilders. This class offers two static methods:
+						standaloneSetup()—Builds a Mock MVC to serve one or more manually created and configured controllers
+						webAppContextSetup()—Builds a Mock MVC using a Spring application context, which presumably includes one or more configured controllers
+						
+						The primary difference between these two options is that standaloneSetup() expects you to manually instantiate and inject the controllers you want to test, whereas
+						webAppContextSetup() works from an instance of WebApplicationContext, which itself was probably loaded by Spring.
+						
+				Customizing the Actuator
+					Renaming endpoints
+					Enabling and disabling endpoints
+					Defining custom metrics and gauges
+					Creating a custom repository for storing trace data
+					Plugging in custom health indicators
+					
+					Suppose, for instance, that we want a metric that reports how many times a user has saved a book to their reading list.
+					Let’s also suppose that we want to capture a timestamp for the last time a book was saved.
+					
+					As it turns out, the auto-configuration that enables the Actuator also creates an instance of CounterService and registers it as a bean in the Spring application context.
+					CounterService is an interface that defines three methods for incrementing, decrementing, or resetting a named metric, as shown here:
+					
+					package org.springframework.boot.actuate.metrics;
+						
+						public interface CounterService {
+							void increment(String metricName);
+							void decrement(String metricName);
+							void reset(String metricName);
+						}
+						
+					Actuator auto-configuration will also configure a bean of type GaugeService, an interface similar to CounterService that lets you record a single value to a named gauge metric.
+					GaugeService looks like this:
+					
+					package org.springframework.boot.actuate.metrics;
+					
+						public interface GaugeService {
+							void submit(String metricName, double value);
+						}
+						
+						We don’t need to implement either of these interfaces; Spring Boot already provides implementations for them both.
+						All we must do is inject the CounterService and GaugeService instances into any other bean where they’re needed, and call the methods to update whichever metrics we want.
+						There are some metrics that are hard to capture by incrementing a counter or recording a gauge value.
+						For those cases, we can implement the PublicMetrics interface and provide as many custom metrics as we want. 
+						The PublicMetrics interface defines a single metrics() method that returns a collection of Metric objects:
+						
+								package org.springframework.boot.actuate.endpoint;
+							
+								public interface PublicMetrics {
+								Collection<Metric<?>> metrics();
+								}
+								
+						Creating a custom trace repository		
+					
+				
+				
+	
 
 
 															

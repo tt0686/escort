@@ -1832,7 +1832,62 @@ ANGULAR
 																		toEqual(MockSymbolsList.length);
 																	});
 																	});
-																		
+																	
+																	
+														Async Tests
+															https://www.joshmorony.com/testing-asynchronous-code-with-fakeasync-in-angular/
+															https://blog.nrwl.io/controlling-time-with-zone-js-and-fakeasync-f0002dfbf48c
+															https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
+															https://alligator.io/angular/testing-async-fakeasync/
+															
+															fakeAsync
+																fake async events, specifically intervals and timeouts
+															
+															async
+																wait for async events to finalize before continuing execution
+																
+																@Component({
+																	template: `<div *delay="delay"><h1>DELAYED</h1></div>`
+																})
+																class MockComponent {
+																	delay = 10;
+																}
+																	
+																describe('DelayDirective', () => {
+																	let fixture: ComponentFixture<MockComponent>;
+																	let el: HTMLElement;
+																	
+																	beforeEach(() => {
+																		TestBed.configureTestingModule({
+																			declarations: [MockComponent,DelayDirective]
+																		});
+																	});
+																	
+																	beforeEach(() => {
+																		fixture = TestBed.createComponent(MockComponent);
+																		el = fixture.debugElement.nativeElement;
+																	});
+																	
+																	it('should show after the specified delay using fakeAsync', fakeAsync(() =>
+																	{
+																		expect(el.innerHTML).not.toContain('DELAYED');
+																		fixture.detectChanges();
+																		tick(10);
+																		expect(el.innerHTML).toContain('DELAYED');
+																	}));
+																	
+																	it('should show after the specified delay using async', async(() => {
+																		expect(el.innerHTML).not.toContain('DELAYED');
+																		fixture.detectChanges();
+																		fixture.whenStable().then(() => {
+																			fixture.detectChanges();
+																			expect(el.innerHTML).toContain('DELAYED');
+																		});
+																	}));
+																	});
+																	
+													e2e tests
+														
 							Bootstrapping process
 								The CLI uses webpack to build, and it compiles all the JavaScript and adds it as script tags to the bottom of the index.html on build.
 								This is when it will run the code to begin your app.
