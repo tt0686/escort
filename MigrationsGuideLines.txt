@@ -1,0 +1,64 @@
+Migration
+	Should we use Flux design pattern ?
+	Should we use onChange instead of input binding
+	Profiling with interceptors ?
+	Transfer all the data of all the details presented in the list (But under the hood , to avoid more RTT) ?
+	
+	TOKEN WEB APPLICATION JWT
+		Session user information is not stored in session
+			LESS MEMORY OVERHEAD
+			SCALABILITY
+				Session sharing
+				
+		https://scotch.io/tutorials/the-ins-and-outs-of-token-based-authentication	
+		https://dzone.com/articles/cookies-vs-tokens-the-definitive-guide
+
+	Token Based is stateless, the server does not store any information about the user in the session
+		No session information means your application can scale and add more machines as necessary without worrying about where a user is logged in.
+		
+	
+	Java 
+	Should we use some kind of singleton or framework where is centralized all the visibility rules ?
+	
+PRE LOADING ROUTES
+		https://vsavkin.com/angular-router-preloading-modules-ba3c75e424cb.
+		
+logs framework PROFILING
+tests TDD
+
+ATENTION TO ENVIRONMENT ISSUES : HOW IS IMPLEMENTED RIGHT NOW ?
+	
+	
+Javascript tools
+	Code  playground
+		plnkr.co(Plunker)
+		jsfiddle
+		Css Deck
+		
+	SessionStack
+	source-map-exp
+	
+	
+SPRING BOOT
+LAST JAVASCRIPT
+NEW SPRING CAPABILITIES / WORK
+
+
+TASK
+
+MAVEN
+	STRUCTURE
+	
+	BUILD MENU -> GROUPS
+		TOKEN
+		JPA <----
+		login
+	
+	ADD SWEETDEV APPLICATION
+	
+JS Links
+http://ryanmorr.com/understanding-scope-and-context-in-javascript/
+https://www.html5rocks.com/en/tutorials/cors/
+	
+	
+	
