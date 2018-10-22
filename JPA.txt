@@ -1,0 +1,22 @@
+JPA
+	Entity Managers
+		Persistence Unit is a named configuration of entity classes
+		Persistence Context is a managed set of entity instances.
+		EVERY PERSISTENCE CONTEXT IS ASSOCIATED WITH A PERSISTENCE UNIT,RESTRICTING THE CLASSES OF THE MANAGED INSTANCES TO THE SET DEFINED BY THE PERSISTENCE UNIT.
+		A ENTITY INSTANCE IS MANAGED MEANS THAT IS CONTAINED WITHIN A PERSISTENCE CONTEXT AND IT CAN BE ACTED UPON BY AN ENTITY MANAGER.
+		
+		IF THE PERSISTENCE CONTEXT PARTICIPATES IN A TRANSACTION, THE IN-MEMORY STATE OF THE MANAGED ENTITIES WILL GET SYNCHRONIZED TO THE DATABASE!
+		
+		
+		CONTAINER MANAGED ENTITY MANAGER
+			JTA(Transaction scoped)(Single Transaction)
+				Every time an operation is invoked on the entity manager, the container proxy for that entity manager checks to see whether a persistence context is associated with the container JTA transaction. 
+				If it finds one, the entity manager will use this persistence context. If it doesn’t find one, it creates a new persistence context and associates it with the transaction.
+			EXTENDED(Scoped to the life of the stateful session bean)
+		
+		APPLICATION MANAGED ENTITY MANAGER
+			Any entity manager that is created from the createEntityManager() call of an EntityManagerFactory instance, is what we call an application-managed entity manager.
+			Application Managed Entity Manager are the only entity manager type available in Java SE!!!
+			What separates Java SE and Java EE for application-managed entity managers is not how you create the entity manager but how you get the factory.
+			In terms of the persistence context, the application-managed entity manager is similar to an extended container-managed entity manager!!!
+			When an application-managed entity manager is created, it creates its own private persistence context that lasts until the entity manager is closed.
