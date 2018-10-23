@@ -13,6 +13,8 @@ JPA
 				Every time an operation is invoked on the entity manager, the container proxy for that entity manager checks to see whether a persistence context is associated with the container JTA transaction. 
 				If it finds one, the entity manager will use this persistence context. If it doesn’t find one, it creates a new persistence context and associates it with the transaction.
 			EXTENDED(Scoped to the life of the stateful session bean)
+			
+			ALWAYS USE JTA TRANSACTIONS
 		
 		APPLICATION MANAGED ENTITY MANAGER
 			Any entity manager that is created from the createEntityManager() call of an EntityManagerFactory instance, is what we call an application-managed entity manager.
@@ -20,3 +22,186 @@ JPA
 			What separates Java SE and Java EE for application-managed entity managers is not how you create the entity manager but how you get the factory.
 			In terms of the persistence context, the application-managed entity manager is similar to an extended container-managed entity manager!!!
 			When an application-managed entity manager is created, it creates its own private persistence context that lasts until the entity manager is closed.
+			The role of the application-managed entity manager in Java EE is somewhat specialized. 
+			If resource-local transactions are required for an operation, an application-managed entity manager is the only type of entity manager that can be configured with that transaction type within the server.
+			
+			CAN USE JTA OR RESOURCE LOCAL TRANSACTIONS
+			
+			TRANSACTIONS DEFINE WHEN NEW, CHANGED, OR REMOVED ENTITIES ARE SYNCHRONIZED TO THE DATABASE.
+			ALL PERSISTENCE CONTEXTS BEHAVE THE SAME WAY WHEN THEY ARE ASSOCIATED WITH A TRANSACTION.
+			TWO TYPES OF TRANSACTIONS:
+				RESOURCE LOCAL(Managed by the JDBC driver)
+				JTA (Managed by the server)
+				
+			THERE CAN BE ONLY ONE PERSISTENCE CONTEXT ASSOCIATED WITH AND PROPAGATED ACROSS A JTA TRANSACTION. ALL CONTAINER-MANAGED ENTITY MANAGERS IN THE SAME TRANSACTION MUST SHARE THE SAME PROPAGATED PERSISTENCE CONTEXT.
+			
+			Two different beans
+			
+			@Stateless
+			public class EmployeeService{
+				@PersistenceContext(unitName="EmployeeService")
+				EntityManager em;
+				
+				@EJB
+				AuditService audit;
+				
+				public void createEmployee(Employee emp){
+					em.persist(emp);
+					audit.logTransaction(emp.getId(), "created employee");
+					....
+					
+			@Stateless
+			public class AuditService{
+				@PersistenceContext(unitName="EmployeeService")
+				EntityManager em;
+				
+				public void logTransaction(int empId, String action){
+					if (em.find(Employee.class, empId) == null) {
+						throw new IllegalArgumentException("Unknown employee id");
+					}
+					
+		EVEN THOUGH THE NEWLY CREATED EMPLOYEE IS NOT YET IN THE DATABASE, THE AUDIT BEAN CAN FIND THE ENTITY AND VERIFY THAT IT EXISTS. THIS WORKS BECAUSE THE TWO BEANS ARE ACTUALLY SHARING THE SAME PERSISTENCE CONTEXT.
+		Now consider the case where logTransaction() has been declared with the REQUIRES_NEW transaction attribute instead of the default REQUIRED. Before the logTransaction() method call starts, 
+		the container will suspend the transaction inherited from createEmployee() and start a new transaction. When the find() method is invoked on the entity manager, it will check the current transaction for an
+		active persistence context only to determine that one does not exist. A new persistence context will be created starting with the find() call, and this persistence context will be the active persistence 
+		context for the remainder of the logTransaction() call. Because the transaction started in createEmployee() has not yet committed, the newly created Employee instance is not in the database and therefore 
+		is not visible to this new persistence context. The find() method will return null, and the logTransaction() method will throw an exception as a result.
+		
+		PERSISTENCE CONTEXT INHERITANCE BETWEEN EXTENDED CONTAINER MANAGER!!!
+		
+		Application managed persistence context can by synchronized with JTA transactions BUT the persistence context will not by considered associated by any container managed entity manager.
+		THERE IS NO LIMIT TO THE NUMBER OF APPLICATION MANAGED PERSISTENCE CONTEXTS THAT CAN BE SYNCHRONIZED WITH A TRANSACTION BUT ONLY ONE CONTAINER MANAGED PERSISTENCE CONTEXT WILL EVER BE ASSOCIATED!!!
+		APPLICATION MANAGED ENTITY MANAGERS DO NOT PROPAGATE,THE ONLY WAY TO SHARE MANAGED ENTITIES WITH OTHER COMPONENTS IS TO SHARE THE ENTITY MANAGER ITSELF!!!
+		
+		Application Managed entity manager participates in JTA transactions in one of the two ways :
+			1 : Persistence Context is created inside the transaction it will be automatically synchronized with the transaction
+			2 : If created outside  the persistence context could be manually synchronized through the calling joinTransaction()
+			
+			@Stateful
+			public class DepartmentManager {
+				@PersistenceUnit(unitName="EmployeeService")
+				EntityManagerFactory emf;
+				EntityManager em;
+				Department dept;
+				
+				public void init(int deptId) {    <- Created inside the transaction
+					em = emf.createEntityManager();
+					dept = em.find(Department.class, deptId);
+				}
+				public String getName() {
+					return dept.getName();
+				}
+				public void addEmployee(int empId) {
+					em.joinTransaction();    <- Must be joined !!!
+					Employee emp = em.find(Employee.class, empId);
+					...
+					
+			ENTITYMANAGERFACTORY INSTANCES ARE THREAD-SAFE
+			ENTITYMANAGER INSTANCES ARE NOT.
+			
+			
+			public class EmployeeServlet extends HttpServlet {
+				@PersistenceUnit(unitName="EmployeeService")
+				EntityManagerFactory emf;
+				@Resource UserTransaction tx;   <-Must Use the manual transactions because the servlet is not a bean!!!
+				
+				protected void doPost(HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+					// ...
+					int id = Integer.parseInt(request.getParameter("id"));
+					String name = request.getParameter("name");
+					long salary = Long.parseLong(request.getParameter("salary"));
+					tx.begin();
+					EntityManager em = emf.createEntityManager();                  <- Created inside a transaction so it is synchronize automatically
+					try {
+						EmployeeService service = new EmployeeService(em);
+						service.createEmployee(id, name, salary);
+					} finally {
+						em.close();   <- it could be closed before the transaction commits !!!
+					}
+						tx.commit();
+					// ...
+					}
+				}
+				
+			Unsynchronized Persistence Contexts
+				Besides the case of the application managed entity manager that starts outside of a transaction and that needs to be explicitly joined ir order to cause its managed entity changes to be transactionally
+				committed.There is another persistence context option that exhibits similar behaviour.
+				
+				Container Managed
+				@PersistenceContext(unitName="EmployeeService",synchronization=UNSYNCHRONIZED)
+				EntityManager em;
+				
+				Application Managed
+				@PersistenceUnit(unitName="EmployeeService")
+				EntityManagerFactory emf;
+				...
+				EntityManager em = emf.createEntityManager(UNSYNCHRONIZED);
+				
+				Neither of these persistence contexts will be synchronized with the JTA transaction unless they are explicitly joined using joinTransaction(). 
+				Once joined to the transaction, they will remain joined until that transaction completes, but being joined to one transaction will not imply being joined to subsequent transactions.
+				An unsynchronized persistence context must be explicitly joined to each and any transaction it wants to be enlisted in.
+				
+				Regardless of whether the persistence context has been joined to the transaction or not, the unsynchronized persistence context will be propagated when the JTA transaction is propagated. 
+				There is, however, one exception to this rule for unsynchronized persistence contexts. An unsynchronized persistence context, regardless of whether it is joined or not, 
+				is never propagated into a synchronized one.
+				
+			Resource Local Transactions
+				Are controlled explicitly  by the appliction.The application interact with resource-local transactions by acquiring an implementation of the javax.persistence.EntityTransaction interface.
+				Resource-local transactions in the Java EE environment might be for logging. 
+				If your application requires an audit log stored in the database that must be written regardless of the outcome of any JTA transactions
+				
+			Transaction RollBack and Entity State
+				JAVA MEMORY MODEL IS NOT TRANSACTIONAL!!!
+				WE ARE BASICALLY LEFT WITH A BUNCH OF DETACHED ENTITY INSTANCES.
+				
+			Entity Manager Operations
+				PERSIST -> Causes the new entity instance to become managed , if is already managed it is ignored.
+				The actual SQL to create the necessary relational data will not be generated until the persistence context is synchronized with the database, typically only when the transaction commits.
+				Application-managed and extended entity managers will accept the persist request, causing the entity to become managed, but no immediate action will be taken until a new transaction begins 
+				and the persistence context becomes synchronized with the transaction.This queues up the change to happen at a later time. 
+				It is only when the transaction commits that changes will be written out to the database.
+				
+					Department dept = em.find(Department.class, 30);
+					Employee emp = new Employee();
+					emp.setId(53);
+					emp.setName("Peter");
+					emp.setDepartment(dept);
+					dept.getEmployees().add(emp);
+					em.persist(emp);  <------------ Emp is the owner of the relationship(has the FK to the Department table) if we just added the Employee to the collection and not updated the other side
+					                                of the relationship,nothing would have been persisted to the database.
+													
+				FIND returns a managed entity instance in all cases except when invoked outside of a transaction on a transaction-scoped entity manager.
+				In this case, the entity instance is returned in a detached state. It is not associated with any persistence context.
+
+				REMOVE
+					Cascading operations
+						CASCADE SETTINGS ARE UNIDIRECTIONAL!!!
+						cascade=CascadeType.PERSIST/REMOVE/REFRESH/MERGE/DETACH
+						
+						REMOVE
+							There are really only two cases in which cascading the remove() operation makes sense:
+							one-to-one and one-to-many relationships, in which there is a clear parent-child relationship. 
+							It can’t be blindly applied to all one-to-one and one-to-many relationships because the target entities might also be participating in other relationships or might make sense as 
+							stand-alone entities. Care must be taken when using the REMOVE cascade option.
+							
+				CLEAR
+					Simple detach all the entities from the persistence context, is similar in semantics to the ROLLBACK
+					
+				Synchronization with database
+							PERSISTENCE CONTEXT
+								emp:Employee-------------------addr:Address   DETACHED ENTITY FROM PREVIOUS TRANSACTION
+								      |     |------------------phone1:Phone   NEW
+									  \/    |------------------phone2:Phone   NEW
+								ps:ParkingSpace
+								
+								
+							Flushing the Emp instance above, the flush algorithm is look in the ps object, because is managed we do not have to do anything further.
+                            The Phones are new , but because we use the cascade option we perform the equivalent of invoking persist() on each Phone.
+							Finally the addr object is detached so we normally will through an exception,but this particular relationship is a special case in Flush Algorithm.
+							Any time a detached object that is the target of the oneToOne or manyToOne relationship is encoutered where the source entity is the owner,the flush will still proceed 
+							because the act of persisting the owning entity does not depend on the target.The owning entity has the foreign key column and needs to store only the primary key value of the target entity.
+						
+					
+							
+			
+			
