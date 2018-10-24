@@ -1,4 +1,9 @@
 JPA
+	
+	LAZY LOADING
+		By default ManyToOne and OneToOne are eager !!!
+		Because both just return one row from database!!!
+	
 	Entity Managers
 		Persistence Unit is a named configuration of entity classes
 		Persistence Context is a managed set of entity instances.
@@ -200,7 +205,54 @@ JPA
 							Finally the addr object is detached so we normally will through an exception,but this particular relationship is a special case in Flush Algorithm.
 							Any time a detached object that is the target of the oneToOne or manyToOne relationship is encoutered where the source entity is the owner,the flush will still proceed 
 							because the act of persisting the owning entity does not depend on the target.The owning entity has the foreign key column and needs to store only the primary key value of the target entity.
-						
+							
+				MERGE
+					em.merge(emp);
+					emp.setLastAccessTime(new Date()); -> This modification it will not be written
+					
+					
+					Employee managedEmp = em.merge(emp);
+					emp.setLastAccessTime(new Date()); -> Now it will
+					
+					When merging if an entity instance with the same identifier already exists in the persistence context,the provider will overwrite its state with the state of the entity being merged and 
+					the managed version that existed already must be returned, if the provider did not update the Employee instance in the persistence context,any references to that instance will become inconsistent
+					with the new state being merged in.In the presence of relationships , the merge operation will attempt to update the managed entity to point to managed versions of the entities referenced by the 
+					detached entity.Lazy-loading relationships are a special case in the merge operation. If a lazy-loading relationship was not triggered on an entity before it became detached, that relationship
+					will be ignored when the entity is merged.
+					
+					Scenario
+							Persistence Context
+								addr1                     addr:
+								id     = 100              id=100
+								street = Jupiter          street = Urano
+								     |                       |
+								     |                    emp:Employee
+								emp1                      id=10
+								id=10                     name=Kurt
+								name = John                  |
+								                             |
+								phone1:Phone<----------------|--------dept:
+								id=20                                  id=30
+								
+								
+								After the merge on "emp" , the "emp1" instance will be updated to the values of "emp"
+								the emp1 will point to phone1 because is already managed
+								the dep is not a managed entity , so the provider will find the dept with id 30 in the database and will be become one more instance in the persistence context
+								Finally the addr1 is already managed so its not updated with the news values from "addr".
+								THIS HAPPEN BECAUSE THE MERGE IS NOT ACTIVIDATED BY DEFAULT ON THE CASCADING.
+								
+				PLANNING FOR DETACHMENT
+					1:Triggering Lazy loading methods by accessing the method
+						the entity returned from a lazy-loading relationship can actually be a proxy that waits until a method is invoked on the proxy before the entity is faulted in. 
+						We have to invoke a method on the entity to guarantee that it is actually retrieved from the database.
+					2:Configuring Eager Loading
+					3:Avoiding Detachment
+						Two ways -> Use projection queries to retrieve only the entity state that will be displayed isntead of retrieving full entity isntances.
+									Keep persistence context open
+										use User transactions plus transaction scope entity manager(Transaction View)
+										Entity manager by request -> Application managed Entity manager
+										Extended Persistence Context
+										
 					
 							
 			
