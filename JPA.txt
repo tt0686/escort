@@ -247,13 +247,97 @@ JPA
 						We have to invoke a method on the entity to guarantee that it is actually retrieved from the database.
 					2:Configuring Eager Loading
 					3:Avoiding Detachment
-						Two ways -> Use projection queries to retrieve only the entity state that will be displayed isntead of retrieving full entity isntances.
+						Two ways -> Use projection queries to retrieve only the entity state that will be displayed instead of retrieving full entity isntances.
 									Keep persistence context open
 										use User transactions plus transaction scope entity manager(Transaction View)
 										Entity manager by request -> Application managed Entity manager
 										Extended Persistence Context
 										
-					
+				MERGING
+					Facade Session
+						WE NEED TO KEEP THE DETACHED INSTANCE AROUND IN ORDER TO PRESERVE ANY RELATIONSHIPS OR OTHER STATE THAT WILL REMAIN UNCHANGED BY THE EDIT. 
+						CREATING A NEW EMPLOYEE INSTANCE AND SUPPLYING ONLY PARTIAL VALUES COULD HAVE MANY NEGATIVE SIDE EFFECTS WHEN THE INSTANCE IS MERGED.
+						
+					Edit Session
+						By placing a stateful session bean in a central location such as the HTTP session, we can operate on entities managed by the extended entity manager without having to merge in order
+						to persist changes.
+					Conversation
+						Unsynchronized Context
+						
+			Queries
+				JPQL
+					Query parameters
+						Position
+							?1
+						Named
+							:dept
+							
+					Three approaches to define a JPQL query:
+						Dynamic queries are strings
+							Many query engines will cache the translated SQL for later use, but this can easily be defeated if the application does not use parameter binding and concatenates parameter
+							values directly into query strings.
+							
+							em.createQuery(QUERY, Long.class)
+							
+						Named queries are static and more efficient to execute because the persistence provider can translate the JPQL string to SQL once when the appplication starts
+							@NamedQuery(name="findSalaryForNameAndDepartment",query="SELECT e.salary FROM Employee e WHERE e.department.name = :deptName AND e.name = :empName")
+							
+							em.createNamedQuery
+							
+							Dynamic Named Query
+								TypeQuery<Long> q = em.createQuery(QUERY, Long.class);
+								emf.addNamedQuery("findSalaryForNameAndDepartment", q);
+								
+					Query Parameters
+						query="SELECT e FROM Employee e WHERE e.department = :dept
+							Entity types may be used as parameters,the necessary primary key columns will be inserted into the conditional expression
+							
+					Executing queries
+						Query and TypedQuery objects may be reused as often as needed so long  as the same persistence context that was used to create the query is still active.
+						For transaction-scoped entity managers, this limits the lifetime of the Query or TypedQuery object to the life of the transaction. Other entity manager types may reuse them until the entity
+						manager is closed or removed.
+						
+						WHENEVER AN ENTITY INSTANCE IS RETURNED, IT BECOMES MANAGED BY THE ACTIVE PERSISTENCE CONTEXT. 
+						IF THAT ENTITY INSTANCE IS MODIFIED AND THE PERSISTENCE CONTEXT IS PART OF A TRANSACTION, THE CHANGES WILL BE PERSISTED TO THE DATABASE. 
+						THE ONLY EXCEPTION TO THIS RULE IS THE USE OF TRANSACTION-SCOPED ENTITY MANAGERS OUTSIDE OF A TRANSACTION. 
+						ANY QUERY EXECUTED IN THIS SITUATION RETURNS DETACHED ENTITY INSTANCES INSTEAD OF MANAGED ENTITY INSTANCES. 
+						TO MAKE CHANGES ON THESE DETACHED ENTITIES, THEY MUST FIRST BE MERGED INTO A PERSISTENCE CONTEXT BEFORE THEY CAN BE SYNCHRONIZED WITH THE DATABASE.	
+						A consequence of the long-term management of entities with application-managed and extended persistence contexts is that executing large queries will cause
+						the persistence context to grow as it stores all the managed entity instances that are returned. 
+						If many of these persistence contexts are holding onto large numbers of managed entities for long periods of time, then memory use may become a concern.
+						
+					Optimizing Read-Only queries
+						When the query results will not be modified, queries using transaction-scoped entity managers outside of a transaction can be more efficient than queries executed within
+						a transaction when the result type is an entity. When query results are prepared within a transaction, the persistence provider has to take steps to convert the results intmanaged entities. 
+						This usually entails taking a snapshot of the data for each entity in order to have a baseline to compare against when the transaction is committed. 
+						If the managed entities are never modified, the effort of converting the results into managed entities is wasted.
+						When encapsulating query operations behind a bean with container-managed transactions, the easiest way to execute nontransactional queries is to use the NOT_SUPPORTED transaction 
+						attribute for the session bean method.
+						
+					Special Result Types
+						Whenever a query involves more than one expression in the SELECT clause, the result of the query will be a List of Object arrays.
+
+							public void displayProjectEmployees(String projectName) {
+								List result = em.createQuery("SELECT e.name, e.department.name FROM Project p JOIN p.employees e WHERE p.name = ?1 ORDER BY e.name").setParameter(1, projectName).getResultList();
+								int count = 0;
+								for (Iterator i = result.iterator(); i.hasNext();) {
+									Object[] values = (Object[]) i.next();
+									System.out.println(++count + ": " +values[0] + ", " + values[1]);
+								}
+							}
+							
+							Constructor expressions provide developers with a way to map an array of Object result types to custom objects.
+							A constructor expression is defined in JP QL using the NEW operator in the SELECT clause.
+							The argument to the NEW operator is the fully qualified name of the class that will be instantiated to hold the results for each row of data returned.
+							
+							List<EmpMenu> result = em.createQuery("SELECT NEW example.EmpMenu(e.name, e.department.name) FROM Project p JOIN p.employees e WHERE p.name = ?1 ORDER BY e.name", EmpMenu.class)
+							.setParameter(1, projectName).getResultList();
+							
+					Query Paging
+						The Query and TypedQuery interfaces provide support for pagination via the setFirstResult() and setMaxResults() methods. 
+						These methods specify the first result to be received (numbered from zero) and the maximum number of results to return relative to that point.
+						
+				Criteria API
 							
 			
 			
