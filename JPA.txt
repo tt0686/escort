@@ -306,9 +306,18 @@ JPA
 						the persistence context to grow as it stores all the managed entity instances that are returned. 
 						If many of these persistence contexts are holding onto large numbers of managed entities for long periods of time, then memory use may become a concern.
 						
+						In the query select if we return embeddables will not be managed!!!
+						If we return an entity and from the results navigate to their embeddable objects we would obtaing embeddables that are managed.
+						
+						SELECT e.name, e.salary
+						FROM Employee e
+						
+							Will result in an array of type Object.
+							THE PRACTICE OF REPORTING ONLY A SUBSET OF THE STATE FIELDS FROM AN ENTITY IS CALLED PROJECTION BECAUSE THE ENTITY DATA IS PROJECTED OUT FROM THE ENTITY INTO TABULAR FORM.
+						
 					Optimizing Read-Only queries
 						When the query results will not be modified, queries using transaction-scoped entity managers outside of a transaction can be more efficient than queries executed within
-						a transaction when the result type is an entity. When query results are prepared within a transaction, the persistence provider has to take steps to convert the results intmanaged entities. 
+						a transaction when the result type is an entity. When query results are prepared within a transaction, the persistence provider has to take steps to convert the results into managed entities. 
 						This usually entails taking a snapshot of the data for each entity in order to have a baseline to compare against when the transaction is committed. 
 						If the managed entities are never modified, the effort of converting the results into managed entities is wasted.
 						When encapsulating query operations behind a bean with container-managed transactions, the easiest way to execute nontransactional queries is to use the NOT_SUPPORTED transaction 
@@ -337,7 +346,49 @@ JPA
 						The Query and TypedQuery interfaces provide support for pagination via the setFirstResult() and setMaxResults() methods. 
 						These methods specify the first result to be received (numbered from zero) and the maximum number of results to return relative to that point.
 						
+					Queries and Uncommited changes
+						FLUSH MODE
+							AUTO
+								The provider should ensure that pending transactional changes are included in query results.
+							COMMIT
+								Tells the provider that queries do not overlap with changed data in the persistence context,so it does not need to do anything in order to get correct results.
+								Depending on how the provider implements its query integrity support, this might mean that it does not have to flush the persistence context before executing a
+								query because you have indicated that there is no changed data in memory that would affect the results of the database query.
+								
+								Although the flush mode is set on the entity manager, the flush mode is really a property of the persistence context. 
+								For transaction-scoped entity managers, that means the flush mode has to be changed in every transaction. Extended and application-managed
+								entity managers will preserve their flush mode setting across transactions.
+								SETTING THE FLUSH MODE ON THE ENTITY MANAGER APPLIES TO ALL QUERIES, WHILE SETTING THE FLUSH MODE FOR A QUERY LIMITS THE SETTING TO THAT SCOPE.
+						
+						Bulk Update and Delete
+							THE FIRST ISSUE TO CONSIDER WHEN USING THESE STATEMENTS IS THAT THE PERSISTENCE CONTEXT IS NOT UPDATED TO REFLECT THE RESULTS OF THE OPERATION.
+							THE DEVELOPER CAN RELY ONLY ON ENTITIES RETRIEVED AFTER THE BULK OPERATION COMPLETES.
+							Native SQL Update and Delete operations should not be executed on tables mapped by an entity.The JPQL operations tell the provider what cached entity state must be invalidated in 
+							order to remain consistent with the database.Native Sql bypass suck checks and ca quickly lead to situations where the in-memory cache is out of date with respect to the database.
+							WHEN USING TRANSACTION-SCOPED PERSISTENCE CONTEXTS THE BULK OPERATION SHOULD EITHER EXECUTE IN A TRANSACTION ALL BY ITSELF OR BE THE FIRST OPERATION IN THE TRANSACTION.
+							RUNNING THE BULK OPERATION IN ITS OWN TRANSACTION IS THE PREFERRED APPROACH BECAUSE IT MINIMIZES THE CHANCE OF ACCIDENTALLY FETCHING DATA BEFORE THE BULK CHANGE OCCURS.
+							
+							The only time a cascading remove occurs is when the REMOVE cascade option is set for a relationship.
+							Even then, the persistence provider won’t automatically update the state of any managed entities that refer to the removed entity.
+							DELETE STATEMENTS DO NOT CASCADE TO RELATED ENTITIES. EVEN IF THE REMOVE CASCADE OPTION IS SET ON A RELATIONSHIP
+							
+						Query Hints
+						
+						Joins
+							
+						
+						
+							
+						
 				Criteria API
 							
-			
+
+Strategy
+	Lazy/Eager Loading
+	Query Update and Delete
+		AUTO COMMIT Isolation transaction
+	Detach strategey
+	Named Queries
+	Using transactional queries outside transactions -> Report Queries
+	Use projection instead retrieving the full entity
 			
