@@ -1,5 +1,91 @@
 JPA
+	@Entity
+	@Table
+	@Column(name="PHONE")
+	@Transient or transient modifier
+	Accesing Entity State
+		Field   -> Annotate the field
+		Property-> Annotate the property
+		Mixed  -> @Access(AccessType.FIELD)
+			when an entity subclass is added to an existing hierarchy that uses a different access type.
+			when you need to perform a simple transformation to the data when reading from or writing to the database.
+			COULD BE USED AT FIELD OR PROPERTY LEVEL NOT ONLY CLASS LEVEL
+	@Id
+		Generation
+			AUTO TABLE SEQUENCE IDENTITY
+			@GeneratedValue(strategy=GenerationType.AUTO) -> Default
+			@GeneratedValue(strategy=GenerationType.TABLE)
+				@TableGenerator(name="Emp_Gen")
+				@TableGenerator(name="Emp_Gen",table="ID_GEN",pkColumnName="GEN_NAME",valueColumnName="GEN_VAL")
+				@TableGenerator(name="Address_Gen",table="ID_GEN",pkColumnName="GEN_NAME",valueColumnName="GEN_VAL",pkColumnValue="Addr_Gen",initialValue=10000,allocationSize=100)
+				@Id 
+				@GeneratedValue(generator="Address_Gen")
+				private long id;
+				
+				The allocation size is used to avoid updating the row for every single identifier that gets requested!!!
+				
+			@Id @GeneratedValue(strategy=GenerationType.SEQUENCE)
+			private long id;
+			
+			@SequenceGenerator(name="Emp_Gen", sequenceName="Emp_Seq")
+			@Id
+			@GeneratedValue(generator="Emp_Gen")
+			private long getId;
+			
+			@Id
+			@GeneratedValue(strategy=GenerationType.IDENTITY)
+			private long id;
+			This will indicate to the provider that it must reread the inserted row from the table after an insert has occurred.
+			They are generally less efficient for object-relational identifier generation because they cannot be allocated in blocks and because the identifier is not available until after commit time.
+				
+	@Basic(fetch=FetchType.LAZY)
+	@Lob(CLOB OR BLOB)
 	
+	Relationships
+		Roles Source / Target
+		Directionality -> Unidirectional / Bidirectional(In reality is like two unidirectional relations)
+		Cardinality
+	
+		@ManyToOne
+			Source of the relation
+			The side that has the Join Column(the foreign key) is the OWNING SIDE THE OWNER OF THE RELATIONSHIP
+			
+			THE ABSENCE OF THE MAPPEDBY ELEMENT IN THE MAPPING ANNOTATION IMPLIES OWNERSHIP OF THE RELATIONSHIP, WHILE THE PRESENCE OF THE MAPPEDBY ELEMENT MEANS THE ENTITY IS ON THE INVERSE SIDE OF THE RELATIONSHIP.
+		@OneToOne
+			Either side can be the owner, so the join column might end up being on one side or the other.
+			Inverse side
+			@OneToOne(mappedBy="parkingSpace")
+			WITHOUT THE MAPPEDBY ATTRIBUTE THE PROVIDER WOULD TREAT EACH SIDE AS AN INDEPENDENT UNIDIRECTIONAL RELATIONSHIP AND WILL ASSUME THAT EACH SIDE WAS THE OWNER AND THAT EACH HAD A JOIN COLUMN!!!
+		@OneToMany
+			WHEN A SOURCE ENTITY HAS AN ARBITRARY NUMBER OF TARGET ENTITIES STORED IN ITS COLLECTION, THERE IS NO SCALABLE WAY TO STORE THOSE REFERENCES IN THE DATABASE TABLE THAT IT MAPS TO. 
+			HOW WOULD IT STORE AN ARBITRARY NUMBER OF FOREIGN KEYS IN A SINGLE ROW? INSTEAD, IT MUST LET THE TABLES OF THE ENTITIES IN THE COLLECTION HAVE FOREIGN KEYS BACK TO THE SOURCE ENTITY TABLE. 
+			THIS IS WHY THE ONE-TO-MANY ASSOCIATION IS ALMOST ALWAYS BIDIRECTIONAL AND THE "ONE" SIDE IS NOT NORMALLY THE OWNING SIDE.
+			
+			The above paragraph: If we only map the "One" side of the "OneToMany"
+			
+			public class Department{
+			...
+			@OneToMany
+			private List<Employee> employees;
+			
+			And we do not map the Employee class.How could we get the employess from the database, it would requited to store foreign keys in a single row , something like this:
+				TABLE
+				DEPARTMENT
+					id
+					name 
+					employees : 1;3;6;7
+					
+			So we will need the bidirectional!!!
+
+			@OneToMany(mappedBy="department")
+			private Collection<Employee> employees;
+			
+			If we do not use mappedBy attribute the provider will treat it as a unidirectional oneToMany relationship that is defined to use a join table.
+			
+			@ManyToMany
+				Any side could be the owner
+				One side must include the mappedBy attribute otherwise the provider will think that both sides are the owner and that the mappings are separate unidirectional relationships.
+			
 	LAZY LOADING
 		By default ManyToOne and OneToOne are eager !!!
 		Because both just return one row from database!!!
@@ -375,8 +461,84 @@ JPA
 						Query Hints
 						
 						Joins
+							Outer Join
+								SELECT e, d
+								FROM Employee e LEFT JOIN e.department d ON d.name LIKE 'QA%'
+									DIFFERENT RESULTS
+								SELECT e, d
+								FROM Employee e LEFT JOIN e.department d
+								WHERE d.name LIKE 'QA%'
+								
+								The first one still returns all the employess like an outer join , but just the departments with QA in its name
+								I the WHERE clause the employess will be filteres and only the employess workink on the departments with QA in its name will be retrieveds
+								
+							FETCH JOINS
+								Fetch joins are intended to help application designers optimize their database access and prepare query results for detachment. 
+								They allow queries to specify one or more relationships that should be navigated and prefetched by the query engine so that they are not lazy loaded later at runtime.
+								
+								SELECT e
+								FROM Employee e JOIN FETCH e.address
+								
+								Note that no identification variable is set for the e.address path expression. This is because even though the Address entity is being joined in order to resolve the
+								relationship, it is not part of the result type of the query.
+								
+						POLYMORPHISM
+							Subclass discrimination
+								If we want to restrict the result of the query to a particular subclass, we can use that particular subclass in the FROM clause instead of the root. 
+								However, if we want to restrict the results to more than one subclass in the query but not all of the subclasses, we can instead use a type expression in the WHERE 
+								clause to filter the results.
+								
+								SELECT p
+								FROM Project p
+								WHERE TYPE(p) = DesignProject OR TYPE(p) = QualityProject
+								
+							Downcasting
+								SELECT p FROM Project p
+								WHERE TREAT(p AS QualityProject).qaRating > 4 OR TYPE(p) = DesignProject
+								
+						Criteria API
+							CriteriaQuery<String> c = cb.createQuery(String.class);
+							Root<Employee> emp = c.from(Employee.class);
+							c.select(emp.<String>get("name"));----> the type of the expression provided to the select() method must be compatible with the result type used to create the CriteriaQuery object.
+								CriteriaQuery<T> select(Selection<? extends T> selection);
+									The argument to select() must be a type that is compatible with the result type of the query definition.
+									The get() method returns a Path object, but that Path object is always of type Path<Object> because the compiler cannot infer the correct type based on the attribute name. 
+									To declare that the attribute is really of type String, we need to qualify the method invocation accordingly.
 							
-						
+
+							METAMODEL API
+							In Criteria API there is two types API
+								The String Based -> join() , fetch() get() all accept string arguments
+								The Strongly typed
+							Strongly Typed API
+								Canonical MetaModel
+								TO GENERATE THE CANONICAL METAMODEL THERE GENERATIONS TOOLS.
+								
+						CONVERTS
+							AttributeConverter<X,Y> Interface
+							
+								public interface AttributeConverter<X,Y> {
+									public Y convertToDatabaseColumn (X attribute);
+									public X convertToEntityAttribute (Y dbData);
+								}
+								
+								@Convert(converter=BooleanToIntegerConverter.class)
+								private Boolean bonded;
+								
+								Embedded Attribute
+								@Convert(converter=BooleanToIntegerConverter.class,attributeName="bonded")
+								private SecurityInfo securityInfo;
+								
+								Element Collections
+								@ElementCollection
+								@Convert(converter=BooleanToIntegerConverter.class)
+								private List<Boolean> securityClearances;
+							
+							
+							
+								
+								
+								
 						
 							
 						
