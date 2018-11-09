@@ -83,8 +83,113 @@ JPA
 			If we do not use mappedBy attribute the provider will treat it as a unidirectional oneToMany relationship that is defined to use a join table.
 			
 			@ManyToMany
+			@JoinTable(name="EMP_PROJ",joinColumns=@JoinColumn(name="EMP_ID"),inverseJoinColumns=@JoinColumn(name="PROJ_ID"))
 				Any side could be the owner
 				One side must include the mappedBy attribute otherwise the provider will think that both sides are the owner and that the mappings are separate unidirectional relationships.
+				
+			Unidirectional Collection Mapping
+			@OneToMany without mappedBy
+			WE MUST USE A JOIN TABLE
+			
+			@Embeddable
+			public class Address ...
+			
+			@Embedded
+			private Address address;
+			
+			@AttributeOverrides({@AttributeOverride(name="state", column=@Column(name="PROVINCE")),
+			
+			ELEMENT COLLECTIONS
+				THE ELEMENTS THAT ARE BEING STORED IN THE COLLECTIONS ARE NOT ENTITIES, SO THEY DO NOT HAVE ANY MAPPED TABLE.
+				Element collections require a separate table called a collection table!!!
+				
+				@ElementCollection(targetClass=VacationEntry.class)
+				@CollectionTable(name="VACATION", joinColumns=@JoinColumn(name="EMP_ID"))
+				@AttributeOverride(name="daysTaken", column=@Column(name="DAYS_ABS"))
+				private Collection vacationBookings;
+
+				@ElementCollection
+				@Column(name="NICKNAME")
+				private Set<String> nickNames;
+				
+				LIST -> USED TO ORDER
+				MAP
+					It is always the type of the value object in the Map that determines what kind of mapping must be used. If the values are entities, the Map must be mapped as a one-to-many
+					or many-to-many relationship, whereas if the values of the Map are either embeddable or basic types, the Map is mapped as an element collection.
+				@ElementCollection
+				@CollectionTable(name="EMP_PHONE")
+				@MapKeyEnumerated(EnumType.STRING)
+				@MapKeyColumn(name="PHONE_TYPE")
+				@Column(name="PHONE_NUM")
+				private Map<PhoneType, String> phoneNumbers;
+				
+				@OneToMany(mappedBy="department")
+				@MapKey(name="id")
+				private Map<Integer, Employee> employees;
+				
+				Embeddable Type
+					Identity of embeddables is not defined in general, but when they are used as keys in a Map, there must be some notion of uniqueness defined, applicable at least within the given Map. 
+					This means that the uniqueness constraint, at least logically, is on the combination of the embedded attributes and the foreign key column to the source entity.
+					
+					First option
+						Create Embeddable just to use in the key
+					
+					@Entity
+					public class Employee {
+						@Id private int id;
+						@Column(name="F_NAME")
+						private String firstName;
+						@Column(name="L_NAME")
+						private String lastName;
+						private long salary;
+						// ...
+											
+					@Embeddable
+					public class EmployeeName {
+						@Column(name="F_NAME", insertable=false, updatable=false)
+						private String first_Name;
+						@Column(name="L_NAME", insertable=false, updatable=false)
+						private String last_Name;
+						// ...
+					}
+											
+					@Entity
+					public class Department {
+						// ...
+						@OneToMany(mappedBy="department")
+						private Map<EmployeeName, Employee> employees;
+						
+					Because the bidirectional one-to-many relationship from Department to Employee is stored in the target entity table, the embeddable object key must also be stored there.
+					However, it would be redundant for the two name components to be stored twice in each row, once for the firstName and lastName attributes of Employee and once for the
+					first_Name and last_Name attributes of the EmployeeName key object. 
+					With a bit of clever mapping we can just reuse the two columns mapped to the Employee attributes and map them as read-only in the key (setting insertable and updatable to false).	
+							
+					Second option
+						combine the two name columns within the Employee entity and define an embedded attribute
+					
+						@Entity
+						public class Employee {
+							@Id private int id;
+							@Embedded
+							private EmployeeName name;
+							
+						@Embeddable
+						public class EmployeeName {
+							@Column(name="F_NAME")
+							private String first_Name;
+							@Column(name="L_NAME")
+							private String last_Name;
+							// ...
+						}
+						
+					MANY TO MANY
+					@ManyToMany
+					@JoinTable(name="DEPT_EMP",joinColumns=@JoinColumn(name="DEPT_ID"),inverseJoinColumns=@JoinColumn(name="EMP_ID"))
+					@AttributeOverrides({@AttributeOverride(name="first_Name",column=@Column(name="EMP_FNAME")),
+					@AttributeOverride(name="last_Name",column=@Column(name="EMP_LNAME"))})
+					private Map<EmployeeName, Employee> employees;
+			
+			
 			
 	LAZY LOADING
 		By default ManyToOne and OneToOne are eager !!!
