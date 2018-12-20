@@ -1,0 +1,227 @@
+Spring
+	Spring Containers
+		Two types
+			Bean Factories
+			Applications Contexts
+				AnnotationConfigApplicationContext
+				XmlWebApplicationContext
+				AnnotationConfigApplicationContext
+				ClassPathXmlApplicationContext
+				(...)
+		
+	Spring Events https://www.baeldung.com/spring-events
+		Event -> Should extend the ApplicationEvent interface
+		Publisher -> should inject ApplicationEventPublisher object
+		Listener  -> should implement the ApplicationtListener interface or  @EventListener
+		
+		Existing framework events ContextRefreshedEvent, ContextStartedEvent, RequestHandledEvent ...
+	Bean Lifecycle
+		All the Aware interfaces(specific to one single bean)
+		BeanPostProcessor -> SPECIFIC TO ALL BEANS!!!
+		@PostProcessor
+		InitializingBean interface with the afterPropertiesSet
+		@Bean(initMethod="init")
+	Bean Configuration
+		XML
+		Java
+		Automatic discover(annotations)
+			WHEN WE DO NOT HAVE THE SOURCE CODE WE MUST EXPLICITY CONFIGURE THE BEANS(THROUGH XML OR JAVA)
+			
+			@Component
+			public class SgtPeppers implements CompactDisc{
+				...
+			}
+			
+			@Configuration     --------------------> Default to scanning the same package as the configuration class
+			(Configure to a different or multiplem packages @ComponentScan(basePackages={"soundsystem", "video"})
+				instead of "Strings" we can use basePackageClasses={CDPlayer.class, DVDPlayer.class})
+			)
+			@ComponentScan
+			public class CDPlayerConfig{
+				...
+			}
+			
+	Bean Scopes
+		Singleton(Default)
+		Prototype
+			ONLY VALID IN WEB AWARE SPRING APPLICATION CONTEXT
+			Session
+			Request
+			Application
+			WebSocket
+			
+		How injects a session or request scope bean into a Singleton bean ?
+			Instead of injecting the actual bean , Spring would inject a proxy
+			proxyMode ->
+				ScopedProxyMode.INTERFACES
+					The proxy should implement the interface
+				ScopedProxy-Mode.TARGET_CLASS
+					When bean is an concrete class,there is no way Spring can create an interface-based proxy.
+					It must use CGLIB to generate a class based proxy.
+					CGLIB -> Byte instrumentation library that allows manipulating or creating classes after the compilation phase of a program.
+						For instance to create dynamic proxies https://www.baeldung.com/cglib
+			
+	Profiles
+
+		Before @Profile we could use maven PROFILE and in build time decide which bean to compile and insert into WAR file for instance.
+		Activating Profiles, two properties
+			spring.profiles.active
+			spring.profiles.default
+				Ways to set those variables
+					parameters on Dispatch Servlet
+					context parameters of a web application
+					JNDI entries
+					Environment variables
+					JVM systems properties
+					@ActiveProfiles on integration tests
+					
+	Conditional
+	@Conditional(MagicExistsCondition.class)
+		public interface Condition {
+			boolean matches(ConditionContext ctxt,AnnotatedTypeMetadata metadata);
+		}
+		
+	IN REALITY SPRING DEFINES THE @PROFILE ANNOTATION THROUGH THE @CONDITIONAL ANNOTATION.
+	
+	Ambiguity
+		@Primary
+		@Qualifier
+	
+		
+	Runtime Value injection
+		Property placeholders
+		
+			JAVA CONFIG
+			
+			@Configuration
+			@PropertySource("classpath:/com/soundsystem/app.properties")
+			public class ExpressiveConfig {
+				@Autowired
+				Environment env;
+				
+				@Bean
+				public BlankDisc disc() {
+					return new BlankDisc(env.getProperty("disc.title"),env.getProperty("disc.artist"));
+				}
+			}
+			
+			COMPONENT SCANNING
+				public BlankDisc(
+					@Value("${disc.title}") String title,@Value("${disc.artist}") String artist) {
+						this.title = title;
+						this.artist = artist;
+					}
+					
+			In order to use placeholders we must configure PropertySourcesPlaceholderConfigurer bean.
+
+			@Bean
+			public static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
+				return new PropertySourcesPlaceholderConfigurer();
+			}
+
+			IMPORTANT : The PropertySourcesPlaceholderConfigurer implements BeanFactoryPostProcessor interface.
+			The beans that implement this interface are called when all beans definitions will have been loaded but no beans will have been initialized yet!!!
+			This allows for overriding or adding properties even to eager-initializing beans.CALLED DURING THE STARTUP OF THE SPRING CONTEXT!!!
+			We must use the static because it must be instantiated very early in the spring container life cycle.
+			
+			BeanPostProcessor is part of the Container lifecycle. CALLED WHEN THE SPRING IoC INSTANTIATES A BEAN.
+		SPEL
+			Instead of the $[] sign it used the #{}
+			
+			Type safe opearator .?
+			.![] Projection operator (you don't want a collection of the song objects, but a collection of all the song titles)
+				#{jukebox.songs.![title]}
+			.?[] Selection operator (Filter collection into a subset of the collection)
+				#{jukebox.songs.?[artist eq 'Aerosmith']}
+			.^[]
+				Select the first matching entry
+				#{jukebox.songs.^[artist eq 'Aerosmith']}
+			.$[]
+				Select the last matching entry
+				
+		AOP
+			Cross cutting can be modularized into special classes called aspects.
+			Spring AOP aspects are implemented as proxies that wrap the target object.
+			Spring creates proxies at runtime , when ApplicationContext loads all the beans from the BeanFactory.
+			Because it is based on dynamic proxies,Spring only supports method joint points.
+			
+			execution(* concert.Performance.perform(..))  (..) -> Taking any arguments
+															*  -> Returning any type
+			More pointcut expression
+				within
+				bean
+				args
+				target ...
+				
+				@Aspect
+				public class Audience{
+				
+				@Before("execution(** concert.Performance.perform(..))")
+				public void silenceCellPhones() {
+				
+				@AfterReturning("execution(** concert.Performance.perform(..))")
+				public void applause() {
+				
+				@AfterThrowing("execution(** concert.Performance.perform(..))")
+				public void demandRefund() {
+				
+				
+				ANOTHER WAY MORE COMPACT AND MODULAR
+				@Pointcut("execution(** concert.Performance.perform(..))")
+				public void performance() {}
+				
+				@Before("performance()")
+				public void silenceCellPhones() {
+				
+				ACTIVATE AUTO-PROXING
+				IN @Configuration JavaConfig class use @EnableAspectJAutoProxy
+				
+				@Configuration
+				@EnableAspectJAutoProxy
+				@ComponentScan
+				public class ConcertConfig {
+				
+				More concisive way : Use of the around advice type
+				
+				@Pointcut("execution(** concert.Performance.perform(..))")
+				public void performance() {}
+				
+				@Around("performance()")
+				public void watchPerformance(ProceedingJoinPoint jp) {
+					try {
+						System.out.println("Silencing cell phones");
+						System.out.println("Taking seats");
+						jp.proceed();------------------------------->Invoke the advised method much like in the Servlet Filter technology
+						System.out.println("CLAP CLAP CLAP!!!");
+					} catch (Throwable e) {
+						System.out.println("Demanding a refund");
+					}
+				}
+				
+				The advice class MUST be defined as a bean!!!
+				
+				ADD NEW METHODS TO BEANS THROUGH INTRODUCTIONS !!!
+				@Aspect
+				public class EncoreableIntroducer {
+					@DeclareParents(value="concert.Performance+",defaultImpl=DefaultEncoreable.class)
+					public static Encoreable encoreable;
+				}
+				
+				
+				SPRING MVC
+					Dispatch Servlet(implements the Front Controllers design pattern)
+						Choose which Controller -> Handler Mapping
+						Controller produces data model and identify the name of the view that should render the model.So dispatch the request again to the DispatchServlet.
+						DispatchServlet consults a View Resolver
+						Dispatch to the View
+						View use Response object to render the Model.
+						
+						
+						
+						
+						
+						
+				
+				
+				
+			
