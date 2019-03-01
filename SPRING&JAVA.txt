@@ -1,0 +1,446 @@
+Use of annotations
+Design patterns
+AOP
+JPA
+Functional Programming
+
+
+Optional
+ForkJoinPool
+Design Patterns
+Stream  reduce
+        collects
+		parallel Stream  <------
+Lambda Expressions
+Method Reference
+Generics
+Functional Programming
+Type annotations         <-----
+Type inference           <-----
+Chained Exceptions       <-----
+varargs                  <-----
+try with resources       <-----
+multiple exception handling <-----
+instrumentation
+hot swaping
+
+Spring Containers
+	Bean Factories
+	ApplicationContext(Builds on top of Bean Factories , it is a super class)
+		Implementations
+			ClassPathXmlApplicationContext ....
+			
+Spring Bean Life Cycle
+	Constructor
+	Setter Methods
+	BeanNameAware
+	BeanClassLoaderAware
+	BeanFactoryAware
+	BeanPostProcessor.postProcessorBeforeInitialization--------|
+	@PostConstruct											   |
+	InitializinBean(interface).afterSetProperties              |---> Every Bean that implements this interface will be called each time a bean is requested
+	init-method                                                |     Better implement Order interface in the case more than one bean implements this interface
+	BeanPostProcessor.postProcessorAfterInitialization---------|
+	
+	
+Three ways to configure application context
+		@Configuration
+		@ComponentScan(basePackages={"sdasda","asdasda"})
+		@ComponentScan(basePackages={CDPlayer.class,DVDPlayer.class})
+			@Component
+		
+		@Configuration
+		@Import(CDConfig.class)
+		@ImportResource("classpath:cd-config.xml")
+			@Bean
+			@Autowired
+			
+		XML
+			Contructor injection
+			Property injection
+			C-namespace
+			P-namespece
+			
+			inport java config in XML , use the bean tag <bean>
+			
+			Environment
+				1 Configure each artifact in a separate configuration class and then use MAVEN PROFILES!!!
+				2 Actually we use the ant task to choose which file goes into the artifact war file
+				  services-was.xml file is deployed on different foldess (dev/rec/prd)
+				  We use the jndi to acess the datasource for instance
+				In local enviornment we use the 
+					context.xml (Tomcat specific file)
+					server.xml
+					In both we define the resources 
+					
+				3 Spring
+				  Bean profiles
+					@Profile("dev") -> COULD BE USED AT CLASS AND METHOD LEVEL
+					
+					spring.profiles.active
+					spring.profiles.default
+					
+					Active the profile -> Parameters on DispatchServlet
+					                      Context Parameters of a web application
+										  JNDI entries
+										  Environment variables
+										  JVM system properties
+										  @ActiveProfiles on integration test class
+					
+			Annotation are METADATA.Metadata is data about data.So annotations are metadata for code.
+			For instance the @Override annotation 
+			
+			@Override
+			public String toString(){
+				...
+			}
+			
+			Defines annotation
+			@Target(ElementType.METHOD)
+			@Retention(RetentionPolicy.SOURCE)
+			public @interface Override{
+			
+			}
+			
+			
+			Declares to the compiler that the method is an overridden method and if any such method exist in the parent class,then throw a compiler error!!!
+			
+			The consumer of the annotation could be the JVM the compiler 
+					
+			Conditional Beans
+				@Bean
+				@Conditional(implements Conditional interface)
+					
+					public interface Condition{
+						boolean matches(ConditionContext ctxt,AnnotatedTypeMetadata metadata);
+					}
+					
+				Ambiguity
+					@Primary
+					@Qualifier
+					
+					Because @Qualifier is not annotated with @Repeatable there is no way to apply more tha one @Qualifier in the same item
+					So create custom Qualifier annotattion
+					@Target
+					@Retention
+					@Qualifier
+					public @interface Cold
+					
+				Bean Scopes
+					Singleton (Default)
+					Prototype
+					Session (Web Application)
+					Request (Web Appplication)
+					
+					@Scope
+						When injecting a session or request scoped bean into a singleton bean (this bean is immediatelly instantiated)
+							There is two challenges :
+								1) How to insert a bean which does not yet exist ?
+								2) Because there may be several sessions in parallel, which one to choose ?
+								
+								Use a proxy that redirects to the correct session bean!!!
+								
+								@Scope(value = WebApplicationContext.SCOPE_SESSION,proxyMode = ScopedProxyMode.INTERFACES)
+								
+								If the Session bean is an inteface then use the INTERFACES values.Otherwise if the Session Bean is a concrete class we must use CGLib to generate a class-based proxy!!!
+					
+					Inject RUNTIME values in a BEAN
+						1) Defines the properties in a property source and retrieve the properties via the Spring Environment.
+						
+						@Configuration
+						@PropertySource("classpath:/com/soundsystem/app.properties")
+						public class ExpressConfig{
+							@Autowired
+							Environment env;
+							
+							@Bean
+							public BlankDisc disc(){
+								return new BlankDisc(env.getProperty("disc.title"),env.getProperty("disc.artist"))
+							}
+							
+						2)@Bean public static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
+							PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer = new PropertySourcesPlaceholderConfigurer();
+							propertySourcesPlaceholderConfigurer.setLocations(new ClassPathResource("application-db.properties"));
+							return new PropertySourcesPlaceholderConfigurer();
+						 }*We may not use the two below lines 
+										PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer = new PropertySourcesPlaceholderConfigurer();
+										propertySourcesPlaceholderConfigurer.setLocations(new ClassPathResource("application-db.properties"));
+										
+										BUT INSTEAD USE THE @PropertySource , the main objective of PropertySourcesPlaceholderConfigurer bean is allow to use the placeholders!!!!
+										
+								@Value("${disc.title}")
+								
+						3)Use SPEL
+							@Value("#{systemProperties['disc.title']}")
+							
+							Evaluating Collections
+							.? operator Filter a Collection into a subset of the collection
+							#{jukebox.songs.?[artist eq 'Aerosmith']}
+							.^[] First matching entry
+							.$[] Last matchinf entry
+							.![] project properties from the elements in the collection onto a new collection.
+							#{jukebox.songs.![title]} -> Collection of all song titles.
+							
+				AOP
+					Spring aspects are implemented as PROXIES that wrap the target object.Because of that Spring only supports method join points!!!!
+					SPRING AOP IS PROXY BASED(Run Time).There is no need of Compiler(special compiler) or ClassLoader(special classloader) special features provided by other provideder.
+					
+					PointCut
+						execution(* concert.Performance.perform(..))
+						
+						@Configuration
+						@EnableAspectJAutoProxy  <---- Enable Aspects
+						@ComponentScan
+						public class ConcertConfig{
+							@Bean
+							public Audience audience(){
+								return new Audience();
+							}
+						}
+						
+						@Aspect
+						public class Audience{
+							@Pointcut("execution(** concert.Performance.perform(..))")
+							public void performance(){}
+							
+							@Before("performance()")
+							...
+						}
+						
+						Passing and access parameters
+							@Pointcut("execution(* soundsystem.CompactDisc.playTrack(int)) && args(trackNumber)")
+							public void trackPlayed(int trackNumber){}
+							
+							@Before("trackPlayed(int trackNumber)")
+							
+							The args qualifier indicates that any int argument that is passed into the execution of playTrack() should also be passed into the advice.
+							The parameter name,trackNumber,also matches the parameter in the pointcut method signature.
+							
+							INTRODUCTIONS(Like Mixins in Javascript)
+								Aspects can attach new methods to Spring beans!!!
+								Aspects are proxies that implement the same interfaces as the beans they wrap.If the proxy also expose some new interface than is like adding new methods to the beans they wrap to.
+								
+								@Aspect
+								public class EncorableIntroducer{
+									@DeclareParents(value="concert.Performance+",defaultImpl=DefaultEncorable.class)
+									public static Encorable encorable;
+								}
+								
+								The value identifies the kinds of beans that should be introduced with the interface.(The plus sign specifies any subtype of Performance)
+								The defaultImpl attribute identifies the class that will provide the implementation for the introduction.
+								The static property specifies the interface that is to be introduced.
+								
+								
+				SPRING MVC
+					Request -> DispatchServlet(Front Controller Pattern) -> Handler Mapping(Which controller should treat this request?) -> Controller (Shoul delegate responsibility for the business logic to one 
+					or more service objects,it PACKAGE THE MODEL DATA AND IDENTIFY THE NAME OF A VIEW THAT SHOULD RENDER THE OUTPUT)->  VIEW RESOVER -> VIEW -> RESPONSE
+					
+					Configure Dispatch Servlet
+						1) web.xml
+						2) Servlet 3.0
+							Container looks for any classes in the classpath that implement the javax.servlet.ServletContainerInitializer interface that is used to configure the servlet container!!!
+							
+							Service Provider Interface(SPI) CONCEPT:
+								Allows the applications to be extensible without modifying its original code base.It is like using plug ins or modules.
+								
+								HOW TO MAKE THE HOOK IN THE SERVICE PROVIDER FRAMEWORK ?
+									WE NEED TO CREATE A FILE IN THE FOLDER META-INF/services !!!!!
+										The file will be named the interface of the service and the content will be the service provider!!!
+										https://itnext.io/java-service-provider-interface-understanding-it-via-code-30e1dd45a091
+										
+										The framework provides the ServiceLoader.load(name of the interface)
+										loader.iterator -> Iterate through all the services that implement that interface !!!!
+										
+										So in this case , Servlet 3.0 through the SPI look for implementations of the ServletContainerInitializer!!
+										Spring implements ServletContainerInitializer through SpringServletContainerInitializer, this implementation is in the 
+										spring-web*.jar and the hook in the META-INF/services/javax.servlet.ServletContainerInitializer
+										
+										https://www.logicbig.com/tutorials/java-ee-tutorial/java-servlet/servlet-container-initializer-example.html
+										
+										The ServletContainerInitializer has just one method
+											public void onStartup(Set<Class<?>> c,ServletContext ctx)
+										
+										SpringServletContainerInitializer class has a @HandlerTypes annotation with a value of WebApplicationInitializer
+										This annotation is used to declare the class types that a ServletContainerInitializer can handle !!!
+										In the Spring case the @HandlesType will have the WebApplicationInitializer value !!!
+										
+								public class SpittrWebAppInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
+									
+									@Override
+									protected String[] getServletMappings() {
+									return new String[] { "/" };
+									}
+									@Override
+									protected Class<?>[] getRootConfigClasses() {
+									return new Class<?>[] { RootConfig.class };
+									}
+									@Override
+									protected Class<?>[] getServletConfigClasses() {
+									return new Class<?>[] { WebConfig.class };
+									}
+								}
+								
+								We extend the AbstractAnnotationConfigDispatcherServletInitializer that implements the WebApplicationInitializer and our class will be called on start up!!!
+								
+							public class SpittrWebAppInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
+								
+								@Override
+								protected String[] getServletMappings() {
+									return new String[] { "/" };
+								}
+								
+								@Override
+								protected Class<?>[] getRootConfigClasses() {
+									return new Class<?>[] { RootConfig.class };
+								}
+								
+								@Override
+									protected Class<?>[] getServletConfigClasses() {
+								return new Class<?>[] { WebConfig.class };
+								}
+							}
+							
+							In SPRING MVC there are two contexts
+								DispatchServlet creates web application context through getServletConfigClasses
+								The ContextLoaderListener loads the root application context.
+								
+								Without extend any class we must register the ContextLoaderListener manually!!
+								public class ApplicationInitializer implements WebApplicationInitializer{
+									@Override
+									public void onStartup(ServletContext servletContext){
+										XmlWebApplicationContext rootContext = new XmlWebApplicationContext();
+										rootContext.setConfigLocations("/WEB-INF/rootApplicationContext.xml");
+										servletContext.addListener(new ContextLoaderListener(rootContext));
+									}
+								}
+								
+								If we use the AbstractContextLoaderInitializer class we must just to initialize the context , the Listener is initalized automatically!!!
+								public class AnnotationsBasedApplicationInitializer extends AbstractContextLoaderInitializer {
+  
+									@Override
+									protected WebApplicationContext createRootApplicationContext() {
+										AnnotationConfigWebApplicationContext rootContext = new AnnotationConfigWebApplicationContext();
+										rootContext.register(RootApplicationConfig.class);
+										return rootContext;
+									}
+								}
+								
+								To configure the dispatch servlet we can use the same patterns we have used to configure the root !!!
+								
+								onStartup(ServletContext context){
+									XmlWebApplicationContext normalWebAppContext = new XmlWebApplicationContext();
+									normalWebAppContext.setConfigLocation("/WEB-INF/normal-webapp-servlet.xml");
+									ServletRegistration.Dynamic normal = servletContext.addServlet("normal-webapp", new DispatcherServlet(normalWebAppContext));
+									normal.setLoadOnStartup(1);
+									normal.addMapping("/api/*");
+								}
+								
+								using the AbstractDispatcherServletInitializer we can override the method 
+								
+								@Override
+								protected WebApplicationContext createServletApplicationContext() {
+								  
+									AnnotationConfigWebApplicationContext secureWebAppContext = new AnnotationConfigWebApplicationContext();
+									secureWebAppContext.register(SecureWebAppConfig.class);
+									return secureWebAppContext;
+								}
+								 
+								@Override
+								protected String[] getServletMappings() {
+									return new String[] { "/s/api/*" };
+								}
+								
+								The root context is the parent of every dispatcher servlet context. Thus, beans defined in the root web application context are visible to each dispatcher servlet context, but not vice versa!!!
+								
+								https://www.baeldung.com/spring-web-contexts
+								
+								Enable Spring MVC
+								@Configuration
+								@EnableWebMvc
+								@ComponentScan("spitter.web")
+								public class WebConfig extends WebMvcConfigurerAdapter{
+									
+									@Bean
+									public ViewResolver viewResolver() {
+										InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+										resolver.setPrefix("/WEB-INF/views/");
+										resolver.setSuffix(".jsp");
+										resolver.setExposeContextBeansAsAttributes(true);
+										return resolver;
+									}
+									
+									@Override
+									public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+										configurer.enable();
+									}
+									//This method is from WebMvcConfigurerAdapter
+									//By calling enable() we ask the DispatcherServlet to forward request for static resources to the servlet container default servlet and not try to handle them it itself.
+								
+								}
+								
+								@Controller <- Stereotype annotation based on @Component annotation
+								public class HomeController {
+									@RequestMapping(value="/", method=GET)
+									public String home() {
+										return "home";
+									}
+								}
+								
+								Test MVC Controller 
+								@Test
+								public void testHomePage() throws Exception {
+									HomeController controller = new HomeController();
+									MockMvc mockMvc = standaloneSetup(controller).build();
+									mockMvc.perform(get("/")).andExpect(view().name("home"));
+								}
+								
+								@Controller
+								@RequestMapping
+								
+								GET -> "/spittles?max=238900&count=50"
+								@RequestMapping(value="/show",method=RequestMethod.GET)
+								public String showSpittle(@RequestParam("max",defaultValue=...) ....
+								
+								Retrieve a page of a used ID , we could use query parameter stratagey , like this
+								GET -> /spittles/show?spittle_id=12345 but this is not ideal for resource-orientation (REST services).
+								Ideally,the resource being identified would be identified by the URL path and not by query parameters
+								GET -> /spittles/12345 is better , it identifies a resource to be retrieved.
+								
+								@RequestMapping(value="/{spittleId}",method=RequestMethod.GET)
+								public String spittle(@PathVariable("spittleId") long spittleId,Model model)
+								
+								SERVLET SPECIFICATION
+									RequestDispatcher.forward -> Completely on Server side
+									vs
+									HttpServletResponse.sendRedirect()  -> Sent Back to client with HTTP Response 302 and a new URL in the Location header
+									
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+						
+
+								
+							
+						 
+						
+						
+				  
+				
+				
+			
+			
+			
+	
+	
+			
+			
+		
