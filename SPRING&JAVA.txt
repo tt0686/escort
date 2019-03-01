@@ -414,6 +414,12 @@ Three ways to configure application context
 									vs
 									HttpServletResponse.sendRedirect()  -> Sent Back to client with HTTP Response 302 and a new URL in the Location header
 									
+								VALIDATION
+									Use the Java Validation API , an implementation must be present in the classpath (like Hibernate Validator)
+									@RequestMapping(value="/register", method=POST)
+									public String processRegistration(@Valid Spitter spitter,Errors errors)
+									
+									
 								
 								
 								
