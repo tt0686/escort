@@ -448,7 +448,220 @@ Three ways to configure application context
 									Sending data in REDIRECTS
 										MODEL ATTRIBUTES ARE COPIED INTO THE REQUEST AS REQUEST ATTRIBUTES !!!
 										
-									CSRF
+									Same Origin Policy
+										Two URL have the same origin if PROTOCOL/PORT(If specified) AND HOST are the same
+										
+										<img> and <video> and <script> tags are NOT LIMITED by the Same Origin Policy !!!!
+										
+										Image Pings are used to pass some data to the server(Google Analytics use this technique)
+										
+									
+									CORS(Cross Origin Resource Sharing)
+									
+									CSRF(Cross Site Request Forgery)
+									
+									
+									SECURITY
+										Spring employs several servlet filters to provide various aspects of security!!!!
+										We only need to configure one filter that is the DelegatingFilterProxy and this filter will delegate to an implementation of javax.servlet.Filter that is
+										registered as a <bean> in the Spring application context.
+										We can register this filter through XML or Java
+										With Java we use the following class
+											public class SecurityWebInitializer extends AbstractSecurityWebApplicationInitializer {}
+											THIS IMPLEMENTS THE WEBAPPLICATIONINITIALIZER, SO IT WILL BE DISCOVERY BY SPRING AND REGISTER THE DELEGATINGFILTERPROXY with the web container.
+											Whether you configure DelegatingFilterProxy in web.xml or by subclassing AbstractSecurityWebApplicationInitializer, it will intercept requests coming
+											into the application and delegate them to a bean whose ID is springSecurityFilterChain.
+											The bean springSecurityFilterChain will be created when we enable the web security.
+											
+											@Configuration
+											@EnableWebMvcSecurity
+											public class SecurityConfig extends WebSecurityConfigurerAdapter {
+											
+												
+												@Override
+												protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+													//IN MEMORY DATABASE
+													auth.inMemoryAuthentication().withUser("user").password("password").roles("USER").and().withUser("admin").password("password").roles("USER", "ADMIN");
+													//RELATIONAL DATABASE
+													//WE MUST ADHERE TO THE BASIC CONTRACT OF THE QUERIES
+													//THE USERNAME MUST BE THE ONLY PARAMETER
+													//THE AUTHENTICATION QUERY SELECTS THE USERNAME PASSWORD AND ENABLED STATUS FOR INSTANCE
+													auth.jdbcAuthentication().dataSource(dataSource).usersByUsernameQuery(
+														"select username, password, true from Spitter where username=?").authoritiesByUsernameQuery("select username, 'ROLE_USER' from Spitter where username=?");
+													//CUSTOM USER SERVICE WE MUST IMPLEMENT USERDETAILSSERVICE
+													public interface UserDetailsService {
+														UserDetails loadUserByUsername(String username)throws UsernameNotFoundException;
+													}
+													//THEN USE IT LIKE THIS
+													auth.userDetailsService(new SpitterUserService(spitterRepository));
+													//INSTEAD OF USING ONE OF THE METHODS (inMemoryAuthentication or jdbcAuthentication or ldapAuthentication) use the userDetailsService
+												}
+												
+												@Override
+												protected void configure(HttpSecurity http) throws Exception {
+													http.authorizeRequests().antMatchers("/spitters/me").authenticated().antMatchers(HttpMethod.POST, "/spittles").authenticated().anyRequest().permitAll();
+													//USE SPEL WITH ACCESS
+													//IT ALLOWS MORE THAN ONE DIMENSIONAL SECURITY METHOD
+													//HTTPS
+													.requiresChannel().antMatchers("/spitter/form").requiresSecure();
+												}
+												
+											
+											}
+											
+											SESSION TRACKING IN JAVA
+												JSESSIONID is used to keep track of the request
+													URL rewriting -> APPENDED TO THE URL
+													Cookies       
+													Hidden form fields
+													HTTPS AND SSL
+													
+											ACCESS TO DATABASE
+												JDBC -> DataAccessException is an unchecked exception !!!!
+												Spring uses the Template Method Pattern
+												
+												Template Classes manage the fixed part of the process
+												Callbacks are the custom data-access code
+												
+												Configuring DataSource
+													JDBC Driver
+														@Bean
+														public DataSource dataSource() {
+															DriverManagerDataSource ds = new DriverManagerDataSource();
+															ds.setDriverClassName("org.h2.Driver");
+															ds.setUrl("jdbc:h2:tcp://localhost/~/spitter");
+															ds.setUsername("sa");
+															ds.setPassword("");
+															return ds;
+														}
+													JNDI
+														@Bean
+														public JndiObjectFactoryBean dataSource() {
+															JndiObjectFactoryBean jndiObjectFB = new JndiObjectFactoryBean();
+															jndiObjectFB.setJndiName("jdbc/SpittrDS");
+															jndiObjectFB.setResourceRef(true);
+															jndiObjectFB.setProxyInterface(javax.sql.DataSource.class);
+															return jndiObjectFB;
+														}
+													Pool Connections
+														https://www.baeldung.com/java-connection-pooling
+														@Bean
+														public BasicDataSource dataSource() {
+															BasicDataSource ds = new BasicDataSource();
+															ds.setDriverClassName("org.h2.Driver");
+															ds.setUrl("jdbc:h2:tcp://localhost/~/spitter");
+															ds.setUsername("sa");
+															ds.setPassword("");
+															ds.setInitialSize(5);
+															ds.setMaxActive(10);
+															return ds;
+														}
+														
+												ORM JPA
+													main interface is Session (save,update,delete and load objects)
+													To get one Session we need SessionFactory interface.
+													
+													EXCEPTION TRANSLATION
+													@Bean
+													public BeanPostProcessor persistenceTranslation() {
+														return new PersistenceExceptionTranslationPostProcessor();
+													}
+													
+													Bean POSTPROCESSOR that adds an adviser to any bean that is annotated with @Repository
+													
+													Two kinds of entity managers
+														Application Managed
+														Container managed : The application does not interact with the entity manager factory at all.
+														
+														Spring abstracts the EntityManager creation on our behalf.
+															LocalEntityManagerFactoryBean
+																Application Managed entity manager factories derive most of their configuration information from persistence.xml
+																(must appear in the META-INF directory in  the classpath)
+																It configures  persistence units that is a grouping of one or more classes that correspond to a single data source.
+																DO NOT FORGET THAT SPRING IS A CONTAINER !!!
+															LocalContainerEntityManagerFactoryBean
+																@Bean
+																public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource, JpaVendorAdapter jpaVendorAdapter) {
+																	LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
+																	emfb.setDataSource(dataSource);
+																	emfb.setJpaVendorAdapter(jpaVendorAdapter);
+																	emfb.setPackagesToScan("com.habuma.spittr.domain");
+																	return emfb;
+																}
+																
+																ENTITY MANAGER IS NOT THREAD SAFE !!!!
+																
+																
+																@PersistenceContext
+																private EntityManager em;
+																The truth is that @PersistenceContext doesn’t inject an EntityManager—at least,not exactly. 
+																Instead of giving the repository a real EntityManager, it gives a proxy to a real EntityManager. 
+																That real EntityManager either is one associated with the current transaction or, if one doesn’t exist, creates a new one. 
+																Thus, you know that you’re always working with an entity manager in a thread-safe way.
+																It’s important to understand that @PersistenceUnit and @PersistenceContext aren’t Spring annotations!
+																In order for Spring to understand them and inject we need a Spring PersistenceAnnotationBeanPostProcessor must be configured.
+																@Transactional indicates that the persistence methods in this repository are involved in a transactional context.
+																Without a template to handle exception translation, you need to annotate your repository with @Repository so PersistenceExceptionTranslationPostProcessor 
+																knows that this is a bean for which exceptions should be translated into one of Spring’s unified data-access exceptions.
+																
+																CERTAIN DYNAMIC PERSISTENCE FEATURES REQUIRE THAT  THE CLASS OF PERSITENT OBJECTS BE MODIFIED WITH INTRUMENTATION TO SUPPORT THE FEATURE.
+																OBJECTS WHOSE PROPERTIES ARE LAZY LOADED MUST HAVE THEIR CLASS INSTRUMENTED WITH CODE THAT KNOWS TO RETRIEVE UNLOADED DATA ON ACCESS.SOME 
+																FRAMEWORKS USE DYNAMIC PROXIES TO IMPLEMENT LAZY LOADING.OTHERS PERFORM CLASS INSTRUMENTATION AT COMPILE TIME.
+																
+																TO AVOID THIS BOILERPLATE CODE 
+																public void addSpitter(Spitter spitter) {
+																	entityManager.persist(spitter);
+																}
+																
+																WE CAN USE SPRING DATA JPA WE JUST HAVE TO WRITE THE INTERFACE LIKE THIS ONE
+																public interface SpitterRepository extends JpaRepository<Spitter, Long> {
+																}
+																
+																JpaRepository is parameterized such that it knows this is a repository for persisting Spitter objects and that Spitters have an ID of type Long.
+																It also inherits 18 methods for performing common persistence operations.
+																To ask Spring Data to create an implementation of SpitterRepository we need to add the annotation 
+																
+																@Configuration
+																@EnableJpaRepositories(basePackages="com.habuma.spittr.db")
+																public class JpaConfiguration {
+																
+																SpitterRepository interface, it extends JpaRepository.
+																JpaRepository extends the marker Repository interface (albeit indirectly).
+																Therefore, SpitterRepository transitively extends the Repository interface that repository-scanning is looking for.
+																When Spring Data finds it, it creates an implementation of SpitterRepository, including an implementation of all 18 methods inherited
+																from JpaRepository, PagingAndSortingRepository, and CrudRepository.
+																
+																We can add methods to the interface through a domain specific language where persistence details are expressed in interface methods signatures.
+																For instance findByUsername
+																Four verbs are allowed in this dsp (get,read,find and count)
+																
+																@Query
+																
+																Custom methods
+																Spring also looks for a class whose name is the same as the interface's name postfixed with Impl.
+																If the class exists,Spring Data Jpa merges its methods with those generated by Spring Data Jpa.
+																
+																public class SpitterRepositoryImpl implements SpitterSweeper {
+																	@PersistenceContext
+																	private EntityManager em;
+																	
+																	public int eliteSweep() {
+																	 String update ="UPDATE Spitter spitter SET spitter.status = 'Elite' WHERE spitter.status = 'Newbie' " +
+																	"AND spitter.id IN (SELECT s FROM Spitter s WHERE (" +
+																	" SELECT COUNT(spittles) FROM s.spittles spittles) > 10000)";
+																	return em.createQuery(update).executeUpdate();
+																	}
+																}
+																
+																
+																
+																
+																
+																
+											
+											
+											
+										
 										
 										
 									
