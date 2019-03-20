@@ -1,3 +1,10 @@
+Frameworks
+	HazelCast
+	EhCache
+	Redis
+	Lombok
+	slf4j
+
 Use of annotations
 Design patterns
 AOP
@@ -653,11 +660,258 @@ Three ways to configure application context
 																	}
 																}
 																
+														CACHING
+															@Configuration
+															@EnableCaching
+															
+															Under the hood
+																It creates an aspect with pointcuts that trigger off of Spring's caching annotations.
+															
 																
+																@Bean
+																public EhCacheCacheManager cacheManager(CacheManager cm) {
+																	return new EhCacheCacheManager(cm);
+																}
 																
+																@Bean
+																public EhCacheManagerFactoryBean ehcache() {
+																	EhCacheManagerFactoryBean ehCacheFactoryBean = new EhCacheManagerFactoryBean();
+																	ehCacheFactoryBean.setConfigLocation(new ClassPathResource("com/habuma/spittr/cache/ehcache.xml"));
+																	return ehCacheFactoryBean;
+																}
 																
+																@Cacheable -> Method is only invoked if the value is not on the cache
+																When you annotate the interface method, the @Cacheable annotation will be inherited by all implementations of SpittleRepository, 
+																and the same caching rules will be applied.
 																
+																@CachePut -> Method is always invoked!!!
+																Used on save methods for instance !!!!
+																@CachePut(value="spittleCache", key="#result.id")
+																Spittle save(Spittle spittle);
 																
+														METHODS SECURITY
+														@Configuration
+														@EnableGlobalMethodSecurity(securedEnabled=true)	
+														public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
+														}
+
+														@Secured(Spring) and @RolesAllowed(JSR)
+														Just takes into account the user's granted authorities
+														
+														@PreAuthorize -> evaluated before the method invocation
+														@PostAuthorize -> evaluated after the method invocation
+														@PostFilter
+														@PreFilter
+														
+														ALL USE THE SPEL !!!!!
+														
+														@PreAuthorize("hasRole('ROLE_SPITTER')") equivalent to @Secure and @RolesAllowed
+														
+														PERMISSION EVALUATOR
+															By default Spring is configured with a DefaultMethodSecurityExpressionHandler that is given an instance of DenyAllPermissionEvaluator,
+															always return false from its hasPermission() methods.
+															
+															Customizing the GlobalMethodSecurityConfiguration !!!!
+															
+															@Override
+															protected MethodSecurityExpressionHandler createExpressionHandler() {
+																DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
+																expressionHandler.setPermissionEvaluator(new SpittlePermissionEvaluator());
+																return expressionHandler;
+															}
+														
+															Now anytime you secure a method with an expression that uses hasPermission(), the SpittlePermissionEvaluator will be invoked!!!
+															
+													RPC Models
+														RMI -> Java Based Services (firewalls are not a factor)
+														Hessian/Burlap -> Java Servives when firewall are a factor
+														Http Invoker -> Spring based services when network constraints are a factor and we desire Java serialization over XML
+														JAX-RPC /JAX-WS plataform neutral services ,SOAP-based
+														
+														
+														VERY IMPORTANT:
+															ANY FACTORY BEAN IN SPRING , THAT IS , ANY BEAN THAT IMPLEMENTS THE SPRING'S FACTORYBEAN INTERFACE) 
+															THE BEAN THAT IS REGISTERED IN THE SPRING APPLICATION CONTEXT IS NOT AN INSTANCE OF *FACTORYBEAN BUT RATHER IS AN INSTANCE OF 
+															THE CLASS RETURNED FROM THE FACTORY !!!!
+															
+															Client -> Proxy(Handle netweok communication) 
+															
+															Service Interface -> Remote Exporter(Handle Marshaling/Unmarshaling) -> Has a Service implementation bean
+															
+															In RMI usually the following steps are made :
+																1 Create Service Implementation with methods that throw java.rmi.RemoteException
+																2 Service Interface that extends java.rmi.Remote
+																3 Run the RMI compiler (rmic) produce stub and server skeleton
+																4 Start RMI registry
+																5 Register the service
+																
+															Exposing	
+															@Bean
+															public RmiServiceExporter rmiExporter(SpitterService spitterService) {
+																RmiServiceExporter rmiExporter = new RmiServiceExporter();
+																rmiExporter.setService(spitterService);
+																rmiExporter.setServiceName("SpitterService");
+																rmiExporter.setServiceInterface(SpitterService.class);
+																rmiExporter.setRegistryHost("rmi.spitter.com");
+																rmiExporter.setRegistryPort(1199);
+																return rmiExporter;
+															}
+															Consuming
+															Using RMI to get a remote service
+															String serviceUrl = "rmi:/spitter/SpitterService";
+															SpitterService spitterService = (SpitterService) Naming.lookup(serviceUrl);
+															
+															this code is in direct opposition to the principles of dependency injection (DI). Because the client code is responsible for
+															looking up the Spitter service and the service is an RMI service, there’s no opportunity to provide a different implementation of SpitterService from 
+															some other source.
+															@Bean
+															public RmiProxyFactoryBean spitterService() {
+																RmiProxyFactoryBean rmiProxy = new RmiProxyFactoryBean();
+																rmiProxy.setServiceUrl("rmi://localhost/SpitterService");
+																rmiProxy.setServiceInterface(SpitterService.class);
+																return rmiProxy;
+															}
+
+															@Autowired
+															SpitterService spitterService;
+
+														Because RMI is java based both the client and service must be written in Java adn because RMI uses serialization, the types of the objects 
+														being sent across the netweok must have the exact same version of the  Java runtime on both sides of the call.
+
+														Hessian
+															Use binary messages to communicate between client and service.The binary message is portable to languages other than Java(PHP,Python,C++ and C#)
+														Burlap
+															Use XML,the message structure is as simple as possible and does not require and external definition language such as WSDL or IDL.
+															
+															BOTH protocols work under HTTP so the Exporter is a Spring MVC controller!!!
+															So we must configure the DispatchServelet
+															@Bean
+															public HessianServiceExporter
+															hessianExportedSpitterService(SpitterService service) {
+																HessianServiceExporter exporter = new HessianServiceExporter();
+																exporter.setService(service);
+																exporter.setServiceInterface(SpitterService.class);
+																return exporter;
+															}
+															
+															@Override
+															protected String[] getServletMappings() {
+																return new String[] { "/", "*.service" };
+															}
+															
+															@Bean
+															public HandlerMapping hessianMapping() {
+																SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
+																Properties mappings = new Properties();
+																mappings.setProperty("/spitter.service","hessianExportedSpitterService");
+																mapping.setMappings(mappings);
+																return mapping;
+															}
+															
+														Spring HTTPInvoker
+															Performs remoting across HTTP (like Hessian and Burlap) and use Java serialization(like RMI)
+															
+															
+														JAX-WS
+															SimpleJaxWsServiceExporter requires thar JAX-WS runtime support publishing of endpoints to a specified address!!!
+															If it does not support we will have to write our own JAX-WS endpoints in a more conventional way.This means the lifecycle of the endpoints
+															will be managed by the JAX-WS runtime and not by Spring.
+															If we extend SpringBeanAutowiringSupport we can annotate properties with @Autowire with an endpoint managed by the JAX-WS runtime.
+															
+															@WebService(serviceName="SpitterService")
+															public class SpitterServiceEndpoint extends SpringBeanAutowiringSupport {
+
+															@Autowired
+															SpitterService spitterService;
+
+															@WebMethod
+															public void addSpittle(Spittle spittle) {
+																spitterService.saveSpittle(spittle);
+															}
+															
+														Unlike those other service exporters, SimpleJaxWsServiceExporter doesn’t need to be given a reference to the bean it’s supposed to export. 
+														Instead, it publishes all beans that are annotated with JAX-WS annotations as JAX-WS services.
+														
+											REST
+												Spring offer two options to transform a resource Java representation into the representation that's shipped to the client:
+													Content negotiation
+														When it comes to resolving view names into views that can produce resource representations, there’s an additional dimension to consider. 
+														Not only does the view need to match the view name, but the view also needs to be chosen to suit the client.
+														ContentNegotiatingViewResolver is a special view resolver that takes the content type that the client wants into consideration.
+															First tries the URL's file extension.
+															Second look in the Accept header field.
+															Default to the configured content type.
+															
+														ContentNegotiatingViewResolver asks the other view resolvers to resolve the logical view name into a view.
+														Every view that’s resolved is added to a list of candidate views. With the candidate view list assembled, ContentNegotiatingViewResolver
+														cycles through all the requested media types, trying to find a view from among the candidate views that produces a matching content type.
+														The first match found is the one that’s used to render the model.
+														To configure the ContentNegotiatingViewResolver we use the ContentNegotiationManager, to configure it we have three options :
+															Directly declare a bean whose type is ContentNegotiationManager.
+															Create the bean indirectly via ContentNegotiationManagerFactoryBean
+															Override the configurationContentNegotiation method of WebMvcConfigurer
+															
+															@Bean
+															public ViewResolver cnViewResolver(ContentNegotiationManager cnm) {
+																ContentNegotiatingViewResolver cnvr = new ContentNegotiatingViewResolver();
+																cnvr.setContentNegotiationManager(cnm);
+																return cnvr;
+															}
+															
+															
+															@Override
+															public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+																configurer.defaultContentType(MediaType.TEXT_HTML);
+															}
+															
+															@Bean
+															public ViewResolver beanNameViewResolver() {                  <--Look up views as beans
+																return new BeanNameViewResolver();
+															}
+
+															@Bean
+															public View spittles() {
+																return new MappingJackson2JsonView();     <- JSON views
+															}
+															
+															In addition to what’s shown in listing 16.2, there would also be an HTML-capable view resolver (such as InternalResourceViewResolver)
+														
+													Message Conversion
+														When using message conversion, DispatcherServlet doesn’t bother with ferrying model data to a view. 
+														In fact, there is no model, and there is no view. There is only data produced by the controller and a resource representation produced when a 
+														message converter transforms that data.
+														If we employ message conversion, you need to tell Spring to skip the normal model/view flow and use a message converter instead.
+														We can use @ResponseBody
+														
+														@RequestMapping(method=RequestMethod.GET,produces="application/json")
+														public @ResponseBody List<Spittle> spittles
+
+														For illustration’s sake, if the client’s Accept header specifies that the client will accept application/json, and if the Jackson JSON library is in the 
+														application’s classpath, then either MappingJacksonHttpMessageConverter or MappingJackson2HttpMessageConverter will be chosen
+														the @RequestBody tells Spring to find a message converter to convert a resource representation coming from a client into an object either.
+														
+														@RequestMapping(method=RequestMethod.POST,consumes="application/json")
+														public @ResponseBody Spittle saveSpittle(@RequestBody Spittle spittle)
+														
+														If you’re writing a controller that has several methods, all of which should use message conversion, then those annotations get somewhat repetitive.
+														@RestController
+														
+														JMS
+															RPC over JMS !!!!Basically RPC asynchronous
+																JMSMessageID
+																JMSCorrelationID
+															
+														
+														AMQP
+															Defines a wire-protocol for messaging whereas JMS defines an API specification.
+															JMS does not mandate that messages sent by one JMS implementation can be consumend by a different JMS implementation.
+															AMQP specifies the format of the messages between the producer and the consumer.
+															It is more interoperable (can be changed between systems that does not run Java)
+															With JMS there is only two messaging models(point to point and publish/subscribe)
+															AMQP enables to rpute in a number of ways and decouple the message producer and the queues (through Exchangers)
+												
+															
+															
 											
 											
 											
