@@ -909,6 +909,72 @@ Three ways to configure application context
 															It is more interoperable (can be changed between systems that does not run Java)
 															With JMS there is only two messaging models(point to point and publish/subscribe)
 															AMQP enables to rpute in a number of ways and decouple the message producer and the queues (through Exchangers)
+															
+														WEBSOCKET
+															Provide Bi Directional ,Full Duplex,low latency in one TCP socket connection.
+															It is a protocol that operates as un upgraded HTTP connection exchanging variable length frames between the two parties instead of a stream.
+															SockJS is a WebSocket emulator.
+															STOMP(Asynchronous)
+																Just as HTTP layers a request-response model on top of TCP sockets,STOMP layers a frame-based wire format to define messaging semanticson top 
+																of WebSocket.
+																STOMP uses a message broker !!!
+																Spring
+																	Instead of using @RequestMapping use @MessageMapping
+																	@EnableWebSocketMessageBroker
+																	extends AbstractWebSocketMessageBrokerConfigurer{
+																	
+																	@Override
+																	public void registerStompEndpoints(StompEndpointRegistry registry) {
+																		registry.addEndpoint("/marcopolo").withSockJS();
+																	}
+																	@Override
+																	public void configureMessageBroker(MessageBrokerRegistry registry) {
+																		registry.enableSimpleBroker("/queue", "/topic");
+																		registry.setApplicationDestinationPrefixes("/app");
+																	}
+																	
+																	
+												SPRING BOOT
+													Spring Boot Starters
+														Aggregate common grouping of dependencies into single dependencies
+													AutoConfiguration
+														Leverage Spring support for conditional configuration to make reasonable guesses about the beans our application 
+														needs and automatically configure them.
+													CLI
+													Actuator
+													
+													<?xml version="1.0" encoding="UTF-8"?>
+													<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+													http://maven.apache.org/xsd/maven-4.0.0.xsd">
+														<modelVersion>4.0.0</modelVersion>
+														<groupId>com.habuma</groupId>
+														<artifactId>contacts</artifactId>
+														<version>0.1.0</version>
+														<packaging>jar</packaging>
+														<parent>
+															<groupId>org.springframework.boot</groupId>
+															<artifactId>spring-boot-starter-parent</artifactId>
+															<version>1.1.4.RELEASE</version>
+														</parent>
+														<dependencies>
+															<dependency>
+																<groupId>org.springframework.boot</groupId>
+																<artifactId>spring-boot-starter-web</artifactId>
+															<dependency>
+															<dependency>
+																<groupId>org.thymeleaf</groupId>
+																<artifactId>thymeleaf-spring4</artifactId>
+															</dependency>
+														</dependencies>
+														<build>
+															<plugins>
+															<plugin>
+															<groupId>org.springframework.boot</groupId>
+															<artifactId>spring-boot-maven-plugin</artifactId>
+															</plugin>
+															</plugins>
+														</build>
+											</project>
 												
 															
 															
