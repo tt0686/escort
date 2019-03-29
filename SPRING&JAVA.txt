@@ -976,7 +976,158 @@ Three ways to configure application context
 														</build>
 											</project>
 												
-															
+	JPA
+		PERSITENCE BOOTSTRAP-> PERSISTENCE UNIT -> ENTITY MANAGER FACTORY  -> ENTITY MANAGER -> PERSISTENCE CONTEXT(SET OF ALL ENTITIES INSTANCES MANAGED BY A SPECIFIC ENTITY MANAGER)
+		
+		IN Java SE we use the Persistence BootStrap.
+		CHANGES TO ENTITIES MUST BE MADE PERSISTENT USING A TRANSACTION.
+		NON MUTATING OPERATIONS LIKE FIND DO NOT NEED A A TRANSACTIONN.
+		
+		SO IF WE ARE RUNNING IN AN JAVA EE CONTAINER ENVIRONMENT THE JTA IS USED.The transaction model when running in the container is to assume the application will ensure that a transactional
+		context is present when one is required.
+		IN JAVA SE WE USE javax.persistence.EntityTransaction
+		
+		em.getTransaction().begin();
+		createEmployee(158, "John Doe", 45000);
+		em.getTransaction().commit();
+		
+		TRANSACTIONAL DEMARCATION
+		
+			Resource Local transaction are always demarcated EXPLICITLY by the application.
+			Container transactions can either be demarcated automatically by the container or by using a JTA interface.
+			CMT Container management transaction
+			BMT Bean management transaction
+			
+			EJBs by default use CMT
+			Servlets are limited to BMT
+			
+			@Stateless
+			@TransactionManagement(TransactionManagementType.BEAN)   -----------> USED ONLY IN EJBs
+			public class ProjectService
+			
+				Transaction attributes :
+					MANDATORY
+					REQUIRED     ------> DEFAULT
+					REQUIRES_NEW
+					SUPPORTS
+					NOT_SUPPORTED
+					NEVER
+					
+			With transactional interceptors it is possible to apply CMT to other components besides EJBs !!!!!
+			@Transactional
+			
+			IMPORTANT : Transactions of BMT EJBs do not propagate to methods called on another BMT EJB!!!
+			
+			Each JTA is associated with an execution thread, with CMT the container can suspend the current transaction ,in this way , multiple transactions can be associated with a single thread 
+			even though only one can ever be active.
+			
+			Two types of accessing Entity State
+				Field
+				Property
+				Mixed
+					@Entity
+					@Access(AcessType.FIELD)
+					public class Employee{
+						...
+						@Transient
+						private String phoneNum;
+						
+						@Access(AcessType.PROPERTY)
+						@Column(name="PHONE")
+						protected String getPhoneNumberForDb(){...}
+					}
+					
+				
+				TABLE
+				
+				@TableGenerator(name="Emp_Gen",table="ID_GEN",pkColumnName="GEN_NAME",valueColumnName="GEN_VAL")
+				@Id
+				@GeneratedValue(generator="Emp_Gen")
+				private long id;
+				
+				SEQUENCE
+				
+				@SequenceGenerator(name="Emp_Gen", sequenceName="Emp_Seq")
+				@Id @GeneratedValue(generator="Emp_Gen")
+				private long getId;
+				
+				DATABASE IDENTITY  -> CAN NOT ALLOCATE BLOCKS IN ADVANCE AND THE IDENTIFIER IS NOT AVAILABLE UNTIL AFTER COMMIT TIME.
+				
+				RELATIONSHIPS
+					Single Value Association(Many To One / One To One)
+					THE SIDE THAT OWNS THE JOIN COLUMN(FOREIGN KEY) IS CALLED THE OWNING SIDE!!!!
+					The physical annotations that define the mappings to the columns in the database are always defined on the owning side of the relationship.
+					
+					@ManyToOne
+					@JoinColumn(name="")
+					
+					@OneToOne(mappedBy="parkingSpace")
+					mappedBy indicates the INVERSE SIDE of the relationship.
+					THE VALUE OF THE MAPPEDBY IS THE NAME OF THE ATTRIBUTE IN THE OWNING ENTITY THAT POINTS BACK TO THE INVERSE ENTITY!!!!
+					
+					Collection-Value Associations
+						A bidirectional one to many relationship always implies a many to one mapping back to the source
+						IN THE BIDIRECTIONAL ONE-TO-MANY RELATIONSHIPS
+							THE MANY TO ONE SIDE SHOULD BE THE OWNING SIDE,SO THE JOINCOLUMN SHOULD BE DEFINED ON THAT SIDE
+							THE ONE TO MANY MAPPINGS SHOULD BE THE INVERSE SIDE,SO THE MAPPEDBY ELEMENT SHOULD BE USED
+							Failing to specify the mappedBy element in the @OneToMany annotation will cause the provider to treat it as a unidirectional one-to-many relationship that is defined to use a join table.
+							
+					@ManyToMany
+					@JoinTable(name="EMP_PROJ",@JoinColumns(name="EMP_ID"),inverseJoinColumn(name="PROJ_ID"))
+					private Collection<Project> projects;
+					
+					UNIDIRECTIONAL COLLECTION MAPPING
+						When an entity has a one to many mapping to a target entity,but the @OneToMany annotation does not include the "mappedBy" element,it is assumed to be in a unidirectional relationship.
+						A Join table is needed!!!!
+						
+						
+						@OneToMany
+						@JoinTable(name="EMP_PHONE",joinColumns=@JoinColumn(name="EMP_ID"),
+						inverseJoinColumns=@JoinColumn(name="PHONE_ID"))
+						private Collection<Phone> phones;
+						
+						
+					@Embeddable
+					@Access(AccessType.FIELD)
+					public class Address
+
+					@Embedded
+					@AttributeOverrides({
+						@AttributeOverride(name="state", column=@Column(name="PROVINCE")),
+						@AttributeOverride(name="zip", column=@Column(name="POSTAL_CODE"))
+					})
+					private Address address;
+
+					ELEMENT COLLECTIONS
+					
+					@ElementCollection(targetClass=VacationEntry.class)
+					@CollectionTable(name="VACATION", joinColumns=@JoinColumn(name="EMP_ID"))
+					private Collection vacationBookings;
+					@ElementCollection
+					private Set<String> nickNames;
+					
+					If there is a collection of embeddables how would it be possible to store a multiplicity of like-mapped objects in a single row
+					
+						
+							
+					
+					
+					
+					
+					
+				
+				
+					
+			
+			
+			
+			
+		
+		
+		
+		
+		
+		
 															
 											
 											
