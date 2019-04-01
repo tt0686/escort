@@ -1153,6 +1153,12 @@ Three ways to configure application context
 					CORE
 						IF THE PERSISTENCE CONTEXT PARTICIPATES IN A TRANSACTION,THE IN-MEMORY STATE OF THE MANAGED ENTITIES WILL GET SYNCHRONIZED TO THE DATABASE.
 						
+						CONTAINER-MANAGED ENTITY MANAGERS
+							TRANSACTION SCOPED : scoped by the JTA transaction , ending when the transaction is complete
+							EXTENDED : single persistence context tied to the lifecycle of stateful session bean
+							
+							
+						
 						
 					
 					
