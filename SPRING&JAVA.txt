@@ -1102,11 +1102,70 @@ Three ways to configure application context
 					
 					@ElementCollection(targetClass=VacationEntry.class)
 					@CollectionTable(name="VACATION", joinColumns=@JoinColumn(name="EMP_ID"))
+					@AttributeOverride(name="daysTaken", column=@Column(name="DAYS_ABS"))
 					private Collection vacationBookings;
 					@ElementCollection
 					private Set<String> nickNames;
 					
 					If there is a collection of embeddables how would it be possible to store a multiplicity of like-mapped objects in a single row
+					
+					
+					MAP
+					@ElementCollection
+					@CollectionTable(name="EMP_PHONE")
+					@MapKeyColumn(name="PHONE_TYPE")   -> Indicate the column in the collection table that stores the basic key!!!
+					private Map<String,String> phoneNumbers;
+					
+					In the relational model
+						EMPLOYEE       EMP_PHONE
+						PK ID          PK FK1 EMPLOYEE_ID
+						   NAME        PK     PHONE_TYPE
+						   SALARY             PHONE_NUM
+					
+					
+					Instead of String use the Enumerated , not the Enumerated ordinal value but the String value.
+					In a Collection we will use the @Enumerated to override the values but in a Map we want to override the key so we use
+					@MapKeyEnumerated
+					
+					@ElementCollection
+					@CollectionTable(name="EMP_PHONE")
+					@MapKeyEnumerated(EnumType.STRING)
+					@MapKeyColumn(name="PHONE_TYPE")
+					@Column(name="PHONE_NUM")
+					private Map<PhoneType, String> phoneNumbers;
+					
+					
+					@OneToMany(mappedBy="department")
+					@MapKey(name="id")   -------------------> Designate the attribute of the TARGET entity that is being keyed on.
+					private Map<Integer, Employee> employees;
+					
+					@ElementCollection
+					@CollectionTable(name="EMP_SENIORITY")
+					@MapKeyJoincolumn(name="EMP_SENIORITY") -----> Instead of @MapKey , to differentiate join columns that point to map keys from the ones used in relationship this annotation was created.
+					@Column(name="SENIORITY")
+					private Map<Employee,Integer> seniorities;
+					
+					RULES TO MAPS !!!
+						use @MapKey with one-to-many or many-to-many relationship Map thta is keyed on an attribute of the target entity
+						use @MapKeyJoinColumn to override the join column of the entity key
+						use @MapKeyColumn to override the column storing the keys when keyed by basic type
+						
+					CORE
+						IF THE PERSISTENCE CONTEXT PARTICIPATES IN A TRANSACTION,THE IN-MEMORY STATE OF THE MANAGED ENTITIES WILL GET SYNCHRONIZED TO THE DATABASE.
+						
+						
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
 					
 						
 							
