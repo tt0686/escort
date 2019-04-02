@@ -1157,6 +1157,37 @@ Three ways to configure application context
 							TRANSACTION SCOPED : scoped by the JTA transaction , ending when the transaction is complete
 							EXTENDED : single persistence context tied to the lifecycle of stateful session bean
 							
+							If transaction scoped entity manager is state how can it work with Persistence Context ? THROUGH JTA transaction !!!
+							
+						APPLICATION MANAGED ENTITY MANAGERS
+							In terms of persistence context,the application managed entity manager is SIMILAR to an EXTENDED container managed entity manager.
+							IN JAVA EE IF RESOURCE LOCAL TRANSACTIONS ARE REQUIRED FOR AN OPERATION,AN APPLICATION MANAGED ENTITY MANAGER IS THE ONLY TYPE OF ENTITY MANAGER THAT CAN BE CONFIGURED WITH THAT
+							TRANSACTION TYPE WITHIN THE SERVER!!!
+							
+						UNDERSTAND HOW PERSISTENCE CONTEXTS INTERACT WITH TRANSACTIONS IS A FUNDAMENTAL PART OF WORKING WITH JPA.
+						There are TWO TYPES of transaction management supported by JPA :
+							Resource-local transaction(native transactions of the JDBC drivers)
+							JTA transactions (transactions of the Java EE server,supporting multiple participating resources,distributed XA transactions and transaction lifecycle management).
+								Container Managed entity managers always use JTA.
+								Application managed entity managers can use either type.
+								
+								JTA
+									Transaction synchronization -> Process by which a persistence context is registered with a transaction so that the persistence context can be notified when a transaction commits.
+									Transaction association -> Binding a persistence context to a transaction.
+									Transaction propagation -> Sharing a persistence context between multiple container-managed entity managers in a single transaction.
+									
+									
+									Because transaction scope entity manager will use an existing persistence context associated with a transaction before it will create a new persistence context,it is possible 
+									to share an extended persistence context with other transaction scope entity managers.AS LONG AS THE EXTENDED PERSISTENCE CONTEXT IS PROPAGATED BEOFRE ANY TRANSACTION SCOPED
+									ENTITY MANAGERS ARE ACCESSED.
+									TWO EXTENDED PERSISTENCE CAN BE SYNCHRONIZED WITH EACH OTHER!!!
+									ONE TRANSACTION SCOPE CAN NOT BE SINCHRONIZED WITH A EXTENDED!!!
+									
+									THERE IS NO LIMIT TO THE NUMBER OF APPLICATION MANAGED PERSISTENCE CONTEXTS THAT CAN BE SYNCHRONIZED WITH A TRANSACTION!!!
+									BUT ONLY ONE CONTAINER MANAGED PERSISTENCE CONTEXT WILL EVER BE ASSOCIATED!!!
+							
+							
+							
 							
 						
 						
