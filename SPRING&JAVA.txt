@@ -1160,7 +1160,7 @@ Three ways to configure application context
 							If transaction scoped entity manager is state how can it work with Persistence Context ? THROUGH JTA transaction !!!
 							
 						APPLICATION MANAGED ENTITY MANAGERS
-							In terms of persistence context,the application managed entity manager is SIMILAR to an EXTENDED container managed entity manager.
+							In terms of persistence context,the application managed entity manager is SIMILAR to an EXTENDED container managed entity manager. <-<-<-<-<-<-<-!!!!!
 							IN JAVA EE IF RESOURCE LOCAL TRANSACTIONS ARE REQUIRED FOR AN OPERATION,AN APPLICATION MANAGED ENTITY MANAGER IS THE ONLY TYPE OF ENTITY MANAGER THAT CAN BE CONFIGURED WITH THAT
 							TRANSACTION TYPE WITHIN THE SERVER!!!
 							
@@ -1185,6 +1185,502 @@ Three ways to configure application context
 									
 									THERE IS NO LIMIT TO THE NUMBER OF APPLICATION MANAGED PERSISTENCE CONTEXTS THAT CAN BE SYNCHRONIZED WITH A TRANSACTION!!!
 									BUT ONLY ONE CONTAINER MANAGED PERSISTENCE CONTEXT WILL EVER BE ASSOCIATED!!!
+									
+							CASCADES
+							
+								SPECIAL CASES!!!!
+									The FLUSH operation is related with a very deep degree of relation with CASCADING.
+									We iterate through all linked relationships and could call PERSISTE on the objects to become managed!!!
+									If we stumble in a detached object during the iteration and this object is the TARGET of the one-to-one or many-to-one relationship 
+									where the source entity is the owner , the FLUSH will still proceed because the act of persisting the owning entity does not depend on the target!!!!
+									The owning entity has the foreign key column and needs to store only the primary key value of the target entity!!!
+									
+								MERGE	
+									WE GENERALLY CASCADE OPEARATIONS ONLY DOWN FROM PARENT TO CHILD,NOT UPWARD FROM CGILD TO PARENT.
+
+
+								PLANNING FOR DETACHMENT
+									Triggering Lazy Loading
+										List<Employee> emps = (List<Employee>)em.createQuery("SELECT e FROM Employee e").getResultList();
+										for (Employee emp : emps) {
+											Department dept = emp.getDepartment();
+											if (dept != null) {
+												dept.getName();
+											}
+											
+									EAGER LOADING
+									PROJECTION QUERIES
+									KEEPING PERSISTENCE CONTEXT OPEN THROUGH APPLICATION MANAGER OR EXTENDED PERSISTENCE CONTEXT OR LEAVES A TRANSACTION OPEN THROUGH FOR INSTANCE
+									THE TRANSACTIO VIEW PATTERN !!!!
+										WE USE BEAN_MANAGED TRANSACTION
+											@Resource UserTransaction tx;
+											...
+											tx.begin();
+											List emps = bean.findAll();
+											request.setAttribute("employees", emps);
+											...
+											finally{
+												tx.commit();
+												Complex to implements in the Front Controller pattern
+												It could be implemented in Filters but be carefull with updates in session beans ,they should have REQUIRES_NEW transaction attribute!!!
+									
+										https://vladmihalcea.com/a-beginners-guide-to-jpa-hibernate-entity-state-transitions/
+										https://vladmihalcea.com/jpa-persist-and-merge/
+												
+									SESSION FAÇADE
+									EDIT SESSION THROUGH STATEFUL EXTENDED PERSISTENCE CONTEXT
+									
+							QUERIES
+								JP QL
+								NATIVE SQL
+								CRITERIA API 								
+								
+									The result type of a select query CANNOT BE A COLLECTION,IT MUST BE A SINGLE VALUED OBJECT!!!
+									JOIN
+										SELECT p.number
+										FROM Employee e, Phone p
+										WHERE e = p.employee  AND e.department.name = " 'NA44'
+										
+										SELECT p.number
+										FROM Employee e JOIN e.phones p
+										WHERE e.department = 'NA44'
+										
+										Query and TypedQuery
+											Three approaches to define JP QL query
+												Dynamically specified (Through a String concatenation)
+													The query engine will have to parse the JP QL string into a syntax tree,get the object-relational mapping metadata for each entity in each expression and then 
+													generate the equivalent SQL.
+													MANY QUERY ENGINES WILL CACHE THE TRANSLATED SQL FOR LATER USE, BUT THIS CAN EASILY BE DEFEATED IF THE APPLICATION DOES NOT USE PARAMETER 
+													BINDING AND CONCATENATES PARAMETER VALUES DIRECTLY INTO QUERY STRINGS!!!
+												Configured in persistence unit metadata(annotation or XML)
+													@NamedQuery(name="zxczxcz",query="zsdasdasd")
+													Dynamicy Named QUERY
+														private static final String QUERY = "SELECT ....";
+														TypeQuery<Long> q = em.createQuery(QUERY,Long.class);
+														emf.addNamedQuery("findSalaryForNameAndDepartment",q);
+														
+												Dynamic specified and saved to be later referenced by name
+												
+												Query and TypedQuery objects may be reused as often as needed so long as the same persistence context that was used to create the query is still active.
+												
+												OPTIMIZING READ ONLY QUERIES
+													When the query result will not be modified, queries using transaction scoped entity managers outside of a transaction can be more efficient than queries execured within
+													a transaction when the result type is an ENTITY!!!!
+													When query results are prepared within a transaction, the persistence provider has to take steps to convert the results into managed entities. 
+													This usually entails taking a snapshot of the data for each entity in order to have a baseline to compare against when the transaction is committed. 
+													If the managed entities are never modified, the effort of converting the results into managed entities is wasted.
+													Note that this technique does not work on application-managed or extended entity managers because their persistence context outlives the transaction.
+													
+											SPECIAL RESULT TYPES
+												Whenever a query involves more than one expression in the SELECT clause, the result of the query will be a List of Object arrays.
+													For instance "SELECT e.name, e.department.name " +
+												Instead of doing this 
+													for (Iterator i = result.iterator(); i.hasNext();) {
+													Object[] values = (Object[]) i.next();
+												We can use Constructor expressions to provide developers with a way to map an array of Object result types to custom objects.	
+												The only requirement for this class is that it has a constructor with arguments matching the exact type and order that will be specified in the query.
+												createQuery("SELECT NEW example.EmpMenu("e.name, e.department.name) " +
+												
+											IMPORTANT
+												Queries and uncommitted changes.
+												Executing queries against entities that have been created or changed in a transaction is a topic that requires special consideration.
+												ALL ENTITY OPERATIONS OTHER THAN QUERIES CAN BE SATISFIED WITHOUT FLUSHING THE PERSISTENCE CONTEXT TO THE DATABASE.
+												Queries are a special case because they are executed directly as SQL against the database. Because the database executes the query 
+												and not the persistence provider, the active persistence context cannot usually be consulted by the query.
+												As a result, if the persistence context has not been flushed and the database query would be impacted by the changes pending in the persistence context, 
+												incorrect data is likely to be retrieved from the query.
+												To offer more control over the integrity requirements of queries, the EntityManager and Query interfaces support a setFlushMode() method to set the flush mode.
+												AUTO and COMMIT.
+												
+												BULK UPDATE AND DELETE
+													JP QL UPDATE AND DELETE statements are designed to make changes to large numbers of entities in a single operation without requiring the individual
+													entities to be retrieved and modified using the entity manager.
+													Persistence Context is not updated to reflect the results of the operation.
+													The developer can rely only on entities retrieved after the bulk operation completes.
+													
+														A new transaction starts
+														Entity A is created by calling persist() to make the entity managed
+														Entity B is retrieved from a find() operation and modified
+														A bulk remove deleted entity A
+														A bulk update changes the same properties on entity B that were modified in Step 3
+														The transaction commits.
+														
+													DELETE statements do not cascade to related entities even if the REMOVE cascade option is set on a relationship!!!
+													The alternative to JP QL DELETE statementes is to retrieve the entities and call remove in each one!!!
+													
+													Query best practices
+														NAMED QUERIES
+														PROJECTION
+														QUERIES TO RUN OUTSIDE OF A TRANSACTION
+														BULK OPEARATIONS RUNNING IN AN ISOLATED TRANSACTION
+														FLUSH MODE
+														
+													QUERIES
+														FECTH -> Allows queries to specify relationships that should be prefetched to avoid the lazy loading detachment problem.
+														
+														select e
+														from Employee e JOIN FECTH e.address
+														
+														The engine transforms to the following :
+														
+														select e,a
+														from Employee e JOIN FECTH e.address a
+														
+														Creates the Address in memory and assign it to the Employee entity and then it drops it from the result collection!!!
+														A consequence is that fecthing a colllection association results in duplicate results :
+														
+														select d
+														from Department d LEFT JOIN FETCH d.employees (collection association)
+														
+														engine transforms to this 
+														
+														select d,e
+														from Department d LEFT JOIN FECTH d.employees e
+														
+														The employees are dropped from the result and the Department instances become duplicated!!!
+														
+														MEMBER OF
+														IS EMPTY -> To collections
+														IS NULL
+														EXISTS -> subqueries
+														ALL,ANY,SOME
+														
+													POLYMORPHISM
+														Subclass discrimination
+															Select p
+															From Project p
+															Where TYPE(p) = DesignProject OR TYPE(p) = QualityProject
+															
+														Downcasting
+															TREAT in WHERE and FROM
+															
+													Scalar Expressions Literals Temporal
+														{d 'yyyy-mm-dd'}
+														{t 'hh-mm-ss'}
+														{ts 'yyyy-mm-dd hh-mm-ss.f'}
+														
+													METAMODEL API
+														metamodel of a persistence unit is a description of the persistent type, state, and relationships of entities, embeddables, and managed classes.
+														The Metamodel interface can be used to list the persistent classes in a persistence unit or to retrieve information about a specific persistent type.
+														
+													Criteria API
+														String Api vs Strongly Typed API (CANONICAL METAMODEL)
+														
+													CONVERTERS
+														implements the AttributeConverter<X,Y>
+															public Y convertToDatabaseColumn(X attribute);
+															public X convertToEntityAttribute(X dbData);
+															
+															
+															@Converter
+															public class BooleanToIntegerConverter implements AttributeConverter<Boolean,Integer> {
+																public Integer convertToDatabaseColumn (Boolean attrib) {
+																	return (attrib ? 1 : 0);
+																}
+																
+																public Boolean convertToEntityAttribute (Integer dbData) {
+																	return (dbData > 0)
+																}
+															}
+															
+													@Convert(converter=BooleanToIntegerConverter.class)
+													private Boolean bonded;
+													
+													Compound Primary Keys
+														ID Class
+														
+															@Entity
+															@IdClass(EmployeeId.class)
+															public class Employee{
+															@Id
+															private String country;
+															@Id
+															@Column(name="EMP_ID")
+															private int id;
+															
+															public class EmployeeId implements Serializable {
+																private String country; --->
+																private int id;         ---> MUST EXISTS IN THE ENTITY
+																
+																public EmployeeId() {}
+																
+																public EmployeeId(String country, int id) {
+																	this.country = country;
+																	this.id = id;
+																}
+																
+																public String getCountry() { return country; }
+																
+																public int getId() { return id; }
+																
+																public boolean equals(Object o) {
+																	return ((o instanceof EmployeeId) & country.equals(((EmployeeId)o).getCountry()) && id == ((EmployeeId)o).getId());
+																}
+																
+																public int hashCode() {
+																	return country.hashCode() + id;
+																}
+															}
+															
+															equals and hasCode must be implemented !!!!
+															
+														Embedded ID Class
+															@Embeddable
+															public class EmployeeId{
+																private String country;
+																@Column(name="EMP_ID")
+																private int id;
+																
+																public EmployeeId(){}
+																public EmployeeId(String country,int id){...}
+																...
+															}
+															
+															@Entity
+															public class Employee{
+																@EmbeddedId
+																private EmployeeId id;
+																
+																....
+																
+													Derived Identifiers
+														One to One relationship between Employee and EmployeeHistory
+														
+														The EmployeeHistory shares the primary key with Employee
+														
+														public class EmployeeHistory{
+															@Id
+															@OneToOne
+															@JoinColumn(name="EMP_ID")
+															private Employee employee;
+															....
+															
+															If Employee has a compound primary key, either with an ID class or an embedded ID class, then EmployeeHistory is going to share the same ID class 
+															(and should also be annotated with the @IdClass annotation).
+															THE PROBLEM IS THAT THIS TRIPS OVER THE ID CLASS RULE THAT THERE SHOULD BE A MATCHING ATTRIBUTE IN THE ENTITY FOR EACH ATTRIBUTE IN ITS ID CLASS. 
+															THIS IS THE EXCEPTION TO THE RULE, BECAUSE OF THE VERY FACT THAT THE ID CLASS IS SHARED BETWEEN BOTH PARENT AND DEPENDENT ENTITIES.
+															
+															@Entity
+															@IdClass(ProjectId.class)
+															public class Project {
+																@Id 
+																private String name;
+																@Id
+																@ManyToOne
+																@JoinColumns({
+																@JoinColumn(name="DEPT_NUM",referencedColumnName="NUM"),
+																@JoinColumn(name="DEPT_CTY",referencedColumnName="COUNTRY")})
+																private Department dept;
+																// ...
+															}
+
+															public class ProjectId implements Serializable {
+																private String name;
+																private DeptId dept;
+																
+																public ProjectId() {}
+																public ProjectId(DeptId deptId, String name) {
+																	this.dept = deptId;
+																	this.name = name;
+																}
+																// ...
+															}
+
+															public class DeptId implements Serializable {
+															private int number;
+															private String country;
+															public DeptId() {}
+															public DeptId (int number, String country) {
+																this.number = number;
+																this.country = country;
+															}
+															// ...
+															}
+															
+															Unidirectional relationship without using a JOIN TABLE
+															we first indicate that the one-to-many relationship is unidirectional by not specifying any mappedBy element in the annotation. 
+															Then we specify a @JoinColumn annotation on the one-to-many attribute to indicate the foreign key column. 
+															The catch is that the join column that we are specifying applies to the table of the target object, not to the source object in which the annotation appears.
+															
+															ORPHAN REMOVAL
+																Parent-Child relationships
+																
+															Relationship State
+																The relational table starts to have an entity
+																The owning and target entities start to have one relationship oneToMany to the relational entity 
+																And the relational entity has ManyToOne
+																
+															@SecondaryTables
+															
+															
+														MAPPED SUPERCLASSES
+															Entities can inherit from them but itseld is not a PERSISTENCE CLASS.It cannot be queried over and cannot be the target of a relatioship.
+															Usually they are Java abstract classes.
+															
+														Transient Classes
+															Classes in an entity hierarchy,that are not entities ir mapped superclasses,are called transient classes.
+															Entities may extend transient classes either directly or indirectly through a mapped superclass.When an entity inherits from a transient class,the state
+															defined in the transient class is still inherited in the entity,but it is not persistent.
+															
+														Inheritance
+															Single Table Strategy
+															    @Inheritance(strategy=InheritanceType.SINGLE_TABLE)
+																@DescriminatorColumn(name="EMP_TYPE")
+																@DescriminatorValue("xxxx")
+																
+															Joined Strategy
+															Table per concrete class
+															
+														NATIVE SQL
+															Native SQL queries that return ENTITIES will become MANAGED like the results of a JP QL query!!!
+															IT IS IMPORTANT TO ENSURE THAT ALL THE NECESSARY DATA REQUIRED TO FULLY CONSTRUCT THE ENTITY IS PATY OF THE QUERY.
+															IF WE LEAVE OUT A FIELD FROM THE QUERY THERE IS A POSSIBILITY THAT WE WILL OVERWRITE THE CORRECT VERSION ALREADY STORED IN THE DATABASE.
+															
+														@NamedNativeQuery(name="orgStructureReportingTo",
+																		 query="SELECT emp_id, name, salary, manager_id, dept_id, address_id FROM emp START WITH manager_id = ? CONNECT BY PRIOR emp_id = manager_id",
+																		 resultClass=Employee.class)	
+															
+														@SqlResultSetMapping(name="EmployeeResult",entities=@EntityResult(entityClass=Employee.class))	
+														
+														MAPPING COLUMN ALIASES
+															@FieldResult
+															
+														ENITY GRAPHS
+															Entity Graphs is not really a graph of entities ,but rather a template for specifying entity and embeddable attributes.It serves as a pattern that can
+															be passed into a find method or query to specify which entity and embedddable  attributes should be fecthed in the query result.
+															In more concrete terms, entity graphs are used to override at runtime the fetch settings of attribute mappings. 
+															For example, if an attribute is mapped to be eagerly fetched (set to FetchType.EAGER), it can set to be lazily fetched for a single execution of a query.
+															EVERY ENTITY AND EMBEDDABLE CLASS HAS A DEFAULT FECTH GRAPH!!!!
+															When a relationship attribute is listed in the graph but does not have any accompanying subgraph,then the default fetch group of the related class
+															will be assumed!!!
+															
+															FETCH GRAPH
+															LOAD GRAPH
+															
+														LIFECYCLE CALLBACKS
+															PrePersist
+															PostPersist
+															PreUpdate
+															PostLoad ...
+															
+														Entity Listeners
+															@Entity
+															@EntityListeners({EmployeeDebugListener.class, NameValidator.class})
+															public class Employee implements NamedEntity
+															
+															DEFAULT ENTITY LISTENERS MUST BE DECLARED IN XML!!
+															@ExcludeDefaultListeners use this annotaion if we want not to use the default listeners on a specific entity.
+															
+															Inheriting callback methods
+																Rule : Every callback method will be invoked in the order according to its place in the hierarchy,most general classes first!!!
+																
+														VALIDATION
+															JSR 303
+																@Null
+																
+																Validation Groups
+																
+																New Constraints
+																@Constraint(validatedBy={EvenNumberValidator.class})
+																@Target({METHOD, FIELD})
+																@Retention(RUNTIME)
+																public @interface Even {
+																	String message() default "Number must be even";
+																	Class<?>[] groups() default {};
+																	Class<? extends Payload>[] payload() default {};
+																	boolean includeZero() default true;
+																}
+																
+															Validation in JPA
+																When validating JPA entities there is a specific integration required with the JPA Provider.
+																
+														REFRESH ENTITY STATE
+															The refresh() method can be useful in situations when we know that there are changes in the database that we do not have in our managed entity!!!
+															The refresh operation applies only when an entity is managed because when we are detached we typically only need to issue a query to get an updated version
+															of the entity from the database.
+															Refreshing is especially relevant when using an extended or application-managed persistence context because it prolongs the interval of time that an entity is
+															effectively cached in the persistence context in isolation from the database.
+															
+														LOCKING
+															JPA by default use OPTIMISTIC LOCKING
+															How the provider knows that a entity was changed in the intervening time since the committing transaction ?
+															Through VERSIONING
+																The entity must have a dedicated persistent field or property declared in it to store the version number of the entity that was obtained in the
+																transaction.
+																
+														CACHING
+
+				JAVASCRIPT
+					Use <script> after the page content <body> this way the page is completely rendered in the browser before the javascript code os processed.
+					Or we can use the defer attribute
+					Async attribute will execute before the page load event and may execute before or after DOMContentLoaded.
+					Defining a variable using VAR makes it local to the scope in which it was defined.By removing the var operator the variable becomes GLOBAL!!!
+					Five primitive types
+						undefined , null , boolean , number , string
+					On Complex
+						Object which is an unordered list of name-value pairs.
+						typeof OPERATOR(not a function)
+						typeOf null returns Object because null is considered to be an empty object reference!!!!
+					ALL TYPES OF VALUES HAS BOOLEAN EQUIVALENTS
+					NAN SPECIAL NUMERIC VALUE WHICH IS USED TO INDICATE WHEN AN OPERATION INTENDED TO RETURN A NUMBER HAS FAILED !!!
+					ANY OPERATION INVOLVING NAN ALWAYS RETURNS NAN!!!
+					NUMBER("12312lkl")  -> NAN
+					NUMBER("") -> 0
+					parseInt("12312lkl") -> 123121
+					parseInt(22.5) -> 22
+					parseInt("0xA") -> 10 converts from Hexadecimal
+					
+					Object type
+						Each object instance has the following properties and methods:
+							constructor    -> Function that was used to create the object.
+							hasOwnProperty
+							isPrototypeOf
+							propertyIsEnumerable
+							toString
+							valueOf
+							toLocaleString
+							
+							OBJECT IS THE BASE FOR ALL OBJECTS IN ECAMSCRIPT!!!
+							
+						BITWISE OPERATORS
+							ALL NUMBERS IN ECMASCRIPT ARE STORED IN IEEE-754 64 BIT FORMAT BUT THESE OPERATORS DO NOT WORK DIRECTLY ON THE 64 BIT REPRESENTATION INSTEAD THE VALUE IS CONVERTED INTO
+							A 32 BIT INTEGER THE OPERATION TAKES PLACE AND THE RESULT IS CONVERTED BACK INTO 64 BITS.
+					
+					
+						
+															
+																
+																
+															
+															
+															
+															
+															
+																
+															
+														
+															
+															
+														
+														
+														
+															
+															
+																
+															
+															
+														
+														
+														
+													
+														
+														
+												
+												
+												
+												
+												
+											
 							
 							
 							
