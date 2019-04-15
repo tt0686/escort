@@ -1645,7 +1645,175 @@ Three ways to configure application context
 						BITWISE OPERATORS
 							ALL NUMBERS IN ECMASCRIPT ARE STORED IN IEEE-754 64 BIT FORMAT BUT THESE OPERATORS DO NOT WORK DIRECTLY ON THE 64 BIT REPRESENTATION INSTEAD THE VALUE IS CONVERTED INTO
 							A 32 BIT INTEGER THE OPERATION TAKES PLACE AND THE RESULT IS CONVERTED BACK INTO 64 BITS.
+							
+						for-in statement
+							Used to enumerate the properties of an object.
+							
+						Function arguments
+							arguments are represented as an array internally, the array is always passed to the function,but the function does not care what is in the array.
+							arguments values always stays in sync with the values of the corresponding named parameters!!!
+							Changig the named parameter does not change the corresponding value in arguments !!!
+							If only one argument is passed in,then setting arguments[1] to a value will not be reflected by the named parameter!!!!
+							
+						instanceof operator used to identify the type of object!!!!
+						
+						Execution Context has an associated VARIABLE OBJECT upon which all of its defined variables and functions exist!!!
+						Each execution context has a Scope Chain!!!!
+						IN JAVASCRRIPT THERE IS ONLY GLOBAL AND FUNCTION CONTEXT NOT BLOCK LEVEL SCOPE!!!
+						VARIABLE DECLARED WITHOUT USING THE VAR KEYWORD ARE ATTACHED TO THE GLOBAL CONTEXT!!!
 					
+						OBJECTS ARE CONSIDERED TO BE INSTANCES OF A PARTICULAR REFERENCE TYPE.
+						
+						new or literal notation !!!
+						We can access object properties through the "."(dot) notation or bracket notation.
+						
+						Detecting arrays
+							Problem : different frames in a web page (different global execution contexts) and therefore two versions of the Array constructor!!!
+							Solution Array.isArray()
+							
+						Date -> Stores dates as the number of miliseconds that have passed since midnight on january 1 1970 UTC.
+						To create dates based on another date or time we MUST pass in the millisecond representation of the date.To aid in this process,ECMASCript provides two methods
+							Date.parse() and Date.UTC()
+							
+							Under the hood the constructor used one of the two methods above.
+							
+							The valueOf method returns the milliseconds representation.
+							
+						Each function is an instance of the Function type that has properties and methods.
+						Function names are simply pointers to function objects!!!!!
+						
+						function  sum(num1,num2){
+							return num1 + num2;
+						}
+						
+						var sum = function(num1,num2){
+							return num1+num2;
+						}
+							
+						var sum = new Function("num1","num2","return num1 + num2");
+						
+						FUNCTION EXPRESSIONS DO NOT LEVERAGE THE FUNCTION DECLARATION HOISTING!!!
+						
+						Two special objects exist inside a function:arguments and this
+						
+						arguments.callee points to the function who owns the arguments array!!!
+						
+						this it is a reference to the context object that the function is operating on!!!
+						The value of this is not determined until the function is called !!!!
+						Other property of the function type is "caller" that points to the function caller.
+						Length returns the number of named parameters!!
+						
+						prototype -> Actual location of all instances methods for references types,meaning methods such as toString and valueOf actually exist on the prototype and then are accessed from the
+						object instances!!!
+						
+						apply,call and bind -> Change the context in which the function is executed.
+						
+						window.color = "red";
+						var o = {color : "blue"};
+						function sayColor(){
+							console.log(this.color);
+						}
+						var objectSayColor = sayColor.bind(o);
+						sayColor();-> Red
+						sayColor.call(o);-> Blue
+						objectSayColor();-> Blue
+						
+						eval method is perhaps the most powerful in ECMAScript language,it works like an entire ECMAScript interpreter.
+						Code executed by eval is considered to be part of the execution context in which the call is made.So has the same scope chain as that context.
+						Variable and functions created inside of eval() will not be hoisted!!!!
+						
+						Characteristics of properties through the use of internal only attributes
+							Data properties [[Configurable]]
+											[[Enumerable]]
+											[[Writable]]
+											[[Value]]
+											
+											Object.defineProperty(person,"name",{writable:false,value:"Nicholas"});
+							Accessor properties
+											[[Configurable]]
+											[[Enumerable]]
+											[[Get]]
+											[[Set]]
+											
+											var book = {
+												_year : 2004,
+												edition : 1};
+												
+											Object.defineProperty(book,"year",{
+												get : function(){
+													return this._year;
+												},
+												set : function(newValue){
+													if(newValue > 2004){
+														this._year = newValue;
+														this.edition += newValue - 2004;
+													}
+												}
+											});	
+											
+											
+							Object Creation
+								Factory Pattern
+											function createPerson(name,age,job){
+												var o= new Object();
+												o.name = name;
+												o.age = age;
+												o.job = job;
+												o.sayName = function(){
+													alert(this.name);
+												};
+												return o;
+											}
+											
+											PROBLEM : OBJECT IDENTIFICATION
+											
+								Constructor Pattern
+											function Person(name,age,job){
+												this.name = name;
+												this.age= age;
+												this.job = job;
+												this.sayName = function(){
+													alert(this.name);
+												}	
+											}
+											
+								Prototype Pattern
+									Each function is created with a prototype property,which is an object containing properties and methods that should be available to instances of a particular reference type.
+									
+									             ---------------------------------------------|
+												\/											  |	
+									Person(Function)  _prototype --------> Person Prototype   |
+																|			constructor ------|
+																|						  |
+						                                        |                         |
+								   person1(instance)[[prototype]]                    person2(instance)[[prototype]]
+								   
+								   Object.getPrototypeOf
+								   .isPrototypeOf
+								   .hasOwnProperty
+								   Object.keys()
+								   Object.getOwnPropertyNames
+										
+										function Person(){};
+										
+										Person.prototype.name
+										Person.prototype.age
+										Person.prototype.job
+										Person.prototype.sayName
+										
+									Combination Contructor/Prototype Pattern
+									function Person(name, age, job){										
+									//methods
+										if (typeof this.sayName != "function"){
+											Person.prototype.sayName = function(){
+										
+						                             
+						
+							
+							
+							
+							
+						
 					
 						
 															
