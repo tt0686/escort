@@ -1801,11 +1801,149 @@ Three ways to configure application context
 										Person.prototype.job
 										Person.prototype.sayName
 										
-									Combination Contructor/Prototype Pattern
+								Combination Contructor/Prototype Pattern
 									function Person(name, age, job){										
 									//methods
 										if (typeof this.sayName != "function"){
 											Person.prototype.sayName = function(){
+											
+								Parasitic Constructor Pattern
+									function SpecialArray(){
+										var array = new Array();
+										array.push.apply(array,arguments);
+										array.toPipedString = function(){...}
+										return array;
+									}
+								Durable Constructor
+									No public properties
+									Methods do reference the this object.
+									
+									function Person(name,age,job){
+										var o = new Object();
+										//optional : define private variables/functions here 
+										
+										o.sayName() = function(){
+											alert(name);
+										}
+										
+										return o;
+									}
+									
+								Prototype Chaining
+									Constructor Stealing
+									Combination Inheritance
+										function SuperType(name){
+											this.name = name;
+											this.colors = ["red","blue","green"];
+										}
+										
+										SuperType.prototype.sayName = function(){
+											alert(this.name);
+										}
+										
+										function SubType(name,age){
+											SuperType.call(this,name);
+											this.age = age;
+										}
+										
+										SubType.prototype = new SyperType();
+										SubType.prototype.sayAge() = function(){
+											alert(this.age);
+										}	
+										
+									Prototypal Inheritance
+										Basically a shadow copy of an object
+										
+										function object(o){
+											function F(){};
+											F.prototype = o;
+											return new F();
+										}
+										
+										ECMASCRIPT FORMALIZE THE CONCEPT THROUGH
+											Object.create()
+											
+									Parasitic Inheritance
+
+									Parasitic Combination Inheritance
+										To avoid the duplication of SuperType code we use the Prototypal Inheritance in the SuperType assign to the SubType prototype.
+										
+									CLOSURES
+										STATIC PRIVATE VARIABLE TO SHARE FUNCTIONS THROUGH PROTOTYPES!!!
+										MODULE PATTERN
+										
+										
+									DOM
+										Node type
+											Each node contains a childNodes property containing NodeList array-like object.
+											appendChild -> if the node is already part of the document it is removed from its previous location and placed at the new location.
+											removeChild The removed node is still owned by the document but does not have any specific location in the document.
+											cloneNode could make a shallow copy or a deep copy , the events of each node are not copied!!!
+											cloneNode does not copy Javascript properties added by us to DOM nodes such as event handlers!!!
+										Document node is the root it is and instance of HTMLDocument
+											It could have four types of childreen , DocumentType,Element,ProcessingInstruction,Comment
+											<html>
+												<body>
+												</body>
+											</html>
+											document.documentElement == document.childNodes[0];
+											
+											As an instance og HTMLDocument the document object has several additional properties that standard Document objects do not have.
+											One of this properties is the domain property , this property has some restrictions because of security issues.
+											The ability to set document.domain is useful when there is a frame or iframe on the page from a different subdomain.Pages from different subdomains can not communicate
+											with one another via Javascript because of cross domain security restrictions.
+											
+										Element Type
+											Represents an XML or HTML element.
+											All HTML elements are represented by the HTMLElement which inherits directly from Element.
+											One of the properties from this elemeny is the className which is used to specify CSS classes on an  element.
+											The class name could not be used because is an ECMAScript reserved word.
+											Custom attributes are not access has object properties , we must use the getAttribute method
+											
+										DocumentFragment type
+											Is the only node that has no representation in markup.
+											It is a lightweight document.
+											
+											<ul id="myList"></ul>
+											We want to add three list items to this ul element.Adding each item directly to the element causes the browser to rerender the page.To avoid :
+											var fragment = document.createDocumentFragment();
+											var ul = document.getElementById("myList");
+											var li = null;
+											for(var i=0;i < 3;i++){
+												li = document.createElement("li");
+												li.appendChild(document.createTextNode("Item " + (i+1));
+												fragment.appendChild(li);
+											}
+											ul.appendChild(fragment);
+											
+											To facilitate the tables creation and manipulation the DOM adds several properties to the <table> <tbody> and <tr> elements 
+											
+										NodeList,NamedNodeMap and HTMLCollection
+											They are queries that run against the DOM docuemnt whenever they are accessed.
+											
+										Selectors API
+											Retrieve a number of DOM elements matching a pattern specified using CSS selectors.
+											querySelector() 
+											querySelectorAll()
+											
+											#myDiv     ->element with the ID myDiv
+											.selected  ->first element with a class of "selected"
+											img.button ->image with class of "button"
+										Element	Travessal to overcome the IE problem of not return text nodes for white spaces in between elements.
+										HTML 5
+											One of the major changes in web developemnt since the time HTML4 was adopted is the increased usage of the class attribute to indicate both stylistic and semantic
+											information about elements.This caused a lot of Javascript interaction with CSS classes,including the dynamic changing of classes and querying the document to find elements
+											with a given class or set of classes.
+											
+												getElementsByClassName()
+											
+											
+											
+											
+											
+											
+										
+									
 										
 						                             
 						
