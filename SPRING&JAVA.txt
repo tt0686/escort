@@ -1936,6 +1936,113 @@ Three ways to configure application context
 											with a given class or set of classes.
 											
 												getElementsByClassName()
+												
+											DOM3 setUserData() assigns data to a node , a key , the actual data and handler function that is called when the node cloned,removed,renamed or imported into another document.
+
+											Computed Styles
+												Information about styles that have cascaded from styles sheets and affect the element.
+												
+												document.defaultView.getComputedStyle
+												
+												Traversal -> TreeWalker NodeIterator
+													Perform Depth-first traversals!!!
+													
+										Event Flow
+											Event Bubbling Start at the deepest and flow upward to the least specific
+											Capturing Flow From least to the target
+											
+											DOM Event Flow
+												First the Capturing (opportunity to intercept)
+												Actual target receives the event
+												Then Bubbling (Final Resposnse)
+												
+												Event Handlers(or Event Listerners)
+												
+												Each event supported by an element can be assigned using an HTML attribute with the name of the event handler.
+												Events handlers have some unique aspects, a function is created that wraps the attribute value, that function has a special local variable , which is the event object.
+												The this value inside if the function is equivalent to the event's target element
+												It augments the scope chain 
+													function(){
+														with(document){
+															with(this){
+																//attribute value
+															}
+														}
+													}
+													
+												If it is a form element
+													function(){
+														with(this.form){
+															with(document){
+																with(this){
+																	//attribute value
+																}
+															}
+														}	
+													}
+													
+												To not couple HTML to Javascript , it is better to use Javascript to assign event handlers!
+												Each Element as well as window and document has event handlers properties
+													var btn = document.getElementById("myBtn");
+													btn.onclink = function(){
+														alert("Clicked");
+													};
+													
+													Using event handlers using DOM Level 0 method,the event handler is considered to be a method of the element therefore is run within the scope of the element.
+													var btn = document.getElementById("myBtn");
+													btn.onclink = function(){
+														alert(this.id);
+													};
+													
+													DOM Level 2 Event Handlers
+														addEventListener
+														removeEventListener
+														
+														var btn = document.getElementById("myBtn");
+														btn.addEventListener("click", function(){
+														alert(this.id);},false);
+														
+														DOM Level 2 Event handlers also runs in the scope of the element on which it is attached!!!
+														
+														Internet Explorer use the attachEvent that is very similar to DOM Level 2 There is a huge difference between the two that is the scope where the function executes,
+														the Internet Explorer attachEvent runs in the global scope.
+														
+														The event object allow to assign event handlers to parents nodes that catch the event either in the capturing or bubbling phase!!!
+														For instance , the this object is always equal to the currentTarget whereas target property contains the actual target of the event!!!
+														
+														DOMContentLoaded fires as soon as the DOM tree is completely formed and without regard to images,Javascript files ,Css files or other such resources!!
+														
+													RICH TEXT
+														Implemented through an iframe and the respective design mode property or contenteditable property.
+														The contenteditable property allows any element of the page to become editable and it does not require the overhead of an iframe,blank page and Javascript.
+														Since rich text is implemented through iframe or contenteditable element instead of a form control,a rich editor is technically not part of a form.
+														This means the HTML will not be submitted to the server unless we extract the HTML manually and submit it ourself.
+														This is typically done by having a hidden form field that is updated with the HTML from the iframe or the contenteditable element.
+														
+													Cross Document Messaging or XDM
+														Ability to pass information between pages from different origins.
+														postMessage() at the heart of Html5 XDM!!!
+														
+													ERROR LOGS IN THE SERVER
+														function logError(sev, msg){
+															var img = new Image();
+															img.src = “log.php?sev=” + encodeURIComponent(sev) + “&msg=” +
+															encodeURIComponent(msg);
+														}
+														
+														AJAX AND CORS
+															The basic idea behind CORS is to use custom HTTP headers to allow both the browser and the server to know enough about each
+															other to determine if the request or response should succeed or fail.
+															Preflighted Requests
+																CORS allows the use of custom headers,methods other than GET or POST and different body content types through a transparent mechanism of server 
+																verification called PREFLIGHTED REQUESTS!!!
+														
+														
+														
+														
+													
+											
+												
 											
 											
 											
