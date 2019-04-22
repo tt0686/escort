@@ -2036,6 +2036,128 @@ Three ways to configure application context
 															Preflighted Requests
 																CORS allows the use of custom headers,methods other than GET or POST and different body content types through a transparent mechanism of server 
 																verification called PREFLIGHTED REQUESTS!!!
+																
+														Alternate Cross Domain Techniques
+															Image Pings
+															JSONP https://www.w3schools.com/js/js_json_jsonp.asp
+															Comet
+															
+													ADVANCED TECHNIQUES
+														SCOPE SAFE CONSTRUCTORS
+															function Person(name,age,job){
+																if(this instanceOf Person){
+																	this.name = name;
+																	this.age = age;
+																	this.job = job;
+																}else{
+																	return new Person(name,age,job);
+																}
+															}
+															
+															Be careful when using Constructor stealing!!!
+															
+														LAZY LOADING FUNCTIONS
+															if(typeof ...){
+																return new XMLHttpRequest();
+															}
+															
+														function createXHR(){	
+															if(typeof ....){
+															 var createXHR = function(){
+																return new XMLHttpRequest();
+															 };
+															}
+															
+															OR USE  IIFE (Immediately Invoked Function Expression)
+															
+															var createXHR = (function(){
+																if(typeof ...){
+																	return function(){
+																		return newHttpRequest();
+																}
+																
+														FUNCTION CURRYING
+															function curry(fn){
+																var args = Array.prototype.slice(arguments,1);
+																return function(){
+																	var innerArgs = Array.prototype.slice.call(arguments);  <- Clone purpose
+																	var finalArgs = args.concat(innerArgs);
+																	return fn.apply(null,finalArgs);
+																}
+															}
+															
+														TAMPER PROOF OBJECTS
+															Nonextensible
+																Object.preventExtensions(person); -> Properties and methods an not be added
+															Sealed Objects
+																Object.seal -> Non extensible and [[Configurable]] set to false , properties and methods cannot be deleted and data properties be changed to
+																accessor properties.
+															Frozen Objects -> Non extensible , Sealed and [[Writable]] attribute set to false
+																Object.freeze
+																
+														Timers
+															setTimeout -> Specified intervals indicates when the timers code will be added to the queue,not when the code will actually be executed!!!
+															Using setIntervals could result in intervals being skipped and intervals be smaller than expected between multiple timer code executions!!!
+															
+															setTimout(function(){
+																//processing
+																setTimeout(arguments.callee,interval);
+																},interval);
+																
+															Array Chunking(Avoid blocking operations)
+															function(array,process,context){
+																setTimeout(function(){
+																		var item = array.shift();
+																		process.call(context, item);
+																		if(array.length > 0){
+																			setTimeout(arguments.callee, 100);
+																		}
+																	}, 100);
+																}
+																
+															FUNCTION THROTTLING
+																var processor = {
+																
+																	timeoutId: null,
+																	
+																	performProcessing : function(){
+																		//actual processing code
+																	}
+																	
+																	process : function(){
+																		clearTimeout(this.timeoutId);
+																		var that = this;
+																		setTimout(function(){
+																			that.performProcessing();
+																		},100)
+																	}
+																}
+																
+																General
+																	function throttle(method,context){
+																		clearTimeout(method.tId);
+																		method.tId = setTimeout(function(){
+																			method.call(context);
+																		},100);
+																	}
+																	
+															APPLICATION CACHE -> manifest file with the path specified on html attribute
+															DATA STORAGE
+																Cookies	
+																	name
+																	value
+																	domain
+																	path
+																	expiration
+																	secure
+																
+																
+																
+															
+																
+															
+															
+																
 														
 														
 														
