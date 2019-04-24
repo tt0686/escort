@@ -2150,6 +2150,88 @@ Three ways to configure application context
 																	path
 																	expiration
 																	secure
+																	
+														VERY IMPORTANT -> OPTIMIZATIONS
+															AVOID HtmlCollections interactions (Live queries)
+															Use Event Delegation(use of bubble phase , similar to a catch all event)
+															Use innerHtml -> behind the scenes an HTML parser is used and the DOM structure is created using NATIVE DOM calls rather Javascript based DOM calls!!
+															Use Document Fragmnets
+															
+														NEW API
+															Page Visibility to know when the user is really interacting with the page (page minimized or hidden behind another tab)
+																May not make sense to continue functionality such as pooling the server for updates or performing animations.
+															Geo Location
+															File API
+															Web Timing
+																Instead of using the old schema of the Date object use the window.performance that provide access to the internal browser metrics through
+																Javascript API.
+																
+																
+											WEB WORKERS
+												
+												
+											online code editors
+												JSBin CodePedn JSFiddle
+												
+												
+											NEW JAVASCRIPT
+												define variable
+													var
+													const
+													let  -> Lexical variable scope block the scope of the variable
+													
+												Template Strings
+												Default parameters
+												Arrow Functions
+													In the traditional function the THIS keyword is bound to different values based on the context in which it is called.
+													Arrow functions THIS is lexically bound , this points to the code that contains the arrow function!!!
+														https://medium.freecodecamp.org/when-and-why-you-should-use-es6-arrow-functions-and-when-you-shouldnt-3d851d7f0b26
+														
+													Destructuring assignment
+														obj1 = {
+															x = 10,
+															y = 7};
+														var {x} = obj1;
+														
+														var [firstResort] = ["","",""];
+														var [,,thirdResort] = ["","",""];
+													Object literal enhancement
+														Allow us to pull global variables into objects and reduces typing by making the function keyword unnecessary!!!!
+														var name = "";
+														var elev = "";
+														var funHike = {name,elev};
+													Spread Operator
+														Array Concatenation
+														[...x,..y] being x and y already an array
+														
+														var morning = {
+															b : "",
+															c : ""
+														};
+														
+														var dinner = "";
+														
+														var x = {
+															...morning,
+															dinner
+														};
+														
+													Promises
+														They were developed to avoid callback hell!!!
+														In ES7 it was developed the wait asyn/wait syntax !!!!
+														https://medium.com/@kevinyckim33/what-are-promises-in-javascript-f1a5fc5b34bf
+														https://scotch.io/tutorials/javascript-promises-for-dummies
+														
+													CLASSES
+														https://medium.com/tech-tajawal/javascript-classes-under-the-hood-6b26d2667677
+														https://medium.com/siliconwat/how-javascript-classes-work-80b0cf483b1d
+														Static methods are defined on the constructor itself
+														static methods have no access to data stored in specific objects.
+														
+													MODULES
+														
+														
+														
 																
 																
 																
