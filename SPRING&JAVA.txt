@@ -2229,7 +2229,101 @@ Three ways to configure application context
 														static methods have no access to data stored in specific objects.
 														
 													MODULES
+													
+													MIXINS
 														
+													Decorators https://medium.com/google-developers/exploring-es7-decorators-76ecb65fb841
+															   https://www.sitepoint.com/javascript-decorators-what-they-are/
+														While classes support extension we need something better when we have multiple classes that need to share a single piece of functionality.
+														
+													Symbols https://www.keithcirkel.co.uk/metaprogramming-in-es6-symbols/
+														primitive datatype that is unique and immutable that is often used to identify object properties.
+														AVOID NAME COLLISION
+														WE CAN ONLY USE STRINGS OR SYMBOLS AS KEYS IN OBJECT.OTHER TYPES ARE CONVERTED TO STRINGS.
+														Symbols are skipped by for...in
+														Symbols create "hidden" properties
+														Symbols do not convert to String
+														Global Symbols Registry allow to access a global and same symbols
+															Symbol.for(name)
+														System Symbols
+															Symbol.iterator
+																var myArr = [1,2,3];
+																var _myArr = myArr[Symbol.iterator]();
+																	_myArr.next() ....
+															Symbol.hasInstance
+													Proxy		
+													
+												ANGULAR	
+													
+													Component Architecture
+														Encapsulation
+														Isolation
+														Reusability
+														Evented
+														Customization
+														Declarative
+														
+														Custom Elements
+														Shadow DOM
+														Templates
+														JS Modules
+													
+													Observables
+														Newer pattern for Javascript applications to manage asynchronous activities.
+														Promises hava a major limitation in that they are only useful for on call cycle.
+														
+													Component
+														import { Component } from '@angular/core';
+														
+														@Component({
+															selector: 'app-root',   -> HTML selector on the page
+															templateUrl: './app.component.html',
+															styleUrls: ['./app.component.css']
+														})
+														export class AppComponent {
+															title = 'app works!';
+														}
+														
+														app.component.html -> <h1>
+																				{{title}}   -> Interpolation
+																			  </h1>
+																			  
+													App Module -> Different from JS ES6 modules, they are logical Angular modules , they help tell Angular what is available to render
+														@NgModule({
+															declaration : -> Components to use
+															imports :   -> Other Angular modules to import/use
+															providers : -> Services
+															bootstrap : -> Which components to bootstrap at runtime
+														})
+														export class AppModule{}
+														
+													Bootstraping the application to start the rendering
+													The building tool is based on Webpack
+													File .angular-cli.json
+														The property main has the role of bootstrap the Angular application
+														main : main.ts -> 
+															import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+															import { enableProdMode } from '@angular/core';
+															import { environment } from './environments/environment';
+															import { AppModule } from './app/';
+															
+															if (environment.production) {
+																enableProdMode();
+															}
+															
+															platformBrowserDynamic().bootstrapModule(AppModule);
+															
+													Services
+														@Injectable() -> Used to set up the proper wiring for Angular to know how to use it elsewhere if we forget to include the decorator the class might not be
+														export class StocksService                                      injectable into our application
+														
+														Directive
+														<div class="" [ngClass]="{increase:isPositive(),decrease:isNegative()}"
+															Allows us to modify the behaviour and display of DOM elements in a template.Think of them as attributes on HTML elements that cause the element to change
+															its behaviour,such as disabled attribute that disables an HTML input element.
+														Pipes
+															Only modify
+																			  
 														
 														
 																
