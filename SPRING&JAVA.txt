@@ -2322,10 +2322,117 @@ Three ways to configure application context
 															Allows us to modify the behaviour and display of DOM elements in a template.Think of them as attributes on HTML elements that cause the element to change
 															its behaviour,such as disabled attribute that disables an HTML input element.
 														Pipes
-															Only modify
-																			  
+															Only modify the data before its displayed and do not change the value in the controller!!!
+															
+														import { Component, Input } from '@angular/core';
+														@Component({
+															selector: 'summary',
+															styleUrls: ['./summary.component.css'],
+															templateUrl: './summary.component.html'
+														})
+														export class SummaryComponent {
 														
-														
+															@Input() stock: any;  -> Property is to be provided to the component by a parent component -----|
+																																							|
+															isNegative() {																					|
+																return (this.stock && this.stock.change < 0);												|
+															}																								|
+																																							|
+															isPositive() {																					|
+																return (this.stock && this.stock.change > 0);												|
+															}																								|
+														}																									|
+																																							|
+														|-----------------------------------------------------------------------------------------------------
+														|-> Properties are bound to an element using an attribute 
+															<summary [stock]="stockData"></summary>  [stock] is called binding attribute
+															stockData belongs to the parent
+															
+															CSS
+															:host -> Styles apply to the element that hosts the element , so in this case it will look at the Summary component element itself rather than the contents
+															inside it.
+															
+															*nfIf="stocks" -> another directive
+															
+															export class DashBoardComponent implements OnInit {
+																
+																constructor(private service : StocksService) {
+																	this.symbols = service.get();
+																}
+																
+																ngOnInit(){
+																	...
+																}
+																
+																Constructor runs as soon as the component is created , the service.get() works because is synchronous and load values directly from memory.
+																*ngFor="let stock of stocks">
+																
+																<form style="margin-bottom: 5px;" (submit)="add()">
+																	<input name="stock" [(ngModel)]="stock" class="mdl-textfield__input" type="text" placeholder="Add Stock" />
+																</form>
+
+																()="" -> Any attribute that’s surrounded by parentheses is an event binding, and the name of the event should match the event without the on
+																[(ngModel)]="stock" -> Two way binding that will sync the value of the input and the value of the property in the controller anytime it changes
+																EITHER location!!!
+																
+															ROUTING
+																The router works by declaring an outlet in the template,which is the place in the template that the final rendered component will be displayed.
+																Think of the outlet as the default placeholder for the content,and until the content is ready to be displayed,it will be empty.
+																
+																import { Routes, RouterModule } from '@angular/router';
+																import { DashboardComponent } from './components/dashboard/dashboard.component';
+																import { ManageComponent } from './components/manage/manage.component';
+																
+																const routes: Routes = [
+																		{path: '',
+																		component: DashboardComponent
+																		},
+																		{path: 'manage',
+																		component: ManageComponent
+																		}
+																];
+																
+																export const AppRoutes = RouterModule.forRoot(routes);
+																
+																
+																<nav class="mdl-navigation mdl-layout--large-screen-only">
+																	<a class="mdl-navigation__link" [routerLink]="['/']">Dashboard</a>
+																	<a class="mdl-navigation__link" [routerLink]="['/manage']">Manage</a>
+																</nav>
+																
+																
+																<main class="mdl-layout__content" style="padding: 20px;">
+																	<router-outlet></router-outlet>
+																</main>
+																
+															Entities
+																Modules
+																Components
+																Services
+																Pipes
+																Directives
+																
+																.angular-cli.json
+																	"main" : main.ts -> Bootstrap the application
+																				---------------------------------> LOADS THE APPLICATION MODULE
+																													app.module.ts
+																													|_bootstrap_____________________________> APP COMPONENT
+																													                                       |
+																																						   |
+																																						   |
+																																					_________________
+                                                                                                                                                   Route			Route
+                                                                                                                                                ...Component	...Component
+																
+																Modules
+																	Each Typescript file we wrote was a Javascript module because it either imported or exported some values.
+																	Whereas Javascript modules are language constructs,Angular modules are logical constructs used for organizing similar groups of entities
+																	(such as all things needed for the router) and are used by Angular to understand what needs to be loaded as well as what dependencies exist.
+																	
+																Components
+																	The basic interaction of components is to push data down from parent components,usually through binding,and back up,usually through events.
+																																				
+																
 																
 																
 																
