@@ -2528,10 +2528,262 @@ Three ways to configure application context
 																	AOP in JS				
 																		https://jaxenter.com/cross-cutting-concerns-angular-2-typescript-128925.html				
 																		
-																	Content projection	
+																	Content projection
+																	
+																	CSS
+																		Adding Styles
+																			CSS GLOBAL
+																			 Include linked CSS file into index.htmnl
+																			 Reference the file in .angular-cli.json file in styles property
+																			 Inline CSS
+																				Inside the template
+																					<style>.btn { background-color: #3274b8; }</style>
+																					<button class="btn btn-success" type="button" style="background-color: #8616f6"...
+																			 Component Linked CSS through styleUrls property
+																			 Component inline CSS through styles property
+																			 
+																		ALL CSS RULES ARE ADDED TO THE END OF THE DOCUMENT HEAD INSIDE A NEW STYLE ELEMENT.	 
+																	
+																	Encapsulation Mode
+																		None(Default mode when there are not any styles associated)
+																		Emulated(Default mode when there are syles)
+																			applies some transformations to any styles by adding unique attributes to HTML markup and CSS rules to increase the specificity of the CSS rules by making them unique.
+																			Styles bleed in
+																		Native
+																			Parents and sibling styles bleed in
+																			
+																	Dynamically Rendering Components
 																		
+																		export class NodesDetailComponent {
+																			@Input() node;
+																			constructor(public activeModal: NgbActiveModal) {}
+																			
+																			<div class="modal-header">
+																				<button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss()">
+																				
+																			<td><button class="btn btn-secondary" (click)="open(node)">View</button></td>
+																			export class NodesRowComponent {
+																			@Input() node: any;
+																			constructor(private modalService: NgbModal) {}
+
+																			open(node) {
+																				const modal = this.modalService.open(NodesDetailComponent);
+																				modal.componentInstance.node = node;
+																			}
+																			
+																			<template ngbModalContainer></template> <------ PLACEHOLDER WHERE MODAL WILL SHOW
+																			
+																			WHEN CLI PROCESSES ANGULAR,IT NEEDS TO KNOW WHAT COMPONENTS MIGHT BE RENDERED DYNAMICALLY BECAUSE IT WILL PROCESS THEM DIFFERENTLY
+																					In NgModule decorator:
+																						entryComponents : [NodesDetailComponent],
+																						
+																			USING ANGULAR API
+																				ViewContainerRef -> Reference to an element in the application that Angular understands(give us a reference point to where we can render our component)
+																				ViewChild        -> Give us the ability to reference an element in our controller as a ViewContainerRef
+																				ComponentFactoryResolver -> Angular service that gets us the component factory for any component that has been added to the entry component list.
+																			
+																				entryComponents:[AlertComponent...]
+																				
+																				<app-navbar (onRefresh) ="refresh()"></app-navbar>
+																				<ng-template #alertBox></ng-template>
+																				
+																				export class AppComponent {
+																					alertRef: ComponentRef<AlertComponent>;
+																					@ViewChild(DashboardComponent) dashboard: DashboardComponent;
+																					@ViewChild('alertBox', {read: ViewContainerRef}) alertBox:ViewContainerRef;
+																				
+																					constructor(private ComponentFactoryResolver: ComponentFactoryResolver) {}
+																					
+																					alert(date) {
+																						if (!this.alertRef) {
+																							const alertComponent = this.ComponentFactoryResolver.resolveComponentFactory(AlertComponent);
+																							this.alertRef = this.alertBox.createComponent(alertComponent);
+																						}
+																							this.alertRef.instance.date = date;
+																							this.alertRef.changeDetectorRef.detectChanges();
+																							setTimeout(() => this.destroyAlert(), 5000);
+																					}
+																					
+																			DI under the hood
+																				DI works by having an injector and a provider.A MODULE HAS THE TOP LEVEL INJECTOR FOR ALL ENTITIES INSIDE THAT MODULE.
+																				EVERT COMPONENT HAS AN INJECTOR!!!
+																				ANYTIME WE DECLARE A PROVIDERS ARRAY IN THE COMPONENT METADATA,THE COMPONENT WILL GET ITS OWN INJECTOR.
+																				FOR A COMPONENT THAT DOES NOT HAVE ANY PROVIDERS DECLARED,IT WILL SHARE THE INJECTOR OF ITS PARENT AND SO ON.
+																				IT IS A HIERARCHICAL INJECTION SYSTEM.
+																					Allow us to isolate what parts of the application can inject a particular object or even override how a higher-order injector works.
+																			
+																				For instance if only the module has the providers defined , all the components will get the same instance of services,because the service is
+																				provided by the same provider!!!!
+																		 
+																			HttpInterceptors
+																				@Injectable() export class StocksInterceptor implements HttpInterceptor
+																				
+																				intercept(req: HttpRequest<any>, next: HttpHandler):
+																				Observable<HttpEvent<any>> const request = req.clone();
+																				request.headers.append('Accept', 'application/json');
+																				return next.handle(request).do(event => {
+																					if (event instanceof HttpResponse && event.url === ConfigService.get('api')) {
+																						const stocks = event.body as Array<Stock>;
+																						let symbols = this.accountService.stocks.map(stock => stock.symbol);
+																						stocks.forEach(stock => {
+																							this.accountService.stocks.map(item => {
+																								if (stock.symbol === item.symbol) {
+																								item.price = stock.price;
+																								item.change = ((stock.price * 100) - (item.cost * 100)) / 100;
+																								}
+																							});
+																						});
+																					this.accountService.calculateValue();
+																					return stocks;
+																				}
+																				});
+																				}
 																		
-																		
+																				providers: [
+																					LocalStorageService,
+																					CurrencyPipe,
+																					AccountService,
+																					{
+																						provide: HTTP_INTERCEPTORS,
+																						useClass: StocksInterceptor,
+																						multi: true
+																					}
+																					],
+																					
+																			ROUTES
+																				A typical route contains a path(or URL) and a component(the component to display based on the path)
+																				
+																				const appRoutes: Routes = [
+																					{ path: 'login', component: LoginComponent },
+																					{ path: '', redirectTo: '/forums', pathMatch: 'full' },
+																					{ path: '**', component: NotFoundComponent },
+																				];
+																				In NgModule we import 
+																					imports: [
+																						BrowserModule,
+																						FormsModule,
+																						ClarityModule.forRoot(),
+																						ForumsModule,
+																						RouterModule.forRoot(appRoutes)
+																						],
+																						
+																					<div class="content-container">
+																						<div class="content-area">
+																							<router-outlet></router-outlet>
+																						</div>
+																					</div>
+																					
+																			Create Links
+																				<a class="nav-link" routerLink="/forums"><span class="nav-text">Forums</span></a>
+																				
+																				if you use href to link to a page, it will trigger a page load from the server, even if it’s a valid Angular route, and that's much 
+																				slower than using the router. This is a primary tenet of client-side routing.
+																			FEATURE MODULES
+																				You must import a feature module into the main App module for it to be activated.
+																				RouterModule.forChild(forumsRoutes),
+																				
+																				const forumsRoutes: Routes = [
+																					{ path: 'forums', component: ForumsComponent },
+																					{ path: 'forums/:forum_alias', component: ForumComponent }
+																				];
+																				
+																			ACCESSING THE ROUTE PARAMETERS IN A COMPONENT
+																			
+																			export class ForumComponent implements OnInit {
+																			forum: Forum;
+																			
+																			constructor(
+																				private route: ActivatedRoute,
+																				private router: Router,
+																				private forumsService: ForumsService)
+																				
+																				ngOnInit() {
+																					this.route.params.subscribe((params: Params) => {
+																					this.forum = this.forumsService.forum(params['forum_alias']);
+																					if (!this.forum) this.router.navigate(['/not-found']);
+																					});
+																				}
+																				
+																				
+																			CHILD ROUTES
+																				Child routes work by creating another router outlet that is localized to the parent component and then all child routes will render
+																				inside of this new router outlet.
+																				
+																				{
+																				path: 'forums/:forum_alias',
+																				component: ForumComponent,
+																				children: [
+																					{ path: '', component: ThreadsComponent },
+																					{ path: ':thread_alias', component: ThreadComponent }
+																				]
+																				}
+																				
+																				ngOnInit() {
+																					this.route.params.subscribe((params: Params) => {
+																					this.threads = this.forumsService.forum(params['forum_alias']).threads;
+																				});
+																				}
+																				
+																				<tr *ngFor="let thread of threads" [routerLink]="[thread.alias]">
+																				
+																				ngOnInit() {
+																					this.route.params.subscribe((params: Params) => {
+																					let forum = this.route.snapshot.parent.params['forum_alias'];
+																					this.thread = this.forumsService.thread(forum, params['thread_alias']);
+																					});
+																				}
+																				
+																			SECONDARY ROUTES
+																				Open a chat window or document window
+																					where some part of the application appears but maintains a different state from the main application!!!
+																					
+																					<router-outlet name="chat"></router-outlet> use of a name attribute to allow us to target loading routes into this outlet instead of the
+																					primary outlet
+																					
+																					const appRoutes: Routes = [
+																						{ path: 'login', component: LoginComponent },
+																						{ path: 'users', component: ChatListComponent, outlet: 'chat', },
+																						
+																						<a class="nav-link nav-icon" [routerLink]="[{outlets: { chat: ['users']}}]">
+																						
+																			ROUTE GUARDS			
+																				{ path: 'users', component: ChatListComponent, outlet: 'chat', canActivate: [AuthGuardService] },
+																				
+																				providers: [
+																					AuthGuardService,
+																					
+																			LAZY LOADING
+																				{ path: 'blogs', loadChildren: 'app/blogs/blogs.module#BlogsModule' },
+																				
+																				WE CAN CREATE ROUTER MODULES!!!!!
+																				
+																			CUSTOM DIRECTIVE
+																				Two types
+																					When we want to change a property of an element (such as the background color or height), we’ll need to use an attribute directive. 
+																					But if we wantto have control over how the element itself is rendered into the page, we’ll rely on the structural directive.
+																					recall that you must prefix ngIf with *—for example, *ngIf="-loaded = true". This means that NgIf is a structural directive 
+																					and is able to control whether the DOM element is rendered or not. On the other hand, the ngClass directive is an attribute 
+																					directive and doesn’t have the * when it’s used, such as [ngClass]="{active: true}". NgClass simply modifies the properties 
+																					of the element—  in this case, the CSS class is applied—but doesn’t render DOM.
+																					THE DIFFERENCE IS IN THE STRUCTURAL DIRECTIVE’S ABILITY TO ADD OR REMOVE DOM ELEMENTS FROM THE PAGE.
+
+																					In structural directives we have access to the TemplateRef, ViewContainerRef references
+																						TemplateRef -> references to the template of the element our directive is attached
+																						ViewContainerRef -> reference to the view that contains it
+																						
+																			CUSTOM PIPES
+																				Pure Pipes
+																				Impure pipes
+																				
+																				A pure pipe is only run if the input value passed into the pipe has changed, making it more efficient because it won't run very often. 
+																				On the other hand, an impure pipe will execute on every change detection run, because an impure pipe has state that might
+																				have changed, and that would render a different output regardless of whether the input has changed.
+																				
+																			FORMS
+																				Two types
+																						
+
+																					
 																
 																
 															
