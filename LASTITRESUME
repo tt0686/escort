@@ -1,0 +1,221 @@
+MAVEN
+	HIERARCHICAL PROJECTS
+	MULTI-MODULES PROJECT
+	DEPENDENCYMANAGEMENT IS LIKE ENVIRONMENT VARIABLES, IT ALLOWS TO DEFINE DEPENDENCIES THAT CHILD ONLY HAVE TO DEFINE ARTIFACT AND GROUP ID
+	RESOURCES FILTERING
+	SCOPES -> TEST PROVIDED COMPILE(DEFAULT)
+	LIFECYCLE -> PACKAGE VERIFY INSTALL DEPLOY
+	ASSEMBLY PLUGIN -> DEFINE CUSTOM ARCHTYPES (DELIVERABLES)
+	
+SPRING
+	XML
+	JAVA
+	AUTOMATIC
+		@Bean
+		@Configuration @Import @ImportResource
+		@ComponentScan
+		@Autowired
+		
+		Lifecycle
+			Instantiate 
+			Populate properties
+			BeanAwareName
+			BeanFactoryAware
+			ApplicationContextAware
+			BeanPostProcessor
+			InitializingBean afterPropertiesSet
+			initMethod
+			BeanPostProcessor
+			
+		SCOPES
+			SINGLETON
+			PROTOTYPE
+			SESSION
+			REQUEST
+			
+			To inject Session beans into singleton beans we must use the @Scope(value=WebApplicationContext.SCOPE_SESSION,proxyMode=ScopedProxyMode.INTERFACES)
+			INTERFACES are used to inject proxies into the beans!!! If the proxied object is not an interface we must use TARGET_CLASS that uses CGLib!!!
+			
+		
+		ENVIRONMENT BEANS
+		@Profile("dev") -> CLASS AND METHOD LEVEL
+		Bean without profile are always created!!!
+			spring.profiles.active || spring.profiles.default
+			To set we can use 
+			JNDI entries 
+			context parameters 
+			servlet DispatchServlet initialization parameters
+			environment variables
+			JVM system properties
+			@ActiveProfiles on an integration test class
+			
+		CONDITIONAL BEANS
+		@Conditional(Conditional interface)
+					interface Conditional
+						boolean matches(ConditionalContext ctxt,AnnotatedTypeMetadata metadata);
+						
+		The @Profile annotation is based on @Conditional
+		@Retention(RetentionPolicy.RUNTIME)
+		@Target({ElementType.TYPE,ElementType.METHOD})
+		@Documented
+		@Conditional(ProfileCondition.class)
+		public @interface Profile{
+			String[] value();
+		}
+		
+		AMBIGUITY
+			@Primary
+			@Qualifier
+			We can not use the same annotation on the same item(From Java 8 we can since we use @Repeatable) so we could create our own annotation
+			@Target({ElementType.CONSTRUCTOR, ElementType.FIELD,ElementType.METHOD, ElementType.TYPE})
+			@Retention(RetentionPolicy.RUNTIME)
+			@Qualifier
+			public @interface Creamy { }
+			
+		EXTERNAL VALUES
+			@PropertySource("classpath:/com/soundsystem/app.properties")
+			@Value("${disc.title}") In order to use placeholders values we must configure PropertySourcesPlaceHolderConfigurer bean because it resolves placeholders against the Spring Environment
+			
+			@Bean
+			public static PropertySourcesPlaceHolderConfigurer ....
+			
+			If we do not configure this bean we can not use placeholders and must use directly the env.getProperty()
+						
+		AOP
+			Three ways of applying aspects to a target object to create a new PROXIED object :
+				Compile
+				Class Load Time -> Requires a ClassLoader
+				Run Time   -> The Spring way
+				
+			@EnableAspectJAutoProxy
+			
+			@Aspect
+			public class
+			
+				@Pointcut("execution(* soundsystem.CompactDisc.playTrack(int)) && args(trackNumber)") -> @args indicate that any int argument passed into the execution of playTrack() should also be passed into
+				public void trackPlayed(int trackNumber){}                                                     the advice!!!!
+					
+				@Before("trackPlayed(trackNumber)")
+				public void countTrack(int trackNumber)
+					
+				@Around
+					...(ProceedingJoinPoint jp){
+						....
+						jp.proceed();
+						
+			Annotating introductions
+					After a class has been compiled,there is little we can do to append new functionality to it.
+					SPRING ASPECTS ARE PROXIES THAT IMPLEMENT THE SAME INTERFACE AS THE BEANS THEY WRAP SO IN ADDITION TO IMPLEMENTING THOSE INTERFACES THE PROXY IS ALSO EXPOSED
+					THROUGH SOME NEW INTERFACE.
+					
+					@DeclareParents(value="concert.Performance+",defaultImpl=DefaultEncoreable.class)
+					public static Encoreable encoreable;
+		
+		SPRING WEB
+			Basics
+				WEB-INF/web.xml
+						URLS mapping to servlets
+				Thread -> Servlet
+				There is one ServletContext by Web Application !!!!!
+				Listener -> Objects that receives EVENTS about changes or actions happening in the application.
+							For example , javax.servlet.ServletRequestListener receives notification events about requests coming into and going out of scope of a web application.
+				Filter	-> Intercepts request and do some pre-processing or intercept the response and do some post-processing.
+				Servlet Asynch ->
+				Servlet 3.0 container looks for any classes in the classpath that implement the ServletContainerInitializer interface !!!
+				Spring supplies an implementation of that interface called SpringServletContainerInitializar that,in turn,seeks out any classes that implement WebApplicationInitializer.
+				Spring 3.2 introduced a convenient base implementation of WebApplicationInitializer called AbstractAnnotationConfigDispatcherServletInitializer!!!
+				
+				TWO APPLICATION CONTEXT
+				
+				@Override
+				protected String[] getServletMappings() {
+					return new String[] { "/" };
+				}
+				
+				@Override
+				protected Class<?>[] getRootConfigClasses() {
+					return new Class<?>[] { RootConfig.class };
+				}
+				
+				@Override
+				protected Class<?>[] getServletConfigClasses() {
+					return new Class<?>[] { WebConfig.class };
+				}
+				
+				public customizeRegistration(Dynamic registration){
+					registration.setMultipartConfig(new MultiConfigElement);
+				}
+				
+				
+				@Configuration
+				@EnableWebMvc
+				@ComponentScan("spitter.web")
+				public class WebConfig extends WebMvcConfigurerAdapter{
+				
+					@Bean
+					public ViewResolver viewResolver() {
+						InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+						resolver.setPrefix("/WEB-INF/views/");
+						resolver.setSuffix(".jsp");
+						resolver.setExposeContextBeansAsAttributes(true);
+						return resolver;
+					}
+					
+					@Override
+					public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+						configurer.enable();
+					}
+				}
+				
+				@Controller
+				@RequestMapping("/spittles")
+				@RequestMapping(method=RequestMethod.GET)
+				
+				QUERY
+					@RequestParam(value="max",defaultValue=MAX_LONG_AS_STRING)
+				
+				PATH
+					@RequestMapping(value="/{spittleId}"
+					@PathVariable("spittleId")
+					
+				FORM
+					Use Validation API
+					@Valid...Errors
+					
+				HANDLING EXCEPTIONS
+					@ResponseStatus(value=HttpStatus.NOT_FOUND,reason="Spittle Not Found")
+					public class SpittleNotFoundException extends RuntimeException
+					
+					@ExceptionHandler(DuplicateSpittleException.class)
+					public String handleDuplicateSpittle() {
+						return "error/duplicate";
+					}
+					
+					@ControllerAdvice
+					public class AppWideExceptionHandler {
+						@ExceptionHandler(DuplicateSpittleException.class)
+						public String duplicateSpittleHandler() {
+							return "error/duplicate";
+						}
+					}
+					
+				FLASH ATTRIBUTES
+					model.addFlashAttribute
+					
+					
+				SPRING SECURITY
+					Extend the class AbstractSecurityWebApplicationInitializer that also implements WebApplicationInitializer so it will be discover by Spring and be used to register
+					DELEGATINGFILTERPROXY with the web container.This filter will intercept requests coming into the application and delegate them to a bean whose ID is springSecurityFilterChain
+					
+					@Configuration
+					@EnableWebMvcSecurity  -> handler methods can receive the authenticated user's principal via @AuthenticationPrincipal-annotated parameters.
+					                          Adds a CSRF token field on forms using Spring form binding tag library.
+					public class SecurityConfig extends WebSecurityConfigurerAdapter
+					
+				
+					
+			
+			
+		
+	
+	
