@@ -211,7 +211,60 @@ SPRING
 					@EnableWebMvcSecurity  -> handler methods can receive the authenticated user's principal via @AuthenticationPrincipal-annotated parameters.
 					                          Adds a CSRF token field on forms using Spring form binding tag library.
 					public class SecurityConfig extends WebSecurityConfigurerAdapter
+					configure(WebSecurity) Override to configure Spring Security’s filter
+						
+						configure(HttpSecurity) Override to configure how requests are secured by interceptors.
+							protected void configure(HttpSecurity http) throws Exception {
+								http.authorizeRequests().antMatchers("/spitters/me").authenticated().antMatchers(HttpMethod.POST, "/spittles").authenticated().anyRequest().permitAll();
+							}
+							
+							USING SPEL -> .antMatchers("/spitter/me").access("hasRole('ROLE_SPITTER') and hasIpAddress('192.168.1.2')")
+						
+						configure(AuthenticationManagerBuilder) Override to configure user-details services.
+						
+							protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+								auth.userDetailsService(new SpitterUserService(spitterRepository));
+							}
+						
+						
+							public interface UserDetailsService {
+								UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
+							}
+							
+							
+				DataBase
+					@Repository
+					@PersistenceUnit
+					@Transactional
+					@PersistenceContext
 					
+					@Bean
+					public PersistenceAnnotationBeanPostProcessor paPostProcessor() {
+						return new PersistenceAnnotationBeanPostProcessor();
+					}
+					
+					@PersistenceContext and @PersistenceUnit are not Spring annotation so this post processor bean look for this annotation in order for Spring understand them and inject
+					an EntityManagerFactory or EntityManager
+					
+					@Bean
+					public BeanPostProcessor persistenceTranslation() {
+						return new PersistenceExceptionTranslationPostProcessor();
+					}
+					
+					This post processor bean looks for classes annotated with @Repository to translate the exceptions into one of Springs unified data-access exceptions.
+					
+					@EnableJpaRepositories -> scans its base package for any interfaces that extend Spring Data JPA’s Repository interface.
+											  When it finds any interface extending Repository, it automatically (at application startup time) generates an implementation of that interface.
+					
+					public interface SpitterRepository extends JpaRepository<Spitter, Long> {
+					}
+					
+					Spring Data defines mini DSL language
+					
+					Custom Queries
+						@Query
+						
+						When Spring Data JPA generates the implementation for a repository interface, it also looks for a class whose name is the same as the interface’s name postfixed with Impl.
 				
 					
 			
