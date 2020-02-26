@@ -265,6 +265,106 @@ SPRING
 						@Query
 						
 						When Spring Data JPA generates the implementation for a repository interface, it also looks for a class whose name is the same as the interface’s name postfixed with Impl.
+					CACHING		
+					@EnableCaching -> create an aspect with pointcuts that trigger off of Spring’s caching annotations.
+					
+					@Bean
+					public CacheManager cacheManager()
+					
+					@Cacheable
+					@CachePut
+					@CacheEvict
+					@Caching
+					
+				SECURING METHODS
+					@EnableGlobalMethodSecurity(securedEnabled=true)
+					public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration
+					
+					@Secured({"ROLE_SPITTER", "ROLE_ADMIN"})
+					@PreAuthorize
+					@PostAuthorize
+					@PostFilter
+					@PreFilter
+					
+				WEBSERVICES
+					@WebService extends SpringBeanAutowiringSupport -> Enable autowiring
+					@WebMethod
+					
+				REST
+					Two options to transform a resource Java representation into representation that is shipped to the client
+						CONTENT NEGOTIATION -> A view is selected that can render the model into a representation to be served to the client
+							Not only does the view need to match the view name but the view also needs to be chosen to suit the client.
+								1)Look to URL file extension
+								2)Look to Accept header
+								3)The look for a View through the view name
+						
+						@Override
+						public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+							configurer.defaultContentType(MediaType.APPLICATION_JSON);
+						}
+						
+						@Bean
+						public ViewResolver cnViewResolver(ContentNegotiationManager cnm) {
+							ContentNegotiatingViewResolver cnvr = new ContentNegotiatingViewResolver();
+							cnvr.setContentNegotiationManager(cnm);
+							return cnvr;
+						}
+						
+						
+						MESSAGE CONVERSION  -> A message converter transforms an object returned from the controller into a representation to be served to the client
+							Marshall and UnMarchall the data to the request type from and to the @Controller
+							When using message conversion, DispatcherServlet doesn’t bother with ferrying model data to a view. 
+							In fact, there is no model, and there is no view. There is only data produced by the controller and a resource representation produced when a message converter transforms that data
+							
+							Request header Accept indicate that accept application/json and if the Jackson JSON library is on the classpath , the object returned from the handler method is given to 
+							MappingJacksonHttpMessagerConverter.
+							
+							@RequestMapping(method=RequestMethod.POST,produces="application/json")
+							public @ResponseBody Spittle saveSpittle(@RequestBody Spittle spittle) {
+								return spittleRepository.save(spittle);
+							}
+							
+							@RestController
+							ResponseEntity
+							@ExceptionHandler(SpittleNotFoundException.class)
+							Error
+							
+		
+				WEBSOCKETS
+					@EnableWebSocket
+					public class WebSocketConfig implements WebSocketConfigurer {
+						
+						@Override
+						public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+							registry.addHandler(marcoHandler(), "/marco");
+						}
+						
+						@Bean
+						public MarcoHandler marcoHandler() {
+							return new MarcoHandler();
+						}
+					}
+					
+					STOMP
+						Configure a broker (like JMS or AMQP)
+					
+					
+		GENERICS
+		JAVA 8 FEATURES
+			Functional interfaces
+			Lambda Expressions
+			Method Reference
+			Default Methods
+			Stream API
+			Optional interface
+		JAVASCRIPT
+			MODULES
+		ANGULAR
+		JPA
+		REACT
+		GIT
+		DOCKER
+		SERVLESS FUNCTIONS	
 				
 					
 			
