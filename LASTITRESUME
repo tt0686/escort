@@ -211,7 +211,7 @@ SPRING
 					@EnableWebMvcSecurity  -> handler methods can receive the authenticated user's principal via @AuthenticationPrincipal-annotated parameters.
 					                          Adds a CSRF token field on forms using Spring form binding tag library.
 					public class SecurityConfig extends WebSecurityConfigurerAdapter
-					configure(WebSecurity) Override to configure Spring Security’s filter
+						configure(WebSecurity) Override to configure Spring Security’s filter
 						
 						configure(HttpSecurity) Override to configure how requests are secured by interceptors.
 							protected void configure(HttpSecurity http) throws Exception {
@@ -265,7 +265,8 @@ SPRING
 						@Query
 						
 						When Spring Data JPA generates the implementation for a repository interface, it also looks for a class whose name is the same as the interface’s name postfixed with Impl.
-					CACHING		
+						
+				CACHING		
 					@EnableCaching -> create an aspect with pointcuts that trigger off of Spring’s caching annotations.
 					
 					@Bean
@@ -358,13 +359,44 @@ SPRING
 			Stream API
 			Optional interface
 		JAVASCRIPT
+			<script> tag can be inline or external
+			The html is not displayed until all the the code inside script is evaluated and downloaded!!!
+			Best practice is to put in the bottom of the <body> element and use defer or async attribute!!!
+			Verify if they are executed before or after the page LOAD event and DOMContentLoaded!!
+			
+			var set the variable into the scope where it was defined
+			without "var" the variable is set the GLOBAL scope!!!
+			
+			6 PRIMITIVE TYPES
+				UNDEFINED,NULL,STRING,NUMBER,BOOLEAN,SYMBOL(unique value that is not equal to any other value)
+				ALL IMMUTABLE
+			1 COMPLEX
+				OBJECT(Unorder list of name-value paisr)
+				
+			typeof operator !!!!Because loosely type there is a need to determine  the data type
+			
+			Functions does not care how many arguments are passed in.Arguments in JS are represented has an internal array!!!The array is always passed to the function!!!
+			To access this array there is the arguments array like property!!!
+			arguments values are in SYNC with the named parameters !!!
+			
+			instanceof operator
+			
+			EXECUTION CONTEXT
+				Scope Chain of variable objects , the front of this scope chain is always the VARIABLE OBJECT!!!
+				If the context is a function then the VARIABLE object is the ACTIVATION OBJECT that starts with the arguments variable!!!
+				IDENTIFIERS ARE RESOLVED BY NAVIGATING THE SCOPE CHAIN!!!
+				
+				Identifier lookup is taken in scope chain and in PROTOTYPE CHAIN in the object cases!!!
+			
+			
 			MODULES
 		ANGULAR
 		JPA
 		REACT
 		GIT
 		DOCKER
-		SERVLESS FUNCTIONS	
+		SERVLESS FUNCTIONS
+					
 				
 					
 			
