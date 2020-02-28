@@ -387,6 +387,88 @@ SPRING
 				IDENTIFIERS ARE RESOLVED BY NAVIGATING THE SCOPE CHAIN!!!
 				
 				Identifier lookup is taken in scope chain and in PROTOTYPE CHAIN in the object cases!!!
+				
+			Functions are OBJECTS , they are instance of the Function type.
+				function sum (num1, num2) {
+					return num1 + num2;
+				}
+				
+				var sum = function(num1, num2){
+							return num1 + num2;
+				};
+				
+				var sum = new Function("num1", "num2", "return num1 + num2");
+				
+				Function declaration hoisting!!!!
+				TWO SPECIAL OBJECTS EXIST INSIDE A FUNCTION
+					ARGUMENTS AND THIS!!!
+					
+					arguments.callee points to the function that owns the array like arguments!!!
+					THIS -> Reference to the context object that the function is operating on!!!
+					caller -> Reference to the function that called this function
+					
+				FUNCTION PROPERTIES
+					LENGTH and PROTOTYPE
+					apply() and call() and bin-> Change the this inside the function.
+					
+					Code executed in the eval() function is considered to be part of the execution context in which the call is made!!!
+					
+					Data properties
+						[[Configurable]] , [[Enumerable]] , [[Writable]] , [[Value]]
+						Object.defineProperty(person, "name", {
+							writable: false,
+							value: "Nicholas"
+							});
+					Accesor properties
+						[[Configurable]] , [[Enumerable]] ,[[Get]],[[Set]]
+						
+					Object.getOwnPropertyDescriptor()
+
+				OBJECT CREATION
+					FACTORY PATTERN
+						function createPerson(name,age){
+							var x = new Object();
+							x.name = name;
+							x.age = age;
+							x.sayName = function(){
+								return this.name;
+							}
+							return x;
+						}
+						
+					CONSTRUCTOR PATTERN
+						function createPerson(name,age){
+							this.name = name;
+							this.age = age;
+							this.sayName = function(){
+								return this.name;
+							}
+							return x;
+						}
+						
+					TO BE USED : CREATE A NEW OBJECT / ASSGN THE THIS VALUE OF THE CONSTRUCTOR TO THE NEW OBJECT(SO THIS POINTS TO THE NEW OBJECT) / EXECUTE THE CODE INSIDE THE FUNCTION / RETURN THE NEW OBJECT
+
+					PROTOTYPE PATTERN
+					CONSTRUCTOR/PROTOTYPE PATTERN
+						function Person(name, age, job){
+							this.name = name;
+							this.age = age;
+							this.job = job;
+							this.friends = [“Shelby”, “Court”];
+						}
+							
+							Person.prototype = {
+								constructor: Person,
+								sayName : function () {
+								alert(this.name);
+							}
+							};
+					PARASITIC CONSTRUCTOR
+					DURABLE CONSTRUCTOR PATTERN
+					
+					INHERITANCE
+						PROTOTYPE CHAINING
+							
 			
 			
 			MODULES
