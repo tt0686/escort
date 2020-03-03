@@ -468,9 +468,110 @@ SPRING
 					
 					INHERITANCE
 						PROTOTYPE CHAINING
+						COMBINATION INHERITANCE
+						
+					CLOSURES
+						Immediately invoked function
+							(function(){
+								//code
+							})();
 							
-			
-			
+						Static private Variable
+							(function(){
+								var name = "";
+								Person = function(value){
+									name = value;
+								};
+								
+								Person.prototype.getName = function(){
+									return name;
+								};
+								
+								Person.prototype.setName = function (value){
+									name = value;
+								};
+								
+								})();
+							
+						Module pattern
+						
+					EVENTS
+						Event Bubbling > Specific to generic
+						Event Capturing > Generic to Specific
+						
+						DOM Event Flow
+							First Capturing Phase
+							target
+							Bubbling Phase
+							
+						<input type="button" value="Click Me" onclick="showMessage()" />
+						
+							The showMessage has access to global scope
+							before the showMessage is called , a function is created that wraps the attribute value, this function has a special local variable called event
+								<input type="button" value="Click Me" onclick="alert(event.type)">
+							THE THIS VALUE INSIDE THE FUNCTION IS EQUIVALENT TO THE EVENTS TARGET ELEMENT!!!
+							Within the function,members of the document and the element itself(this in this case) can be accessed as if they were local variables!!!
+							If the element is a form input element,then the scope chain also contains an entry for the parent form element!!!
+						SIMULATE EVENTS!!!
+					
+					AJAX
+						IFrames is an alternative to Ajax
+						Ajax call can only be address to the same domain !!!!
+						WEB FORM POST IS DIFFERENT FORM AJAX POST !!!!
+						
+						Cross Origin Resource Sharing
+							Use Custom HTTP Headers to allow both the browser and the server to know enough about each other to determine if the request or response should succeed or fail.
+								Origin: http://www.nczonline.net ->
+								Access-Control-Allow-Origin: http://www.nczonline.net <-
+								
+							Pre flighted requests !!!
+							
+							Alternate CORS Techniques
+								Image Pings -> One way communication
+								JSONP -> Used through <script> element like <img> can request resources from other domains
+								Comet -> Use Ajax !!
+										Long pooling or Short Pooling
+										Http Streamline One Connection only!!!
+										Server Side Events is an API that can use Long or short pooling or Http Streaming!!!
+										
+					SCOPE SAFE CONSTRUCTORS
+					TAMPER PROOF OBJECTS
+					
+					ES6
+						let   -> Block scope
+						const -> Equal to Let but the value is immutable!!!
+						Template Strings
+							'
+								Hello ${firstName}
+								
+								Thanks for ordering ${qty} tickets to ${event}.'
+						Default arguments!!!		
+						Arrow Functions (also known as Lamda functions)
+							The arrow function does not bind the THIS keyword, the THIS is bound lexically!!!
+								
+						Destructuring Assignment
+							var sandwich = {
+								bread : "",
+								meat : "",
+								cheese :"",
+								toppings: []}
+								
+							var {bread, meat} = sandwich;
+
+							var x = ({bread}) => {...}
+							
+							var [,,thirdelement] = ["","","",""]
+							
+							console.log(thirdelement);
+						
+						Object Literal Enhancement !!!
+						Spread Operator !!!
+						Classes
+							
+							
+							
+							
+						
 			MODULES
 		ANGULAR
 		JPA
