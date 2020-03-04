@@ -566,14 +566,135 @@ SPRING
 						
 						Object Literal Enhancement !!!
 						Spread Operator !!!
-						Classes
+						Classes(Very important)
+							class Animal{                                                  class Gorila extends Animal{
+								constructor(name,weight){                                        constructor(name,weight){
+									this.name = name;                                               super(name,weight);
+									this.weight = weight;                                        }
+								}                                                                    
+								                                                                 climbTrees(){
+								eat(){                                                              return '$(this.name} ...';
+									return '$(this.name) ...';                                   }
+								}
+							}                                                                    showVigour(){
+                                                                                                    return '$(super.eat()}'
+							                                                                     }
+						
+						
+							function Animal(name,weight){                                 function Gorila(name,weigth){
+								this.name = name;                                               Animal.call(this,name,weight);
+								this.weight = weight;                                      }
+							}                                                             Gorila.prototype = Object.create(Animal.prototype);
+							                                                              Gorila.prototype,constructor = Gorila;      
+							Animail.prototype.eat = function(){.....};                    Gorila.prototype.climbTrees = function(){...};
+																						  Gorila.prototype.showVigour = function(){Animal.prototype.eat.call(this);}
+																						  
+												
+						IF WE DEFINE METHODS INSIDE THE CONSTRUCTOR IS THE SAME THING AS DEFINE METHODS INSIDE THE INSTANCE INSTEAD OF THE PROTOTYPE.
+						DEFINING STATIC METHODS IS THE SAMETHING AS DEFINE METHODS INSIDE THE FUNCTION ITSELF!!!!
+												
+						Generators
+							Function that has the ability to stop in the middle of the execution and then continues from where it paused.
+								function* generate() {
+									console.log('invoked 1st time');
+									yield 1;
+									console.log('invoked 2nd time');
+									yield 2;
+								}
+								var gen = generate();
+								console.log(gen);
+								->Object[Generator]{}
+								let result = gen.next();
+								The Generator object returns another object with two properties (DONE AND VALUE) so Generator object is iterable!!!!
+								-> invoked 1st time
+								-> { value: 1, done: false }
+						Symbols(new primitive)
+							Sharing Symbols
+								ES6 provides you with the global symbol registry that allows you us to share symbols globally.
+								Symbol.for() -> First seearches for the symbol in the global registry!!!
+						Modules
+							Inline Script
+							Script Tags
+							Module Object and IIFE(Module Pattern)
+								JQuery example
+							CommonJS
+								Bring Javascript to server side
+								CommonJS is standardization organization.It is like ECMA or W3C.
+								module.exports = function add(a,b){
+									return a+b;
+								}
+								add.js -> File that contains the above code.
+								
+								var add = required('./add');
+								
+								Problem with CommonJS style is that it is synchronous.
+								
+								To transfer module syntax from server usage to browser it was used
+								AMD(Asynchronous Module Definition)
+								define(['add','reduce'],function(add,reduce){
+									return function(){...};
+								})
+								RequireJS implements AMD(IT IS A MODULE LOADER)!!!!
+								use the <script data-main="main" src="require.js"/>
+								Then the requise js will look for the file in the "data-main" attribute , in this case "main".js
+								
+								To use CommonJS style we could use Browserify(MODULE BUNDLE!!!!)
+								It is a command line tool , it require Node and NPM.
+							UMD
+							ES6
+								Webpack(IT IS A MODULE BUNDLER)
+								It works with CommonJS AMD and ES6 Modules
+								
+								
+								
+						Proxy
+						Reflection
+						for..of
+							Iterate over Iterable objects!!!!
+								Iteration protocol
+									iterable protocol
+										An object is iterable when it contains a method called [Symbol.iterator] that takes no arguments and returns an object which conforms to the iterator protocol
+									iterator protocol
+										An object is an iterator when it implements an interface that answers two questions :
+											Is there any element left ?
+											If there is,what is the element ?
+												Basically it when it has a nest() method that returns an object with two properties :
+													done:boolean
+													value:the current element
+													
+										Custom iterable
+											class Sequence{
+												constructor(start = 0 , end = Infinity , interval = 1){
+													this.start....
+												}
+												[Symbol.iterator](){
+													let counter = 0;
+													let nextIndex = this.start;
+													return {
+														next: () = >{
+															if(nextIndex < this.end){
+																let result = {value : nextIndex ,done : false};
+																nextIndex += this.interval;
+																counter++;
+																return result;
+															}
+															return {value : counter , done : true};
+														}
+													}	
+												}
+												};
+										}
+						Promises
 							
 							
 							
 							
 						
-			MODULES
+			
 		ANGULAR
+			COMPONENT ARCHITECTURE
+			SHADOW DOM
+				
 		JPA
 		REACT
 		GIT
